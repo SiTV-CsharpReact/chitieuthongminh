@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../types';
+import { Button } from './ui/button';
 
 interface CardItemProps {
   card: Card;
@@ -48,12 +50,17 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
       </div>
       
       <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 p-4">
-        <Link 
-            to={`/card/${card.id}`}
-            className="flex w-full items-center justify-center rounded-xl bg-primary-500 py-3 text-sm font-bold text-white transition-all hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/20 dark:hover:shadow-none"
-        >
-          Mở thẻ ngay
-        </Link>
+        <div className="grid grid-cols-2 gap-3">
+            <Button variant="outline" className="w-full font-bold bg-white dark:bg-slate-900">
+                <span className="material-symbols-outlined mr-1 text-lg">compare_arrows</span>
+                So sánh
+            </Button>
+            <Link to={`/card/${card.id}`} className="w-full">
+                <Button className="w-full font-bold">
+                    Chi tiết thẻ
+                </Button>
+            </Link>
+        </div>
       </div>
     </div>
   );

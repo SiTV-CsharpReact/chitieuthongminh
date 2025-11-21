@@ -1,3 +1,4 @@
+
 export interface Card {
   id: string;
   bankName: string;
@@ -47,4 +48,26 @@ export interface UserProfile {
   name: string;
   email: string;
   theme: 'light' | 'dark';
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
+export interface UserSettings {
+  notifications: {
+    email: boolean;
+    push: boolean;
+    promotions: boolean;
+  };
+  security: {
+    twoFactor: boolean;
+  };
+  preferences: {
+    language: string;
+    currency: string;
+  };
 }

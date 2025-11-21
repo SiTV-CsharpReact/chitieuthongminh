@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { ExpenseCategory } from '../types';
@@ -20,11 +21,24 @@ const availableIcons = [
   'checkroom', 'local_hospital', 'smartphone', 'wifi'
 ];
 
+const analysisSteps = [
+  "Đang tổng hợp dữ liệu chi tiêu...",
+  "Phân tích thói quen mua sắm của bạn...",
+  "Quét dữ liệu 50+ thẻ tín dụng hàng đầu...",
+  "Tính toán tỷ lệ hoàn tiền tối ưu...",
+  "Đang tạo đề xuất cá nhân hóa..."
+];
+
 const InputExpenses: React.FC = () => {
   const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatIcon, setNewCatIcon] = useState(availableIcons[0]);
+  
+  // AI Analysis State
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+
   const navigate = useNavigate();
 
   const toggleEdit = (id: string) => {
@@ -34,8 +48,6 @@ const InputExpenses: React.FC = () => {
   };
 
   const updateAmount = (id: string, val: string) => {
-    // Replace all non-numeric characters (\D) to handle different locales (dots vs commas)
-    // This prevents issues where "2.222" becomes just "2" when parsed
     const rawValue = val.replace(/\D/g, '');
     const num = parseInt(rawValue, 10) || 0;
     
@@ -53,13 +65,32 @@ const InputExpenses: React.FC = () => {
       name: newCatName,
       icon: newCatIcon,
       amount: 0,
-      isEditing: true // Automatically open edit mode for amount
+      isEditing: true 
     };
     
     setCategories([...categories, newCategory]);
     setShowAddModal(false);
     setNewCatName('');
     setNewCatIcon(availableIcons[0]);
+  };
+
+  const handleAnalyzeAndNavigate = () => {
+    setIsAnalyzing(true);
+    setCurrentStep(0);
+    
+    // Simulate analysis steps
+    const stepInterval = setInterval(() => {
+        setCurrentStep(prev => {
+            if (prev < analysisSteps.length - 1) return prev + 1;
+            return prev;
+        });
+    }, 800);
+
+    // Navigate after 4 seconds
+    setTimeout(() => {
+        clearInterval(stepInterval);
+        navigate('/recommendations');
+    }, 4000);
   };
 
   const totalAmount = categories.reduce((sum, cat) => sum + cat.amount, 0);
@@ -150,7 +181,7 @@ const InputExpenses: React.FC = () => {
 
             <div className="mt-10 flex justify-center">
               <button 
-                onClick={() => navigate('/recommendations')}
+                onClick={handleAnalyzeAndNavigate}
                 className="group flex w-full sm:w-auto items-center justify-center gap-3 rounded-2xl bg-primary-500 h-16 px-10 text-lg font-bold text-white transition-all shadow-xl shadow-primary-500/30 hover:bg-primary-600 hover:scale-105 hover:shadow-2xl hover:shadow-primary-500/40"
               >
                 Xem đề xuất thẻ
@@ -163,7 +194,7 @@ const InputExpenses: React.FC = () => {
         {/* Add Category Modal */}
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
+            <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
             <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 transform transition-all scale-100">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Thêm danh mục mới</h3>
               
@@ -214,6 +245,42 @@ const InputExpenses: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* AI Analysis Loading Overlay */}
+        {isAnalyzing && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl transition-all duration-500">
+            <div className="flex flex-col items-center text-center p-8 max-w-lg">
+                {/* Animated Icon */}
+                <div className="relative mb-10">
+                    <div className="absolute inset-0 rounded-full bg-primary-500 blur-3xl opacity-20 animate-pulse"></div>
+                    <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl ring-4 ring-primary-500/20">
+                        <span className="material-symbols-outlined text-5xl text-primary-500 animate-pulse">auto_awesome</span>
+                    </div>
+                    {/* Orbiting particles */}
+                    <div className="absolute top-0 left-0 h-full w-full animate-spin-slow">
+                        <div className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rounded-full bg-primary-500 shadow-lg shadow-primary-500/50"></div>
+                    </div>
+                </div>
+
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">
+                    AI đang phân tích
+                </h2>
+                
+                {/* Animated Text Steps */}
+                <div className="h-8 mb-8">
+                    <p className="text-lg font-medium text-primary-600 dark:text-primary-400 animate-fade-in key={currentStep}">
+                        {analysisSteps[currentStep]}
+                    </p>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-64 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-primary-500 to-primary-400 animate-progress-loading rounded-full"></div>
+                </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );

@@ -1,7 +1,11 @@
+
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { CardItem } from '../components/CardItem';
 import { Card } from '../types';
+import { useCompare } from '../context/CompareContext';
+import { Button } from '../components/ui/button';
 
 const mockCards: Card[] = [
   {
@@ -56,107 +60,163 @@ const mockCards: Card[] = [
 ];
 
 const Recommendations: React.FC = () => {
+  const { selectedCards, clearCompare } = useCompare();
+  const navigate = useNavigate();
+
   return (
     <>
       <Header />
-      <main className="flex-grow pt-32 px-4 pb-16 sm:px-8 md:px-16 lg:px-24 xl:px-40">
-        <div className="mx-auto max-w-[1440px]">
+      <main className="flex-grow pt-32 px-4 pb-16 sm:px-8 md:px-16 lg:px-24 xl:px-40 bg-slate-50 dark:bg-[#0f0f0f] min-h-screen">
+        <div className="mx-auto max-w-5xl">
           
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 mb-3">
-              Đề xuất thẻ tín dụng dành cho bạn
-            </h1>
-            <p className="text-lg font-normal text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
-              Dựa trên chi tiêu hàng tháng, đây là những thẻ tốt nhất giúp bạn tối ưu hóa dòng tiền.
-            </p>
-          </div>
-
-          {/* Filters */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm mb-10">
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 items-end">
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" htmlFor="bank-filter">Ngân hàng</label>
-                <div className="relative">
-                    <select className="w-full appearance-none rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500" id="bank-filter">
-                    <option>Tất cả</option>
-                    <option>VPBank</option>
-                    <option>Techcombank</option>
-                    <option>VIB</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                        <span className="material-symbols-outlined text-lg">expand_more</span>
-                    </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" htmlFor="type-filter">Loại thẻ</label>
-                <div className="relative">
-                    <select className="w-full appearance-none rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500" id="type-filter">
-                    <option>Tất cả</option>
-                    <option>Cashback</option>
-                    <option>Travel</option>
-                    <option>Rewards</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                        <span className="material-symbols-outlined text-lg">expand_more</span>
-                    </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" htmlFor="fee-filter">Phí thường niên</label>
-                <div className="relative">
-                    <select className="w-full appearance-none rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500" id="fee-filter">
-                    <option>Tất cả</option>
-                    <option>Miễn phí</option>
-                    <option>&lt; 1 triệu</option>
-                    <option>&gt; 1 triệu</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                        <span className="material-symbols-outlined text-lg">expand_more</span>
-                    </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" htmlFor="offer-filter">Ưu đãi</label>
-                <div className="relative">
-                    <select className="w-full appearance-none rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500" id="offer-filter">
-                    <option>Tất cả</option>
-                    <option>Hoàn tiền</option>
-                    <option>Trả góp 0%</option>
-                    <option>Phòng chờ</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                        <span className="material-symbols-outlined text-lg">expand_more</span>
-                    </div>
-                </div>
-              </div>
-
-              <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-500 py-2.5 text-sm font-bold text-white transition-all hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/20 active:scale-95">
-                <span className="material-symbols-outlined text-lg">filter_alt</span>
-                Lọc kết quả
-              </button>
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+            <div>
+                <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 mb-2">
+                Đề xuất dành riêng cho bạn
+                </h1>
+                <p className="text-lg text-slate-500 dark:text-slate-400 max-w-xl">
+                Chúng tôi tìm thấy <strong className="text-primary-500">3 thẻ</strong> phù hợp nhất với hồ sơ chi tiêu của bạn.
+                </p>
+            </div>
+            <div className="flex gap-2">
+                <button className="px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                    Sắp xếp: Phù hợp nhất
+                </button>
             </div>
           </div>
 
-          {/* Grid */}
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {/* Filters Bar */}
+          <div className="rounded-3xl bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-800 p-5 mb-10 shadow-sm">
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-lg">filter_list</span>
+                    Bộ lọc tìm kiếm
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {/* Bank Filter */}
+                    <div className="relative group min-w-fit">
+                        <select className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer transition-all">
+                            <option>Tất cả ngân hàng</option>
+                            <option>VPBank</option>
+                            <option>Techcombank</option>
+                            <option>VIB</option>
+                            <option>HSBC</option>
+                            <option>Citibank</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none text-slate-400">expand_more</span>
+                    </div>
+
+                    {/* Card Type Filter */}
+                    <div className="relative group min-w-fit">
+                        <select className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer transition-all">
+                            <option>Loại thẻ</option>
+                            <option>Hoàn tiền (Cashback)</option>
+                            <option>Tích điểm (Rewards)</option>
+                            <option>Du lịch (Travel)</option>
+                            <option>Rút tiền mặt</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none text-slate-400">expand_more</span>
+                    </div>
+
+                    {/* Income Filter */}
+                    <div className="relative group min-w-fit">
+                        <select className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer transition-all">
+                            <option>Thu nhập yêu cầu</option>
+                            <option>Dưới 10 triệu</option>
+                            <option>10 - 20 triệu</option>
+                            <option>20 - 50 triệu</option>
+                            <option>Trên 50 triệu</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none text-slate-400">expand_more</span>
+                    </div>
+
+                    {/* Network Filter */}
+                    <div className="relative group min-w-fit">
+                        <select className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer transition-all">
+                            <option>Tổ chức thẻ</option>
+                            <option>Visa</option>
+                            <option>Mastercard</option>
+                            <option>JCB</option>
+                            <option>American Express</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none text-slate-400">expand_more</span>
+                    </div>
+
+                    {/* Fee Filter */}
+                    <div className="relative group min-w-fit">
+                        <select className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer transition-all">
+                            <option>Phí thường niên</option>
+                            <option>Miễn phí trọn đời</option>
+                            <option>Miễn phí năm đầu</option>
+                            <option>Dưới 1 triệu</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none text-slate-400">expand_more</span>
+                    </div>
+                    
+                     {/* Offer Filter */}
+                     <div className="relative group min-w-fit">
+                        <select className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer transition-all">
+                            <option>Ưu đãi đặc biệt</option>
+                            <option>Trả góp 0%</option>
+                            <option>Phòng chờ sân bay</option>
+                            <option>Bảo hiểm du lịch</option>
+                            <option>Quà tặng mở thẻ</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none text-slate-400">expand_more</span>
+                    </div>
+                </div>
+            </div>
+          </div>
+
+          {/* List Layout for Horizontal Cards */}
+          <div className="flex flex-col gap-6 pb-20">
             {mockCards.map(card => (
               <CardItem key={card.id} card={card} />
             ))}
           </div>
 
           {/* Load More */}
-          <div className="mt-16 flex items-center justify-center">
-            <button className="flex items-center justify-center gap-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-8 py-3 text-base font-bold text-slate-600 dark:text-slate-300 transition-all hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md">
-              Tải thêm
+          <div className="mt-12 mb-20 flex items-center justify-center">
+            <button className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-8 py-3 text-sm font-bold text-slate-600 dark:text-slate-400 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 shadow-sm">
+              Hiển thị thêm 5 thẻ khác
               <span className="material-symbols-outlined">expand_more</span>
             </button>
           </div>
 
         </div>
+
+        {/* Floating Comparison Bar */}
+        <div 
+            className={`fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-40 transition-all duration-500 ease-in-out ${selectedCards.length > 0 ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0'}`}
+        >
+            <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-900 dark:bg-white p-4 shadow-2xl shadow-slate-900/20 ring-1 ring-slate-200 dark:ring-slate-800">
+                <div className="flex items-center gap-3 pl-2">
+                    <div className="flex items-center -space-x-3">
+                        {selectedCards.map((card) => (
+                            <div key={card.id} className="h-10 w-10 rounded-full border-2 border-slate-900 dark:border-white overflow-hidden bg-white">
+                                <img src={card.image} alt={card.name} className="h-full w-full object-cover" />
+                            </div>
+                        ))}
+                        {Array.from({ length: Math.max(0, 3 - selectedCards.length) }).map((_, i) => (
+                            <div key={`empty-${i}`} className="h-10 w-10 rounded-full border-2 border-slate-900 dark:border-white bg-slate-800 dark:bg-slate-100 flex items-center justify-center">
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{i + 1 + selectedCards.length}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-white dark:text-slate-900">Đã chọn {selectedCards.length}/3</span>
+                        <button onClick={clearCompare} className="text-xs text-slate-400 dark:text-slate-500 hover:underline text-left">Xóa tất cả</button>
+                    </div>
+                </div>
+                <Button 
+                    onClick={() => navigate('/compare')}
+                    className="rounded-xl bg-primary-500 text-white hover:bg-primary-600 px-6"
+                >
+                    So sánh ngay
+                </Button>
+            </div>
+        </div>
+
       </main>
     </>
   );

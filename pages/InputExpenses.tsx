@@ -12,8 +12,19 @@ const initialCategories: ExpenseCategory[] = [
   { id: 'entertainment', name: 'Giải trí', icon: 'movie', amount: 0, isEditing: false },
 ];
 
+const availableIcons = [
+  'shopping_cart', 'restaurant', 'shopping_bag', 'flight', 
+  'receipt_long', 'movie', 'directions_car', 'pets', 
+  'school', 'fitness_center', 'health_and_safety', 'home', 
+  'child_care', 'sports_esports', 'local_cafe', 'local_gas_station',
+  'checkroom', 'local_hospital', 'smartphone', 'wifi'
+];
+
 const InputExpenses: React.FC = () => {
   const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState(availableIcons[0]);
   const navigate = useNavigate();
 
   const toggleEdit = (id: string) => {
@@ -23,46 +34,70 @@ const InputExpenses: React.FC = () => {
   };
 
   const updateAmount = (id: string, val: string) => {
-    const num = parseInt(val.replace(/,/g, ''), 10) || 0;
+    // Replace all non-numeric characters (\D) to handle different locales (dots vs commas)
+    // This prevents issues where "2.222" becomes just "2" when parsed
+    const rawValue = val.replace(/\D/g, '');
+    const num = parseInt(rawValue, 10) || 0;
+    
     setCategories(categories.map(c => 
       c.id === id ? { ...c, amount: num } : c
     ));
   };
+
+  const handleAddCategory = () => {
+    if (!newCatName.trim()) return;
+    
+    const newId = `cat_${Date.now()}`;
+    const newCategory: ExpenseCategory = {
+      id: newId,
+      name: newCatName,
+      icon: newCatIcon,
+      amount: 0,
+      isEditing: true // Automatically open edit mode for amount
+    };
+    
+    setCategories([...categories, newCategory]);
+    setShowAddModal(false);
+    setNewCatName('');
+    setNewCatIcon(availableIcons[0]);
+  };
+
+  const totalAmount = categories.reduce((sum, cat) => sum + cat.amount, 0);
 
   return (
     <>
       <Header transparent />
       <div className="relative min-h-screen flex flex-col">
         {/* Header Gradient */}
-        <div className="absolute top-0 left-0 w-full h-[350px] bg-gradient-to-b from-primary-100/50 to-slate-50 -z-10"></div>
+        <div className="absolute top-0 left-0 w-full h-[350px] bg-gradient-to-b from-primary-100/50 to-slate-50 dark:from-primary-900/10 dark:to-slate-950 -z-10"></div>
         
         <main className="flex-grow px-4 sm:px-8 pt-28 pb-16">
           <div className="mx-auto max-w-3xl">
             <div className="text-center mb-12">
-              <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-slate-900 mb-4">
+              <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 mb-4">
                 Nhập Chi Tiêu Hàng Tháng
               </h1>
-              <p className="text-lg text-slate-500 font-medium max-w-xl mx-auto">
+              <p className="text-lg text-slate-500 dark:text-slate-400 font-medium max-w-xl mx-auto">
                 Cung cấp thông tin chi tiêu để nhận được đề xuất thẻ tín dụng tốt nhất cho bạn.
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 sm:p-10 shadow-xl shadow-slate-200/50 ring-1 ring-slate-100">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-10 shadow-xl shadow-slate-200/50 dark:shadow-none ring-1 ring-slate-100 dark:ring-slate-800">
               <div className="space-y-8">
                 {categories.map((cat) => (
-                  <div key={cat.id} className="flex items-center justify-between border-b border-slate-100 pb-6 last:border-0 last:pb-0 animate-fade-in-up">
+                  <div key={cat.id} className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6 last:border-0 last:pb-0 animate-fade-in-up">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 text-primary-500">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-500">
                         <span className="material-symbols-outlined text-2xl">{cat.icon}</span>
                       </div>
-                      <span className="text-lg font-bold text-slate-800">{cat.name}</span>
+                      <span className="text-lg font-bold text-slate-800 dark:text-slate-200">{cat.name}</span>
                     </div>
 
                     {cat.isEditing ? (
                        <div className="relative w-40 sm:w-56 group">
                         <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-medium group-focus-within:text-primary-500 transition-colors">VND</span>
                         <input 
-                          className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-3 pl-14 pr-4 text-right font-bold text-slate-900 placeholder:text-slate-300 focus:border-primary-500 focus:bg-white focus:ring-0 transition-all outline-none"
+                          className="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-3 pl-14 pr-4 text-right font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:border-primary-500 dark:focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-0 transition-all outline-none"
                           placeholder="0" 
                           type="text"
                           value={cat.amount > 0 ? cat.amount.toLocaleString() : ''}
@@ -73,7 +108,7 @@ const InputExpenses: React.FC = () => {
                     ) : (
                       <button 
                         onClick={() => toggleEdit(cat.id)}
-                        className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${cat.amount > 0 ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-500/20'}`}
+                        className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${cat.amount > 0 ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-500/20'}`}
                       >
                         {cat.amount > 0 ? (
                            <>
@@ -88,9 +123,25 @@ const InputExpenses: React.FC = () => {
                   </div>
                 ))}
               </div>
+              
+              {/* Total Row */}
+              <div className="flex items-center justify-between border-t-2 border-slate-100 dark:border-slate-800 pt-6 mt-6">
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg">
+                    <span className="material-symbols-outlined text-2xl">functions</span>
+                    </div>
+                    <span className="text-xl font-black text-slate-900 dark:text-white">Tổng chi tiêu</span>
+                </div>
+                <div className="text-xl font-black text-primary-600 dark:text-primary-400">
+                    {totalAmount.toLocaleString()} VND
+                </div>
+              </div>
 
-              <div className="mt-10 pt-8 border-t border-dashed border-slate-200">
-                <button className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 py-4 text-base font-bold text-slate-500 transition-all hover:border-primary-500 hover:text-primary-600 hover:bg-primary-50">
+              <div className="mt-10 pt-8 border-t border-dashed border-slate-200 dark:border-slate-800">
+                <button 
+                  onClick={() => setShowAddModal(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 py-4 text-base font-bold text-slate-500 dark:text-slate-400 transition-all hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
+                >
                   <span className="material-symbols-outlined">add_circle</span>
                   Thêm danh mục khác
                 </button>
@@ -108,6 +159,61 @@ const InputExpenses: React.FC = () => {
             </div>
           </div>
         </main>
+
+        {/* Add Category Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
+            <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 transform transition-all scale-100">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Thêm danh mục mới</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Tên danh mục</label>
+                  <input 
+                    type="text"
+                    className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                    placeholder="VD: Mua sắm online, Xăng xe..."
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Biểu tượng</label>
+                  <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1">
+                    {availableIcons.map(icon => (
+                      <button
+                        key={icon}
+                        onClick={() => setNewCatIcon(icon)}
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg transition-all ${newCatIcon === icon ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30 scale-110' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                      >
+                        <span className="material-symbols-outlined text-xl">{icon}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex gap-3">
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  onClick={handleAddCategory}
+                  className="flex-1 rounded-xl bg-primary-500 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!newCatName.trim()}
+                >
+                  Thêm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

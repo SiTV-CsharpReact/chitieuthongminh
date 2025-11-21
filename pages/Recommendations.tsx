@@ -63,21 +63,21 @@ const Recommendations: React.FC = () => {
         <div className="mx-auto max-w-[1440px]">
           
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-900 mb-3">
+            <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 mb-3">
               Đề xuất thẻ tín dụng dành cho bạn
             </h1>
-            <p className="text-lg font-normal text-slate-500 max-w-2xl mx-auto">
+            <p className="text-lg font-normal text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
               Dựa trên chi tiêu hàng tháng, đây là những thẻ tốt nhất giúp bạn tối ưu hóa dòng tiền.
             </p>
           </div>
 
           {/* Filters */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-10">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm mb-10">
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 items-end">
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="bank-filter">Ngân hàng</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" htmlFor="bank-filter">Ngân hàng</label>
                 <div className="relative">
-                    <select className="w-full appearance-none rounded-xl border-slate-200 bg-slate-50 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 focus:border-primary-500 focus:bg-white focus:ring-primary-500" id="bank-filter">
+                    <select className="w-full appearance-none rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500" id="bank-filter">
                     <option>Tất cả</option>
                     <option>VPBank</option>
                     <option>Techcombank</option>
@@ -90,9 +90,9 @@ const Recommendations: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="type-filter">Loại thẻ</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" htmlFor="type-filter">Loại thẻ</label>
                 <div className="relative">
-                    <select className="w-full appearance-none rounded-xl border-slate-200 bg-slate-50 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 focus:border-primary-500 focus:bg-white focus:ring-primary-500" id="type-filter">
+                    <select className="w-full appearance-none rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500" id="type-filter">
                     <option>Tất cả</option>
                     <option>Cashback</option>
                     <option>Travel</option>
@@ -105,9 +105,9 @@ const Recommendations: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="fee-filter">Phí thường niên</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" htmlFor="fee-filter">Phí thường niên</label>
                 <div className="relative">
-                    <select className="w-full appearance-none rounded-xl border-slate-200 bg-slate-50 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 focus:border-primary-500 focus:bg-white focus:ring-primary-500" id="fee-filter">
+                    <select className="w-full appearance-none rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500" id="fee-filter">
                     <option>Tất cả</option>
                     <option>Miễn phí</option>
                     <option>&lt; 1 triệu</option>
@@ -120,9 +120,9 @@ const Recommendations: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="offer-filter">Ưu đãi</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" htmlFor="offer-filter">Ưu đãi</label>
                 <div className="relative">
-                    <select className="w-full appearance-none rounded-xl border-slate-200 bg-slate-50 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 focus:border-primary-500 focus:bg-white focus:ring-primary-500" id="offer-filter">
+                    <select className="w-full appearance-none rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-8 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500" id="offer-filter">
                     <option>Tất cả</option>
                     <option>Hoàn tiền</option>
                     <option>Trả góp 0%</option>
@@ -150,7 +150,7 @@ const Recommendations: React.FC = () => {
 
           {/* Load More */}
           <div className="mt-16 flex items-center justify-center">
-            <button className="flex items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-8 py-3 text-base font-bold text-slate-600 transition-all hover:border-primary-500 hover:text-primary-600 hover:shadow-md">
+            <button className="flex items-center justify-center gap-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-8 py-3 text-base font-bold text-slate-600 dark:text-slate-300 transition-all hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md">
               Tải thêm
               <span className="material-symbols-outlined">expand_more</span>
             </button>

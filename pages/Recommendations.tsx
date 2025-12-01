@@ -6,14 +6,16 @@ import { CardItem } from '../components/CardItem';
 import { Card } from '../types';
 import { useCompare } from '../context/CompareContext';
 import { Button } from '../components/ui/button';
-
+import imageVIB from '../public/VIBBusinessCard.webp'
+import imageVPB from '../public/VPBStepup.jpg'
+import imageTCB from '../public/TCBSpark.png'
 const mockCards: Card[] = [
   {
     id: 'vpbank-stepup',
     bankName: 'VPBank',
     bankLogo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_jTvjRN5bCAXkS5-W4fCvaKDKdcMAwbn3Y8C3Y5I1_KCGsgSNdRqIVBYZiKBM2M_WiicRyC-A3v3xSA_aQjuMeEjavdO58Z9MzukaaF03MAahaDfd6Kw6Q_wlDnx6mrqjY4DaJBBk6mvKSC_FcvdYj53XRiLezvjPKCiIkI8k5PiUzqzgZnK1w87w971kaRVS23D2Uz0RtpvNg-8Be_yXPTSHgGmRLfuVxIUiUdN6Zwn6QvsUdBbevFZbfYCkoNkZ5Bhc8s-PeNN9',
     name: 'VPBank StepUP',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC3stPn7feWNJ1BrnWyVPbCNE7JruRX8xSWedHlGUtk1L3wYCOfo6slieggrpIiB3y1DuhKRYVjqf9cuyiRJNRKM7EY9pd1_HsQJGsZI_AmGGRQCJe42wqd3XVIxmC7IcbPr1x8wCDCwYQbPFiVdB0beziRc4_ohjun9MKJvLRUjmc2ppNBsTCZbo3gBrcPHfejRF__4SfHknoJBy-MqXMsNGlbOCiqYb76gUoPmgsOr9T-KyQdyZhpZj0k89Viseuw6X1-lU0GrIo4',
+    image: imageVPB,
     description: 'Hoàn tiền đến 15% cho mua sắm online, ăn uống và xem phim. Lựa chọn hàng đầu cho giới trẻ năng động.',
     annualFee: '600.000 VND',
     annualFeeNum: 600000,
@@ -30,7 +32,7 @@ const mockCards: Card[] = [
     bankName: 'Techcombank',
     bankLogo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAFtdONBHroe2NyZL8vwRV6e-1caA_std_a45grqRvS4uTPzqSHhaGJu8EfnahrUoI56YmXf3hEtL6RRI2ECNYlPYFUNveAOl4m6jnIEOHEwdRHrXTrglTaFOy6dIbpXPRq-ZBAK8xtp_p_uNkE7HCaqnvqnaArLiQf6GU0k5RlcqMhDC18LJBIIKVgJZraOqRzpHzyx9QwpbHrnnmM84iSc2ZhXB0SO5dboZSACHevEuiCN6r_l7O0jp5B27n7085ZINso4jTTBLpG',
     name: 'Techcombank Style',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAsySNzIVaNIfAJgXFJ_b9NGJCccPQWpkeaJ48aJr2vus5GZ55pt8wavT8Htiw2zA9CK8UgXOYIxHgseWZ_ihN0wgiC8Yp6wO2jQYy7fpc7IrxqK00__Eu4wgkwD8YN61H8mVhkVvmmzYPz2vszyCxUUhNEYgspc5s5GLnXroq3VBRDsDQgxRgyKRpDj0r0CroaJs9wiG487V2m4vJa-dbVi2QV-m177Aqqr_LoWKV3hSXkvssypADp6VY_SVDgrVgz_ih_UHMBPcJn',
+    image: imageTCB,
     description: 'Hoàn tiền không giới hạn cho mọi chi tiêu, đặc biệt ưu đãi tại các nhà hàng cao cấp và dịch vụ spa.',
     annualFee: '999.000 VND',
     annualFeeNum: 999000,
@@ -46,7 +48,7 @@ const mockCards: Card[] = [
     bankName: 'VIB',
     bankLogo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAHj6MSPrGLZ-YUmWJhZOkMmzSOMIOIOZSlB3dfTEuL0ZPvgFXJl4o--itDervL1cO6HoBjFx54UxYm-_EUnVXzi52nlev3TJIMLInLxxSz4P7qSeVcF5Gg5r5idEMMBuuTO5A6r874mPSrCPaUJvxZJ7xX8XqlFZgcN28tQi5uTvheSFjgl2qpAYFjwI3rcApQ-J-smwB9UtiYoi-EnvCMUjMf7mSJ1j3ZC49YgenvscvyKZaRirnpIfxDxoVx692cu8uq1cS7wIPv',
     name: 'VIB Online Plus 2in1',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC2lH_-lWuZz7UFElO8jYWV_iQbW_u-NJT9pPFkmzCup0ipTHuvlvkKj0ycVZbKCJXLYSPoy9DURcT2qSWDQ3wBkjDNxMVqU9iJn_Qaww_Xw533pwvLze94lYs5V4R0c_xYXZ_JMXu6eBUBoJu8DveFIWD3gA4Up2VW6uY7RXVa7Y4l__g8AIkK_UIkZXCNbwMId6-KHdAYEHYVU7bkM2Dkrjkk7MUzM0ePHON-pYTxH8ciP_8R8rFYjnjrP6Ibm423gxwNZyNwV1Hp',
+    image: imageVIB,
     description: 'Tích hợp thẻ tín dụng và thẻ thanh toán. Hoàn tiền vượt trội cho các giao dịch trực tuyến.',
     annualFee: 'Miễn phí năm đầu',
     annualFeeNum: 0,

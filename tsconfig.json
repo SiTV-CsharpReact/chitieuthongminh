@@ -4,6 +4,7 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
+    "include": ["declarations.d.ts", "src/**/*"],
     "lib": [
       "ES2022",
       "DOM",

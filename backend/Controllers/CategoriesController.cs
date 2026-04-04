@@ -71,4 +71,11 @@ public class CategoriesController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPost("seed-mcc")]
+    public async Task<IActionResult> SeedMcc()
+    {
+        await _categoryService.SeedMccAsync();
+        return Ok(new { message = "Seeded MCC and standard Categories successfully." });
+    }
 }

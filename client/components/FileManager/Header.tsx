@@ -34,15 +34,15 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, onUpload, 
     };
 
     return (
-        <header className="flex items-center justify-between border-b border-solid border-[#f2f2f2] px-6 py-4 shrink-0 bg-white">
+        <header className="flex items-center justify-between border-b border-solid border-[#f2f2f2] dark:border-slate-800 px-6 py-4 shrink-0 bg-white dark:bg-slate-900">
             <div className="flex items-center gap-8 flex-1">
-                <h2 className="text-lg font-bold text-black tracking-tight">Quản Lý Hình Ảnh</h2>
+                <h2 className="text-lg font-bold text-black dark:text-white tracking-tight">Quản Lý Hình Ảnh</h2>
                 <div className="flex flex-col max-w-sm w-full relative">
-                    <div className="flex w-full items-center bg-[#f2f2f2] rounded-lg px-4 h-10 focus-within:bg-white focus-within:ring-1 focus-within:ring-black/10 transition-all">
-                        <SearchOutlined className="text-[#757575] text-base mr-3" />
+                    <div className="flex w-full items-center bg-[#f2f2f2] dark:bg-slate-800 rounded-lg px-4 h-10 focus-within:bg-white focus-within:dark:bg-slate-950 focus-within:ring-1 focus-within:ring-black/10 transition-all">
+                        <SearchOutlined className="text-[#757575] dark:text-slate-400 text-base mr-3" />
                         <input
                             type="text"
-                            className="w-full bg-transparent border-none focus:ring-0 text-sm placeholder:text-[#757575]"
+                            className="w-full bg-transparent border-none focus:ring-0 text-sm placeholder:text-[#757575] dark:placeholder:text-slate-500 text-slate-900 dark:text-white outline-none"
                             placeholder="Tìm kiếm ảnh..."
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
@@ -57,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, onUpload, 
                         e.preventDefault();
                         onCreateFolder();
                     }}
-                    className="flex min-w-[140px] cursor-pointer items-center justify-center gap-2 rounded-lg h-10 px-4 border border-[#e5e5e5] bg-white text-black text-sm font-semibold hover:bg-[#f9f9f9] transition-all"
+                    className="flex min-w-[140px] cursor-pointer items-center justify-center gap-2 rounded-lg h-10 px-4 border border-[#e5e5e5] dark:border-slate-700 bg-white dark:bg-slate-800 text-black dark:text-white text-sm font-semibold hover:bg-[#f9f9f9] dark:hover:bg-slate-700 transition-all"
                 >
                     <FolderAddOutlined className="text-base" />
                     <span>Thư Mục Mới</span>
@@ -81,14 +81,14 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, onUpload, 
                     onChange={handleFileChange}
                     accept="image/*"
                 />
-                <div className="h-6 w-[1px] bg-[#f2f2f2] mx-2"></div>
+                <div className="h-6 w-[1px] bg-[#f2f2f2] dark:bg-slate-800 mx-2"></div>
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
                         onClose();
                     }}
-                    className="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-[#f2f2f2] text-black hover:bg-[#e5e5e5] transition-all"
+                    className="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-[#f2f2f2] dark:bg-slate-800 text-black dark:text-slate-300 hover:bg-[#e5e5e5] dark:hover:bg-slate-700 transition-all"
                 >
                     <CloseOutlined className="text-base" />
                 </button>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cardApi, categoryApi } from '../services/api';
+import { BankScraperModal } from '../components/BankScraperModal';
 import { Card as CreditCard, CashbackRule, Category } from '../types';
 
 const AdminCards: React.FC = () => {
@@ -7,6 +8,7 @@ const AdminCards: React.FC = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentCard, setCurrentCard] = useState<CreditCard | null>(null);
     const [showModal, setShowModal] = useState(false);
+    const [isScraperOpen, setIsScraperOpen] = useState(false);
 
     // Form state
     const [name, setName] = useState('');
@@ -371,7 +373,17 @@ const AdminCards: React.FC = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1">URL Hình ảnh</label>
+                                    <div className="flex justify-between items-center ml-1">
+                                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">URL Hình ảnh</label>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setIsScraperOpen(true)}
+                                            className="text-primary-500 hover:text-primary-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                                            Clone từ VIB
+                                        </button>
+                                    </div>
                                     <input
                                         type="text"
                                         value={imageUrl}
@@ -467,6 +479,28 @@ const AdminCards: React.FC = () => {
                     </div>
                 </div>
             )}
+            <BankScraperModal 
+                isOpen={isScraperOpen} 
+                onClose={() => setIsScraperOpen(false)} 
+                onSelectImage={(url, cardName) => {
+                    setImageUrl(url);
+                    if (!name) setName(cardName);
+                    if (!bank) setBank('VIB');
+                    setIsScraperOpen(false);
+                }} 
+                onSelectCashback={(info) => {
+                    if (info.suggestedPercentage != null) {
+                        setCashbackRules(prev => [...prev, {
+                            category: 'Tự động bóc',
+                            percentage: info.suggestedPercentage!,
+                            capAmount: info.suggestedCap
+                        }]);
+                    }
+                    if (info.text) {
+                        setBenefits(prev => [...prev, info.text]);
+                    }
+                }}
+            />
         </div>
     );
 };

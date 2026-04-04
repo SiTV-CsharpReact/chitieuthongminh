@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoginModalOpen: boolean;
-  login: (email: string) => void;
+  login: (email: string, password?: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
   openLoginModal: () => void;
@@ -19,37 +19,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  // Simulate checking local storage on load
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  const checkAuth = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await fetch('http://localhost:5291/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data);
+      } else {
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    } catch (err) {
+      console.error('Check auth failed', err);
     }
+  };
+
+  useEffect(() => {
+    checkAuth();
   }, []);
 
-  const login = (email: string) => {
-    // Mock login - in a real app this would verify credentials
-    const newUser: User = {
-      id: 'user_123',
-      name: email.split('@')[0], // Default name from email
-      email: email,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC3stPn7feWNJ1BrnWyVPbCNE7JruRX8xSWedHlGUtk1L3wYCOfo6slieggrpIiB3y1DuhKRYVjqf9cuyiRJNRKM7EY9pd1_HsQJGsZI_AmGGRQCJe42wqd3XVIxmC7IcbPr1x8wCDCwYQbPFiVdB0beziRc4_ohjun9MKJvLRUjmc2ppNBsTCZbo3gBrcPHfejRF__4SfHknoJBy-MqXMsNGlbOCiqYb76gUoPmgsOr9T-KyQdyZhpZj0k89Viseuw6X1-lU0GrIo4' // Mock Avatar
-    };
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setIsLoginModalOpen(false); // Close modal on successful login
+  const login = async (email: string, password?: string) => {
+    if (!password) {
+        // Fallback for oauth mock
+        password = "placeholder";
+    }
+
+    const response = await fetch('http://localhost:5291/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || 'Login failed');
+    }
+
+    const data = await response.json();
+    localStorage.setItem('token', data.token);
+    await checkAuth();
+    setIsLoginModalOpen(false);
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const updateUser = (data: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 

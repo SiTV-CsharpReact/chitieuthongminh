@@ -1,0 +1,112 @@
+[
+  {
+    "Title": "Shopee",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20250227175359486_shopee.jpg",
+    "DiscountRate": "- 20%",
+    "Description": "Ưu đãi 1: Giảm 20% (tối đa 100.000 VNĐ) cho đơn hàng từ 400.000 VNĐ vào các ngày đặc biệt. Ưu đãi 2: Giảm 100.000 VNĐ cho đơn hàng từ 1.000.000 VNĐ vào các ngày thường.",
+    "StartDate": "2025-02-27",
+    "ValidUntil": "2026-12-31",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4395635",
+    "CategoryTab": "VIB shop",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Nha khoa Parkway",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20250423120217906_Banner_Parkway.jpg",
+    "DiscountRate": "- 50%",
+    "Description": "Giảm 50% tối đa 400.000 VNĐ cho tất cả các dịch vụ tại Parkway. Giảm thêm 300.000 VNĐ khi sử dụng dịch vụ niềng răng bất kỳ.",
+    "StartDate": "2025-04-23",
+    "ValidUntil": "2026-08-31",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4397749",
+    "CategoryTab": "VIB more",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Six Senses Ninh Vân Bay",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20241128182619713_six_senses.jpg",
+    "DiscountRate": "- 25%",
+    "Description": "Ưu đãi giảm 25% trên giá phòng công bố. Giảm 10% cho dịch vụ ăn uống và Spa. Áp dụng cho chủ thẻ tín dụng VIB.",
+    "StartDate": "2024-11-28",
+    "ValidUntil": "2026-12-31",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4389324",
+    "CategoryTab": "VIB travel",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Saigon Co.op",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20260401113958546_Banner_SG_co.op_(1).png",
+    "DiscountRate": "Hoàn tiền 50.000 VNĐ",
+    "Description": "Hoàn tiền 50.000 VNĐ cho hóa đơn từ 500.000 VNĐ khi thanh toán bằng thẻ VIB tại hệ thống Saigon Co.op.",
+    "StartDate": "2026-04-01",
+    "ValidUntil": "2026-09-30",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4411944",
+    "CategoryTab": "VIB shop",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Panasonic",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20250108193617838_20241209134441472_banner_Panasonic_batcheditor_fotor.jpg",
+    "DiscountRate": "- 30%",
+    "Description": "Giảm đến 30% khi mua các sản phẩm gia dụng Panasonic tại các đại lý ủy quyền và thanh toán bằng thẻ VIB.",
+    "StartDate": "2024-12-09",
+    "ValidUntil": "2026-12-31",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4390525",
+    "CategoryTab": "VIB shop",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Pullman Phú Quốc Beach Resort",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20240725161931837_pullman_2.jpeg",
+    "DiscountRate": "- 40%",
+    "Description": "Giảm 40% giá trị gói hội viên Pullman. Ưu đãi đặc biệt cho các dịch vụ lưu trú và ẩm thực tại resort.",
+    "StartDate": "2024-06-01",
+    "ValidUntil": "2026-12-20",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4336939",
+    "CategoryTab": "VIB travel",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Emirates",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20230922145324619_share-default.jpg",
+    "DiscountRate": "- 10%",
+    "Description": "Giảm 10% giá vé máy bay khởi hành từ Việt Nam cho các hạng ghế Thương gia và Phổ thông.",
+    "StartDate": "2023-09-22",
+    "ValidUntil": "2026-12-31",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4407107",
+    "CategoryTab": "VIB travel",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Grab",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20220701151719069_grab1.png",
+    "DiscountRate": "- 20.000 VNĐ",
+    "Description": "Giảm 20.000 VNĐ cho mỗi chuyến đi từ 50.000 VNĐ khi thanh toán qua Moca bằng thẻ VIB.",
+    "StartDate": "2022-07-01",
+    "ValidUntil": "2026-12-31",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4251379",
+    "CategoryTab": "VIB move",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Vietnam Airlines",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20241025171822394_vna.jpg",
+    "DiscountRate": "Dặm thưởng x2",
+    "Description": "Nhân đôi dặm thưởng Bông Sen Vàng cho mọi giao dịch chi tiêu nước ngoài bằng thẻ VIB Travel Elite.",
+    "StartDate": "2024-10-25",
+    "ValidUntil": "2026-06-30",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4381123",
+    "CategoryTab": "VIB travel",
+    "applicableCards": ["VIB World"]
+  },
+  {
+    "Title": "Traveloka",
+    "ImageUrl": "https://www.vib.com.vn/banners/Promotion/20250115162459384_traveloka.jpg",
+    "DiscountRate": "- 15%",
+    "Description": "Giảm 15% (tối đa 300.000 VNĐ) cho đặt phòng khách sạn và vé máy bay tại Traveloka vào mỗi thứ Sáu.",
+    "StartDate": "2025-01-15",
+    "ValidUntil": "2026-12-25",
+    "SourceUrl": "https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=4391245",
+    "CategoryTab": "VIB travel",
+    "applicableCards": ["VIB World"]
+  }
+]

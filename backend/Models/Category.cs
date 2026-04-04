@@ -11,4 +11,7 @@ public class Category
 
     public string Name { get; set; } = null!;
     public string Color { get; set; } = "#3b82f6"; // Default blue
+    public string? Icon { get; set; } = "category"; // Default icon
+    public List<string> MccCodes { get; set; } = new List<string>();
+    public bool IsFrequent { get; set; } = false;
 }

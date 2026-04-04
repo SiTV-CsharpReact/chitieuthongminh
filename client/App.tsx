@@ -11,6 +11,8 @@ import Settings from './pages/Settings';
 import AllCards from './pages/AllCards';
 import AdminCards from './pages/AdminCards';
 import AdminCategories from './pages/AdminCategories';
+import AdminArticleCategories from './pages/AdminArticleCategories';
+import AdminPromotions from './pages/AdminPromotions';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminArticles from './pages/AdminArticles';
 import ArticleDetail from './pages/ArticleDetail';
@@ -56,6 +58,8 @@ const App: React.FC = () => {
                 <Route index element={<AdminDashboard />} />
                 <Route path="cards" element={<AdminCards />} />
                 <Route path="categories" element={<AdminCategories />} />
+                <Route path="article-categories" element={<AdminArticleCategories />} />
+                <Route path="promotions" element={<AdminPromotions />} />
                 <Route path="articles" element={<AdminArticles />} />
                 <Route path="users" element={<div className="p-10 text-slate-500 font-bold">Quản lý người dùng (Coming Soon)</div>} />
                 <Route path="settings" element={<div className="p-10 text-slate-500 font-bold">Cài đặt hệ thống (Coming Soon)</div>} />

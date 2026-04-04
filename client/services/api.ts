@@ -1,6 +1,6 @@
-import { Card, Category, Article } from '../types';
+import { Card, Category, Article, ArticleCategory, CardPromotion } from '../types';
 
-const API_BASE_URL = 'http://127.0.0.1:5169/api';
+const API_BASE_URL = 'http://localhost:5291/api';
 
 export const cardApi = {
     async getAll(): Promise<Card[]> {
@@ -110,6 +110,13 @@ export const categoryApi = {
         });
         if (!response.ok) throw new Error('Failed to delete category');
     },
+
+    async seedMcc(): Promise<void> {
+        const response = await fetch(`${API_BASE_URL}/Categories/seed-mcc`, {
+            method: 'POST',
+        });
+        if (!response.ok) throw new Error('Failed to seed MCC categories');
+    }
 };
 
 export const articleApi = {
@@ -150,4 +157,117 @@ export const articleApi = {
         });
         if (!response.ok) throw new Error('Failed to delete article');
     },
+};
+
+export const scraperApi = {
+    async getVibCards(): Promise<{name: string, imageUrl: string}[]> {
+        const response = await fetch(`${API_BASE_URL}/Scraper/vib-cards`);
+        if (!response.ok) throw new Error('Failed to fetch VIB cards');
+        return response.json();
+    },
+
+    async extractCard(url: string): Promise<{host: string, images: string[], cashbackInfos: {text: string, suggestedPercentage?: number, suggestedCap?: number}[]}> {
+        const response = await fetch(`${API_BASE_URL}/Scraper/extract-card-details`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+        });
+        if (!response.ok) throw new Error('Failed to extract card details');
+        return response.json();
+    },
+
+    async extractPromotions(url: string): Promise<{host: string, totalFound: number, promotions: any[]}> {
+        const response = await fetch(`${API_BASE_URL}/Scraper/extract-promotions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+        });
+        if (!response.ok) throw new Error('Failed to extract promotions');
+        return response.json();
+    }
+};
+
+export const articleCategoryApi = {
+    async getAll(): Promise<ArticleCategory[]> {
+        const response = await fetch(`${API_BASE_URL}/ArticleCategories`);
+        if (!response.ok) throw new Error('Failed to fetch article categories');
+        return response.json();
+    },
+
+    async create(category: ArticleCategory): Promise<ArticleCategory> {
+        const response = await fetch(`${API_BASE_URL}/ArticleCategories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(category),
+        });
+        if (!response.ok) throw new Error('Failed to create article category');
+        return response.json();
+    },
+
+    async update(id: string, category: ArticleCategory): Promise<void> {
+        const response = await fetch(`${API_BASE_URL}/ArticleCategories/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(category),
+        });
+        if (!response.ok) throw new Error('Failed to update article category');
+    },
+
+    async delete(id: string): Promise<void> {
+        const response = await fetch(`${API_BASE_URL}/ArticleCategories/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete article category');
+    }
+};
+
+export const promotionApi = {
+    async getAll(): Promise<CardPromotion[]> {
+        const response = await fetch(`${API_BASE_URL}/Promotions`);
+        if (!response.ok) throw new Error('Failed to fetch promotions');
+        return response.json();
+    },
+
+    async create(promotion: CardPromotion): Promise<CardPromotion> {
+        const response = await fetch(`${API_BASE_URL}/Promotions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(promotion),
+        });
+        if (!response.ok) throw new Error('Failed to create promotion');
+        return response.json();
+    },
+
+    async saveBatch(promotions: CardPromotion[]): Promise<any> {
+        const response = await fetch(`${API_BASE_URL}/Promotions/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(promotions),
+        });
+        if (!response.ok) throw new Error('Failed to save batch promotions');
+        return response.json();
+    },
+
+    async update(id: string, promotion: CardPromotion): Promise<void> {
+        const response = await fetch(`${API_BASE_URL}/Promotions/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(promotion),
+        });
+        if (!response.ok) throw new Error('Failed to update promotion');
+    },
+
+    async delete(id: string): Promise<void> {
+        const response = await fetch(`${API_BASE_URL}/Promotions/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete promotion');
+    },
+    
+    async deleteAll(): Promise<void> {
+        const response = await fetch(`${API_BASE_URL}/Promotions/all`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete all promotions');
+    }
 };

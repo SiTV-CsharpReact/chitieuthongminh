@@ -14,8 +14,9 @@ const CardDetail: React.FC = () => {
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Get spending data from location state or use defaults
-  const spendingData = (location.state as any)?.spendingData || { spending: 10000000, topCategory: 'Ăn uống' };
+  const stateSpendingData = (location.state as any)?.spendingData;
+  const spendingAmount = stateSpendingData?.spending || 10000000;
+  const topCategory = stateSpendingData?.topCategory || 'Ăn uống';
 
   useEffect(() => {
     const fetchCard = async () => {
@@ -26,8 +27,8 @@ const CardDetail: React.FC = () => {
 
         // Calculate estimated cashback for this card
         const matchingRule = data.cashbackRules.find(r =>
-          spendingData.topCategory.toLowerCase().includes(r.category.toLowerCase()) ||
-          r.category.toLowerCase().includes(spendingData.topCategory.toLowerCase())
+          topCategory.toLowerCase().includes(r.category.toLowerCase()) ||
+          r.category.toLowerCase().includes(topCategory.toLowerCase())
         );
 
         const generalRule = data.cashbackRules.find(r =>
@@ -35,7 +36,7 @@ const CardDetail: React.FC = () => {
         );
 
         const rate = matchingRule ? matchingRule.percentage : (generalRule ? generalRule.percentage : 0);
-        const cashbackAmount = (spendingData.spending * rate) / 100;
+        const cashbackAmount = (spendingAmount * rate) / 100;
 
         setCard({ ...data, cashbackAmount });
       } catch (e) {
@@ -46,7 +47,7 @@ const CardDetail: React.FC = () => {
     };
 
     fetchCard();
-  }, [id, spendingData]);
+  }, [id, spendingAmount, topCategory]);
 
   if (loading) {
     return (
@@ -73,7 +74,7 @@ const CardDetail: React.FC = () => {
 
   // Pre-calculate chart data based on card rules and spending
   const chartData = card.cashbackRules.map(rule => {
-    const amount = (spendingData.spending * rule.percentage) / 100;
+    const amount = (spendingAmount * rule.percentage) / 100;
     return {
       name: rule.category,
       value: amount,
@@ -159,7 +160,7 @@ const CardDetail: React.FC = () => {
             <div className="lg:col-span-8 space-y-8">
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#18181b] p-8 shadow-sm">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">Hoàn Tiền Theo Danh Mục Chi Tiêu</h3>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">Dựa trên chi tiêu {spendingData.spending?.toLocaleString()}đ hàng tháng.</p>
+                <p className="text-slate-500 dark:text-slate-400 mt-1">Dựa trên chi tiêu {spendingAmount?.toLocaleString()}đ hàng tháng.</p>
 
                 <div className="mt-8 h-[300px] w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
@@ -197,7 +198,7 @@ const CardDetail: React.FC = () => {
                           <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">Hoàn tiền {rule.percentage}%</span>
                         </div>
                       </div>
-                      <span className={`text-xl font-bold text-primary-600 dark:text-primary-400`}>+ {((spendingData.spending * rule.percentage) / 100).toLocaleString()} VND</span>
+                      <span className={`text-xl font-bold text-primary-600 dark:text-primary-400`}>+ {((spendingAmount * rule.percentage) / 100).toLocaleString()} VND</span>
                     </div>
                   ))}
                 </div>

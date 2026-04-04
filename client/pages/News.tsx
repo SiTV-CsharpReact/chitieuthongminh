@@ -36,11 +36,19 @@ const News: React.FC = () => {
     ? articles
     : articles.filter(article => article.category === activeFilter);
 
-  // Featured articles logic: use the latest ones
-  const featuredArticles = articles.slice(0, 3);
-  const mainFeatured = featuredArticles[0];
-  const sideFeatured = featuredArticles.slice(1);
-  const regularArticles = articles.slice(3);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Featured articles logic: top 4 for slider
+  const featuredArticles = articles.slice(0, 4);
+  const regularArticles = articles.slice(4);
+
+  useEffect(() => {
+    if (featuredArticles.length <= 1) return;
+    const timer = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % featuredArticles.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [featuredArticles.length]);
 
   const displayArticles = activeFilter === 'Tất cả' ? regularArticles : filteredArticles;
 
@@ -55,49 +63,69 @@ const News: React.FC = () => {
           </div>
         ) : articles.length > 0 ? (
           <>
-            {/* Full-width Immersive Hero Section */}
-            {mainFeatured && (
-              <section className="relative h-[85vh] min-h-[600px] w-full overflow-hidden flex items-center">
-                <div className="absolute inset-0 z-0">
-                  <img
-                    src={mainFeatured.coverImage || 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80&w=2000'}
-                    alt={mainFeatured.title}
-                    className="w-full h-full object-cover scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+            {/* Full-width Immersive Slider Section */}
+            {featuredArticles.length > 0 && (
+              <section className="relative h-[85vh] min-h-[600px] w-full overflow-hidden flex items-center group">
+                
+                {featuredArticles.map((article, idx) => (
+                    <div 
+                        key={article.id} 
+                        className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    >
+                        <img
+                          src={article.coverImage || 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80&w=2000'}
+                          alt={article.title}
+                          className="w-full h-full object-cover scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+                        
+                        <div className="absolute inset-0 z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-20 flex items-center">
+                          <div className={`max-w-2xl transition-all duration-1000 transform ${idx === currentSlide ? 'translate-y-0 opacity-100 delay-300' : 'translate-y-8 opacity-0'}`}>
+                              <div className="flex items-center gap-3 mb-6">
+                                <span className="px-3 py-1 rounded-full bg-primary-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-500/20">
+                                  {article.category}
+                                </span>
+                                <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-[14px]">schedule</span>
+                                  {article.createdAt ? new Date(article.createdAt).toLocaleDateString('vi-VN') : 'Mới đây'}
+                                </span>
+                              </div>
+                              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] mb-6 tracking-tight line-clamp-3">
+                                {article.title}
+                              </h1>
+                              <p className="text-lg text-slate-300 mb-8 leading-relaxed font-medium line-clamp-3">
+                                {article.excerpt}
+                              </p>
+                              <div className="flex flex-wrap gap-4">
+                                <button
+                                  onClick={() => navigate(`/news/${article.id}`)}
+                                  className="bg-primary-500 hover:bg-primary-600 text-white px-8 py-4 rounded-2xl font-black text-sm transition-all shadow-xl shadow-primary-500/25 hover:scale-105 active:scale-95 group flex items-center gap-2"
+                                >
+                                  ĐỌC BÀI VIẾT
+                                  <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+                                </button>
+                              </div>
+                          </div>
+                        </div>
+                    </div>
+                ))}
+                
+                {/* Navigation Arrows */}
+                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 z-20 flex justify-between px-4 sm:px-10 lg:px-16 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                     <button onClick={() => setCurrentSlide(p => p === 0 ? featuredArticles.length - 1 : p - 1)} className="pointer-events-auto w-12 h-12 rounded-full backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95">
+                        <span className="material-symbols-outlined">chevron_left</span>
+                     </button>
+                     <button onClick={() => setCurrentSlide(p => (p + 1) % featuredArticles.length)} className="pointer-events-auto w-12 h-12 rounded-full backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95">
+                        <span className="material-symbols-outlined">chevron_right</span>
+                     </button>
                 </div>
-
-                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-20">
-                  <div className="max-w-2xl animate-fade-in-up">
-                    <div className="flex items-center gap-3 mb-6">
-                      <span className="px-3 py-1 rounded-full bg-primary-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-500/20">
-                        {mainFeatured.category}
-                      </span>
-                      <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[14px]">schedule</span>
-                        {mainFeatured.createdAt ? new Date(mainFeatured.createdAt).toLocaleDateString('vi-VN') : 'Mới đây'}
-                      </span>
-                    </div>
-                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] mb-6 tracking-tight">
-                      {mainFeatured.title}
-                    </h1>
-                    <p className="text-lg text-slate-300 mb-8 leading-relaxed font-medium line-clamp-3">
-                      {mainFeatured.excerpt}
-                    </p>
-                    <div className="flex flex-wrap gap-4">
-                      <button
-                        onClick={() => navigate(`/news/${mainFeatured.id}`)}
-                        className="bg-primary-500 hover:bg-primary-600 text-white px-8 py-4 rounded-2xl font-black text-sm transition-all shadow-xl shadow-primary-500/25 hover:scale-105 active:scale-95 group flex items-center gap-2"
-                      >
-                        ĐỌC BÀI VIẾT
-                        <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span>
-                      </button>
-                      <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95">
-                        LƯU TIN TỨC
-                      </button>
-                    </div>
-                  </div>
+                
+                {/* Dots Navigation */}
+                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                    {featuredArticles.map((_, idx) => (
+                        <button key={idx} onClick={() => setCurrentSlide(idx)} className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentSlide ? 'w-8 bg-primary-500' : 'w-2 bg-white/30 hover:bg-white/50'}`} />
+                    ))}
                 </div>
 
                 <div className="absolute bottom-16 right-16 z-20 hidden xl:flex flex-col items-end gap-3 translate-y-0 hover:-translate-y-2 transition-transform duration-700">
@@ -114,24 +142,7 @@ const News: React.FC = () => {
               </section>
             )}
 
-            <div className="w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 -mt-20 relative z-30 pb-24">
-              {/* Sub-featured Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-                {sideFeatured.map((article) => (
-                  <div
-                    key={article.id}
-                    onClick={() => navigate(`/news/${article.id}`)}
-                    className="group relative h-80 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all cursor-pointer ring-1 ring-white/10 hover:ring-primary-500/50"
-                  >
-                    <img src={article.coverImage} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={article.title} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 p-8 w-full">
-                      <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-2 block">{article.category}</span>
-                      <h3 className="text-xl font-black text-white leading-tight group-hover:text-primary-400 transition-colors line-clamp-2">{article.title}</h3>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 relative z-30 pb-24 mt-12">
 
               <div className="flex flex-col lg:flex-row gap-12">
                 <div className="flex-1 space-y-12">

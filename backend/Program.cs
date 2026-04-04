@@ -1,3 +1,8 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using MongoDB.Driver;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -24,8 +29,39 @@ builder.Services.AddSingleton<backend.Services.ID3Service>();
 builder.Services.AddSingleton<backend.Services.CreditCardService>();
 builder.Services.AddSingleton<backend.Services.CategoryService>();
 builder.Services.AddSingleton<backend.Services.ArticleService>();
+builder.Services.AddSingleton<backend.Services.ArticleCategoryService>();
+builder.Services.AddSingleton<backend.Services.PromotionService>();
+builder.Services.AddSingleton<IMongoClient>(new MongoClient(builder.Configuration.GetConnectionString("MongoDB")));
+
+// JWT Authentication Setup
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
 
 var app = builder.Build();
+
+var uploadDir = Path.Combine(builder.Environment.ContentRootPath, "upload", "image");
+if (!Directory.Exists(uploadDir))
+{
+    Directory.CreateDirectory(uploadDir);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadDir),
+    RequestPath = "/upload/image"
+});
 
 app.UseCors("AllowAll");
 
@@ -36,6 +72,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

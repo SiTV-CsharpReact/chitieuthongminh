@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { articleApi, categoryApi } from '../services/api';
 import { Article, Category } from '../types';
 import { Editor } from '@tinymce/tinymce-react';
+import FileManager from '../components/FileManager';
 
 const AdminArticles: React.FC = () => {
     const [articles, setArticles] = useState<Article[]>([]);
@@ -9,6 +10,7 @@ const AdminArticles: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
     const [currentArticle, setCurrentArticle] = useState<Partial<Article>>({
         title: '',
         slug: '',
@@ -259,7 +261,10 @@ const AdminArticles: React.FC = () => {
 
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Ảnh đại diện (Hero Image)</label>
-                                    <div className="group relative aspect-[21/9] w-full rounded-3xl bg-slate-50 dark:bg-slate-800/30 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden border-spacing-4">
+                                    <div
+                                        className="group relative aspect-[21/9] w-full rounded-3xl bg-slate-50 dark:bg-slate-800/30 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden border-spacing-4"
+                                        onClick={() => setIsFileManagerOpen(true)}
+                                    >
                                         {currentArticle.coverImage ? (
                                             <div className="absolute inset-0">
                                                 <img src={currentArticle.coverImage} className="w-full h-full object-cover" alt="Preview" />
@@ -333,6 +338,30 @@ const AdminArticles: React.FC = () => {
                                                 branding: false,
                                                 promotion: false,
                                                 statusbar: false,
+                                                images_upload_handler: async (blobInfo, progress) => {
+                                                    try {
+                                                        const formData = new FormData();
+                                                        formData.append('files', blobInfo.blob(), blobInfo.filename());
+
+                                                        const res = await fetch('http://localhost:5291/api/image/upload', {
+                                                            method: 'POST',
+                                                            body: formData
+                                                        });
+
+                                                        if (!res.ok) {
+                                                            throw new Error('HTTP Error: ' + res.status);
+                                                        }
+
+                                                        const json = await res.json();
+                                                        if (!json || !json.success || !json.files || json.files.length === 0) {
+                                                            throw new Error('Invalid payload');
+                                                        }
+
+                                                        return json.files[0].url;
+                                                    } catch (err: any) {
+                                                        throw new Error(err.message || 'Lỗi tải ảnh');
+                                                    }
+                                                }
                                             }}
                                         />
                                     </div>
@@ -498,6 +527,12 @@ const AdminArticles: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <FileManager
+                isOpen={isFileManagerOpen}
+                onClose={() => setIsFileManagerOpen(false)}
+                onSelect={(url) => setCurrentArticle(prev => ({ ...prev, coverImage: url }))}
+            />
         </div>
     );
 };

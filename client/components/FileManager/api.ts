@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3002/api/image';
+const BASE_URL = 'http://localhost:5291/api/image';
 
 export interface BackendFile {
     name: string;

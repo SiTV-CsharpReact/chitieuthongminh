@@ -15,16 +15,21 @@ const AdminLogin: React.FC = () => {
 
     const from = location.state?.from?.pathname || "/admin";
 
+    const [error, setError] = useState('');
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setError('');
 
-        // Simulate API call
-        setTimeout(() => {
-            login(email);
-            setIsLoading(false);
+        try {
+            await login(email, password);
             navigate(from, { replace: true });
-        }, 1000);
+        } catch (err: any) {
+            setError(err.message || 'Tài khoản hoặc mật khẩu không chính xác!');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -41,6 +46,12 @@ const AdminLogin: React.FC = () => {
                         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Admin Portal</h1>
                         <p className="text-slate-500 dark:text-slate-400 mt-2 font-bold uppercase tracking-[0.2em] text-[10px]">Hệ thống quản trị</p>
                     </div>
+
+                    {error && (
+                        <div className="mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-semibold text-center animate-fade-in border border-red-200 dark:border-red-800/50">
+                            {error}
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">

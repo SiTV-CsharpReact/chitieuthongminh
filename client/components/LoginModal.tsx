@@ -19,6 +19,8 @@ export const LoginModal: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    const [error, setError] = useState('');
+
     useEffect(() => {
         if (isLoginModalOpen) {
             setTimeout(() => setAnimate(true), 10);
@@ -31,21 +33,27 @@ export const LoginModal: React.FC = () => {
                 setPassword('');
                 setConfirmPassword('');
                 setName('');
+                setError('');
             }, 300);
         }
     }, [isLoginModalOpen]);
 
     if (!isLoginModalOpen) return null;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // In a real app, you would separate login logic from register logic
-        // and pass the 'name' to the register function.
+        setError('');
+        
         if (isRegister && password !== confirmPassword) {
-            alert("Mật khẩu xác nhận không khớp!");
+            setError("Mật khẩu xác nhận không khớp!");
             return;
         }
-        login(email);
+        
+        try {
+            await login(email, password);
+        } catch (err: any) {
+            setError(err.message || "Tài khoản hoặc mật khẩu không chính xác!");
+        }
     };
 
     const toggleMode = () => {
@@ -91,6 +99,12 @@ export const LoginModal: React.FC = () => {
                         }
                     </p>
                 </div>
+
+                {error && (
+                    <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-semibold text-center animate-fade-in border border-red-200 dark:border-red-800/50">
+                        {error}
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {isRegister && (

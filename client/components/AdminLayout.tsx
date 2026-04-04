@@ -7,6 +7,8 @@ const ADMIN_NAV_ITEMS = [
     { path: '/admin/cards', label: 'Quản lý thẻ', icon: 'credit_card' },
     { path: '/admin/categories', label: 'Danh mục hoàn tiền', icon: 'category' },
     { path: '/admin/articles', label: 'Quản lý bài viết', icon: 'article' },
+    { path: '/admin/article-categories', label: 'Chuyên mục bài viết', icon: 'topic' },
+    { path: '/admin/promotions', label: 'Ưu đãi thẻ (VIB)', icon: 'redeem' },
     { path: '/admin/users', label: 'Người dùng', icon: 'group' },
     { path: '/admin/settings', label: 'Cài đặt hệ thống', icon: 'settings' },
 ];

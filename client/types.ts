@@ -91,4 +91,32 @@ export interface Category {
   id?: string;
   name: string;
   color: string;
+  icon?: string;
+  mccCodes?: string[];
+  isFrequent?: boolean;
+}
+
+export interface ArticleCategory {
+  id?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  color: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CardPromotion {
+  id?: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  discountRate?: string;
+  categoryTab?: string;
+  sourceUrl?: string;
+  startDate?: string;
+  validUntil?: string;
+  applicableCards?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }

@@ -152,7 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => !isRenaming && onNavigate(node.path)}
                     onContextMenu={(e) => handleContextMenu(e, node)}
                     className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all
-            ${isDirectlySelected ? 'bg-blue-50 text-blue-600 font-semibold border-l-2 border-blue-600 -ml-[1px]' : 'hover:bg-black/5 text-[#444]'}`}
+            ${isDirectlySelected ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-semibold border-l-2 border-blue-600 dark:border-blue-400 -ml-[1px]' : 'hover:bg-black/5 dark:hover:bg-white/5 text-[#444] dark:text-slate-300'}`}
                     style={{ paddingLeft: `${depth * 12 + 12}px` }}
                 >
                     <span
@@ -174,7 +174,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             onBlur={() => handleRenameSubmit(node)}
                             onKeyDown={e => handleRenameKeyDown(e, node)}
                             onClick={e => e.stopPropagation()}
-                            className="text-sm flex-1 bg-white border border-blue-400 rounded px-1 py-0 outline-none min-w-0"
+                            className="text-sm flex-1 bg-white dark:bg-slate-800 border border-blue-400 dark:border-blue-500 rounded px-1 py-0 outline-none min-w-0 text-slate-900 dark:text-white"
                         />
                     ) : (
                         <p className="text-sm truncate flex-1">{node.name}</p>
@@ -185,7 +185,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <Tooltip text="Đổi tên">
                                 <button
                                     onClick={e => { e.stopPropagation(); handleStartRename(node); }}
-                                    className="p-0.5 rounded hover:bg-black/10 text-[#888] hover:text-blue-600 transition-colors"
+                                    className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-[#888] dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                 >
                                     <EditOutlined className="text-[13px]" />
                                 </button>
@@ -193,7 +193,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <Tooltip text="Xóa thư mục">
                                 <button
                                     onClick={e => { e.stopPropagation(); handleDeleteFolder(node); }}
-                                    className="p-0.5 rounded hover:bg-black/10 text-[#888] hover:text-red-500 transition-colors"
+                                    className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-[#888] dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                                 >
                                     <DeleteOutlined className="text-[13px]" />
                                 </button>
@@ -219,21 +219,21 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     return (
         <>
-            <aside className="w-72 flex flex-col border-r border-[#f2f2f2] bg-white shrink-0 overflow-hidden">
+            <aside className="w-72 flex flex-col border-r border-[#f2f2f2] dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 overflow-hidden">
                 <div className="flex-1 p-4 overflow-y-auto fm-scroll">
-                    <p className="px-3 text-[11px] font-bold text-[#757575] uppercase tracking-wider pb-4">Thư Mục</p>
+                    <p className="px-3 text-[11px] font-bold text-[#757575] dark:text-slate-500 uppercase tracking-wider pb-4">Thư Mục</p>
 
                     <div className="flex flex-col gap-0.5">
                         <div
                             onClick={() => onNavigate(null)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer group transition-all ${currentPath.length === 0 ? 'bg-[#f2f2f2]' : 'hover:bg-black/5'}`}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer group transition-all ${currentPath.length === 0 ? 'bg-[#f2f2f2] dark:bg-slate-800' : 'hover:bg-black/5 dark:hover:bg-white/5'} text-[#444] dark:text-slate-300`}
                         >
                             <DownOutlined className="text-xs opacity-30" />
                             <FolderFilled className="text-base !text-yellow-500" />
-                            <p className="text-primary text-sm font-semibold truncate flex-1">Hình Ảnh</p>
+                            <p className="text-sm font-semibold truncate flex-1">Hình Ảnh</p>
                         </div>
 
-                        <div className="border-l border-[#eee] ml-3">
+                        <div className="border-l border-[#eee] dark:border-slate-800 ml-3">
                             {tree.map(node => renderNode(node, 0))}
 
                             {creatingFolder && currentParentId === null && (
@@ -251,16 +251,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 </div>
 
-                <div className="shrink-0 p-4 border-t border-[#f2f2f2]">
-                    <div className="flex flex-col gap-2 p-3 bg-[#f9f9f9] rounded-xl">
-                        <div className="flex justify-between items-center">
-                            <p className="text-primary text-xs font-semibold">Lưu Trữ</p>
-                            <p className="text-primary text-[11px] font-normal">{percent}%</p>
+                <div className="shrink-0 p-4 border-t border-[#f2f2f2] dark:border-slate-800">
+                    <div className="flex flex-col gap-2 p-3 bg-[#f9f9f9] dark:bg-slate-800/50 rounded-xl">
+                        <div className="flex justify-between items-center text-[#444] dark:text-slate-300">
+                            <p className="text-xs font-semibold">Lưu Trữ</p>
+                            <p className="text-[11px] font-normal">{percent}%</p>
                         </div>
-                        <div className="h-1.5 w-full rounded-full bg-[#e0e0e0] overflow-hidden">
+                        <div className="h-1.5 w-full rounded-full bg-[#e0e0e0] dark:bg-slate-700 overflow-hidden">
                             <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${percent}%` }}></div>
                         </div>
-                        <p className="text-[#757575] text-[10px] font-normal">{usedGB} GB / {maxGB} GB đã dùng</p>
+                        <p className="text-[#757575] dark:text-slate-500 text-[10px] font-normal">{usedGB} GB / {maxGB} GB đã dùng</p>
                     </div>
                 </div>
             </aside>
@@ -269,19 +269,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div
                     ref={contextMenuRef}
                     style={{ position: 'fixed', top: contextMenu.y, left: contextMenu.x, zIndex: 9999 }}
-                    className="bg-white border border-[#e8e8e8] rounded-xl shadow-xl py-1.5 min-w-[160px] text-sm"
+                    className="bg-white dark:bg-slate-900 border border-[#e8e8e8] dark:border-slate-800 rounded-xl shadow-xl py-1.5 min-w-[160px] text-sm"
                 >
                     <button
                         onClick={() => handleStartRename(contextMenu.node)}
-                        className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#f5f5f5] text-[#333] transition-colors"
+                        className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#f5f5f5] dark:hover:bg-slate-800 text-[#333] dark:text-slate-200 transition-colors"
                     >
                         <EditOutlined className="text-[16px] text-blue-500" />
                         Đổi tên
                     </button>
-                    <div className="my-1 border-t border-[#f0f0f0]" />
+                    <div className="my-1 border-t border-[#f0f0f0] dark:border-slate-800" />
                     <button
                         onClick={() => handleDeleteFolder(contextMenu.node)}
-                        className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-red-50 text-red-500 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
                     >
                         <DeleteOutlined className="text-[16px]" />
                         Xóa
@@ -304,7 +304,7 @@ interface InlineFolderInputProps {
 const InlineFolderInput = React.forwardRef<HTMLInputElement, InlineFolderInputProps>(
     ({ depth, value, onChange, onSubmit, onCancel, onKeyDown }, ref) => (
         <div
-            className="flex items-center gap-2 mt-0.5 rounded-lg bg-blue-50 border border-blue-200"
+            className="flex items-center gap-2 mt-0.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
             style={{ paddingLeft: `${depth * 12 + 12}px`, paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px' }}
         >
             <DownOutlined className="text-xs opacity-0" />
@@ -315,19 +315,19 @@ const InlineFolderInput = React.forwardRef<HTMLInputElement, InlineFolderInputPr
                 onChange={e => onChange(e.target.value)}
                 onKeyDown={onKeyDown}
                 onBlur={onSubmit}
-                className="text-sm flex-1 bg-transparent border-none outline-none text-blue-700 font-medium min-w-0 placeholder:text-blue-300"
+                className="text-sm flex-1 bg-transparent border-none outline-none text-blue-700 dark:text-blue-300 font-medium min-w-0 placeholder:text-blue-300 dark:placeholder:text-blue-700"
                 placeholder="Tên thư mục..."
             />
             <button
                 onMouseDown={e => { e.preventDefault(); onSubmit(); }}
-                className="shrink-0 p-0.5 rounded hover:bg-blue-200 text-blue-600 transition-colors"
+                className="shrink-0 p-0.5 rounded hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 transition-colors"
                 title="Xác nhận"
             >
                 <CheckOutlined className="text-[13px]" />
             </button>
             <button
                 onMouseDown={e => { e.preventDefault(); onCancel(); }}
-                className="shrink-0 p-0.5 rounded hover:bg-black/10 text-[#999] transition-colors"
+                className="shrink-0 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-[#999] dark:text-slate-400 transition-colors"
                 title="Huỷ"
             >
                 <CloseOutlined className="text-[13px]" />

@@ -343,7 +343,7 @@ const AdminArticles: React.FC = () => {
                                                         const formData = new FormData();
                                                         formData.append('files', blobInfo.blob(), blobInfo.filename());
 
-                                                        const res = await fetch('http://localhost:5291/api/image/upload', {
+                                                        const res = await fetch('http://localhost:5000/api/image/upload', {
                                                             method: 'POST',
                                                             body: formData
                                                         });

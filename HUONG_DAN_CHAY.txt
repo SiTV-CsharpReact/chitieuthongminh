@@ -1,0 +1,83 @@
+====================================================
+  HƯỚNG DẪN CHẠY DỰ ÁN - Chi Tiêu Thông Minh
+====================================================
+
+Yêu cầu:
+- Docker Desktop
+- .NET 8 SDK (đường dẫn: /usr/local/share/dotnet/dotnet)
+- Node.js + pnpm
+
+====================================================
+  BƯỚC 1: Khởi động MongoDB (Docker)
+====================================================
+
+  Mở Docker Desktop trước, chờ Docker sẵn sàng.
+  Sau đó chạy lệnh:
+
+    cd /Users/sivan/chitieuthongminh
+    docker compose up -d
+
+  Kiểm tra MongoDB đã chạy:
+
+    docker ps
+
+  → Phải thấy container "mongodb-chitieu" với port 27017
+
+====================================================
+  BƯỚC 2: Chạy Backend (.NET)
+====================================================
+
+  cd /Users/sivan/chitieuthongminh/backend
+
+  Cách 1 - Bình thường (nếu đủ RAM):
+
+    /usr/local/share/dotnet/dotnet run
+
+  Cách 2 - Tiết kiệm RAM (nếu máy thiếu RAM):
+
+    /usr/local/share/dotnet/dotnet build
+    DOTNET_GCHeapHardLimit=0x10000000 /usr/local/share/dotnet/dotnet bin/Debug/net8.0/backend.dll
+
+  → Backend chạy tại: http://localhost:5000
+
+====================================================
+  BƯỚC 3: Chạy Client (React/Vite)
+====================================================
+
+  cd /Users/sivan/chitieuthongminh/client
+  pnpm run dev
+
+  → Client chạy tại: http://localhost:5173
+
+====================================================
+  THỨ TỰ CHẠY QUAN TRỌNG
+====================================================
+
+  1. Docker Desktop  →  2. MongoDB (docker compose up -d)  →  3. Backend  →  4. Client
+
+  ⚠️  PHẢI bật MongoDB TRƯỚC khi chạy Backend!
+
+====================================================
+  LƯU Ý VỀ RAM (Máy 16GB)
+====================================================
+
+  - Đóng Chrome, Zalo, và các app không cần thiết trước khi chạy
+  - Nếu gặp lỗi "Failed to create CoreCLR, HRESULT: 0x8007000C"
+    → Máy hết RAM, cần đóng bớt ứng dụng
+  - Chạy "sudo purge" trong Terminal để giải phóng bộ nhớ cache
+  - Nếu "dotnet" không tìm thấy, dùng đường dẫn đầy đủ:
+    /usr/local/share/dotnet/dotnet
+
+====================================================
+  KIỂM TRA HOẠT ĐỘNG
+====================================================
+
+  Test Backend:
+    curl http://localhost:5000/weatherforecast
+
+  Test MongoDB kết nối:
+    curl http://localhost:5000/api/creditcards
+
+  Nếu trả về data JSON → OK ✅
+
+====================================================

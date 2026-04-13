@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace backend.Controllers;
 
@@ -14,16 +15,38 @@ public class ScraperExtractionRequest
     public string Url { get; set; } = string.Empty;
 }
 
+public class BankScraperUrlModel
+{
+    public string BankName { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+}
+
+public class CardScrapedDto
+{
+    public string CardName { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public List<CashbackInfoObj> CashbackInfos { get; set; } = new List<CashbackInfoObj>();
+}
+
+public class CashbackInfoObj
+{
+    public string Text { get; set; } = string.Empty;
+    public decimal? SuggestedPercentage { get; set; }
+    public decimal? SuggestedCap { get; set; }
+}
+
 [ApiController]
 [Route("api/[controller]")]
 public class ScraperController : ControllerBase
 {
     private readonly HttpClient _httpClient;
     private readonly IWebHostEnvironment _env;
+    private readonly IConfiguration _config;
 
-    public ScraperController(IWebHostEnvironment env)
+    public ScraperController(IWebHostEnvironment env, IConfiguration config)
     {
         _env = env;
+        _config = config;
         var handler = new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
@@ -31,6 +54,21 @@ public class ScraperController : ControllerBase
         _httpClient = new HttpClient(handler);
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "curl/8.7.1");
         _httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+    }
+
+    [HttpGet("supported-banks")]
+    public IActionResult GetSupportedBanks()
+    {
+        try
+        {
+            var banks = _config.GetSection("BankScraperUrls").Get<List<BankScraperUrlModel>>();
+            if (banks == null) return Ok(new List<BankScraperUrlModel>());
+            return Ok(banks);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+        }
     }
 
     [HttpGet("vib-cards")]
@@ -117,59 +155,67 @@ public class ScraperController : ControllerBase
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
 
-            // 1. Extract Images
-            var imgNodes = doc.DocumentNode.SelectNodes("//img");
-            var images = new List<string>();
+            var cardsDict = new Dictionary<string, CardScrapedDto>();
+            string currentCardName = "Thẻ chung";
+            cardsDict[currentCardName] = new CardScrapedDto { CardName = currentCardName };
 
-            if (imgNodes != null)
-            {
-                foreach (var img in imgNodes)
-                {
-                    string src = img.GetAttributeValue("src", "");
-                    if (string.IsNullOrWhiteSpace(src)) continue;
-                    
-                    // Lọc rác
-                    string lowerSrc = src.ToLower();
-                    if (lowerSrc.EndsWith(".svg") || lowerSrc.EndsWith(".gif") || lowerSrc.Contains("logo") || lowerSrc.Contains("icon")) continue;
-
-                    // Absolute Path resolve
-                    if (src.StartsWith("//"))
-                    {
-                        src = uriResult.Scheme + ":" + src;
-                    }
-                    else if (src.StartsWith("/"))
-                    {
-                        src = uriResult.Scheme + "://" + uriResult.Host + src;
-                    }
-                    else if (!src.StartsWith("http"))
-                    {
-                        var basePath = request.Url.Substring(0, request.Url.LastIndexOf('/') + 1);
-                        src = basePath + src;
-                    }
-
-                    if (!images.Contains(src))
-                    {
-                        images.Add(src);
-                    }
-                }
-            }
-
-            // 2. Extract Cashback Texts
-            var textNodes = doc.DocumentNode.SelectNodes("//p | //li | //div[not(*)] | //span | //h3 | //h4");
-            var cashbackInfos = new List<object>();
-
-            var keywords = new[] { "hoàn tiền", "cashback", "chi tiêu", "hoàn", "tặng", "điểm" };
+            var keywords = new[] { "hoàn tiền", "cashback", "chi tiêu", "hoàn", "tặng", "điểm", "rút", "miễn phí", "lãi suất", "ưu đãi", "trả góp" };
             var seenTexts = new HashSet<string>();
 
-            if (textNodes != null)
+            foreach (var node in doc.DocumentNode.Descendants())
             {
-                foreach (var node in textNodes)
+                // Track headings
+                if (node.Name == "h1" || node.Name == "h2" || node.Name == "h3" || node.Name == "h4" || node.Name == "h5")
                 {
+                    string title = HttpUtility.HtmlDecode(node.InnerText.Trim());
+                    title = Regex.Replace(title, @"\s+", " ");
+                    if (title.Length > 3 && title.Length < 100)
+                    {
+                        string lowerTitle = title.ToLower();
+                        string domain = uriResult.Host.Replace("www.", "").Split('.')[0].ToLower(); // e.g. 'vib'
+                        
+                        if (lowerTitle.Contains(domain) || lowerTitle.Contains("thẻ"))
+                        {
+                            currentCardName = title;
+                            if (!cardsDict.ContainsKey(currentCardName))
+                            {
+                                cardsDict[currentCardName] = new CardScrapedDto { CardName = currentCardName };
+                            }
+                        }
+                    }
+                }
+
+                // Extract Images
+                if (node.Name == "img")
+                {
+                    string src = node.GetAttributeValue("src", "");
+                    if (!string.IsNullOrWhiteSpace(src))
+                    {
+                        string lowerSrc = src.ToLower();
+                        if (!lowerSrc.EndsWith(".svg") && !lowerSrc.EndsWith(".gif") && !lowerSrc.Contains("logo") && !lowerSrc.Contains("icon"))
+                        {
+                            if (src.StartsWith("//")) src = uriResult.Scheme + ":" + src;
+                            else if (src.StartsWith("/")) src = uriResult.Scheme + "://" + uriResult.Host + src;
+                            else if (!src.StartsWith("http")) src = request.Url.Substring(0, request.Url.LastIndexOf('/') + 1) + src;
+
+                            if (string.IsNullOrEmpty(cardsDict[currentCardName].ImageUrl))
+                            {
+                                cardsDict[currentCardName].ImageUrl = src;
+                            }
+                        }
+                    }
+                }
+
+                // Extract text from leaf structural elements
+                if (node.Name == "p" || node.Name == "li" || node.Name == "div" || node.Name == "span")
+                {
+                    // Skip if the node has structural children
+                    if (node.HasChildNodes && node.ChildNodes.Any(c => c.Name == "div" || c.Name == "p" || c.Name == "ul" || c.Name == "li")) continue;
+
                     string text = HttpUtility.HtmlDecode(node.InnerText.Trim());
-                    // Loại bỏ nhiều khoảng trắng thừa
                     text = Regex.Replace(text, @"\s+", " ");
 
-                    if (text.Length < 10 || text.Length > 250) continue; // Bỏ qua chữ quá ngắn hoặc quá dài
+                    if (text.Length < 10 || text.Length > 250) continue; 
                     if (seenTexts.Contains(text)) continue;
 
                     string lowerText = text.ToLower();
@@ -177,21 +223,15 @@ public class ScraperController : ControllerBase
                     {
                         seenTexts.Add(text);
 
-                        // Cố gắng bóc % hoàn tiền
                         var pctMatch = Regex.Match(text, @"(\d+(?:[\.,]\d+)?)\s*%");
                         decimal? pctFound = null;
 
                         if (pctMatch.Success)
                         {
                             string rawVal = pctMatch.Groups[1].Value.Replace(',', '.');
-                            if (decimal.TryParse(rawVal, out decimal val))
-                            {
-                                pctFound = val;
-                            }
+                            if (decimal.TryParse(rawVal, out decimal val)) pctFound = val;
                         }
 
-                        // Cố bóc hạn mức cap (tiền)
-                        // Ví dụ: 600.000, 24 triệu, 2 triệu
                         var capMatch = Regex.Match(text, @"(\d+(?:[\.,]\d+)?)\s*(triệu|tr|nghìn|k|đ|vnđ)");
                         decimal? capFound = null;
 
@@ -204,11 +244,11 @@ public class ScraperController : ControllerBase
                             {
                                 if (unit == "triệu" || unit == "tr") capFound = val * 1000000;
                                 else if (unit == "nghìn" || unit == "k") capFound = val * 1000;
-                                else capFound = val; // Đơn vị tiền tệ chuẩn (nếu có chấm phân cách, TryParse sẽ mất nhưng do regex kia bọc rồi)
+                                else capFound = val; 
                             }
                         }
 
-                        cashbackInfos.Add(new
+                        cardsDict[currentCardName].CashbackInfos.Add(new CashbackInfoObj
                         {
                             Text = text,
                             SuggestedPercentage = pctFound,
@@ -218,11 +258,12 @@ public class ScraperController : ControllerBase
                 }
             }
 
+            var finalCards = cardsDict.Values.Where(c => !string.IsNullOrEmpty(c.ImageUrl) || c.CashbackInfos.Any()).ToList();
+
             return Ok(new
             {
                 Host = uriResult.Host,
-                Images = images,
-                CashbackInfos = cashbackInfos
+                Cards = finalCards
             });
         }
         catch (Exception ex)
@@ -365,42 +406,17 @@ public class ScraperController : ControllerBase
     {
         try 
         {
-            var scriptPath = Path.Combine(_env.ContentRootPath, "Scripts", "scraper.js");
+            var jsonPath = Path.Combine(_env.ContentRootPath, "..", "vib_promotions_scraped.json");
             
-            if (!System.IO.File.Exists(scriptPath)) return new List<object>();
-
-            var processInfo = new ProcessStartInfo
+            if (System.IO.File.Exists(jsonPath)) 
             {
-                FileName = "node",
-                Arguments = scriptPath,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(processInfo);
-            if (process == null) return new List<object>();
-
-            var outputTask = process.StandardOutput.ReadToEndAsync();
-            var errorTask = process.StandardError.ReadToEndAsync();
-            
-            if (await Task.WhenAny(Task.Delay(35000), outputTask) == outputTask)
-            {
-                var output = await outputTask;
-                if (process.ExitCode == 0)
-                {
-                    return JsonSerializer.Deserialize<List<object>>(output) ?? new List<object>();
-                }
-            }
-            else
-            {
-                process.Kill();
+                var content = await System.IO.File.ReadAllTextAsync(jsonPath);
+                return JsonSerializer.Deserialize<List<object>>(content) ?? new List<object>();
             }
         } 
         catch (Exception ex)
         {
-            Console.WriteLine($"ScrapeVibViaNode error: {ex.Message}");
+            Console.WriteLine($"Mock ScrapeVib error: {ex.Message}");
         }
 
         return new List<object>();

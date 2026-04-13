@@ -1,6 +1,6 @@
 import { Card, Category, Article, ArticleCategory, CardPromotion } from '../types';
 
-const API_BASE_URL = 'http://localhost:5291/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export const cardApi = {
     async getAll(): Promise<Card[]> {
@@ -160,13 +160,13 @@ export const articleApi = {
 };
 
 export const scraperApi = {
-    async getVibCards(): Promise<{name: string, imageUrl: string}[]> {
+    async getVibCards(): Promise<{ name: string, imageUrl: string }[]> {
         const response = await fetch(`${API_BASE_URL}/Scraper/vib-cards`);
         if (!response.ok) throw new Error('Failed to fetch VIB cards');
         return response.json();
     },
 
-    async extractCard(url: string): Promise<{host: string, images: string[], cashbackInfos: {text: string, suggestedPercentage?: number, suggestedCap?: number}[]}> {
+    async extractCard(url: string): Promise<{ host: string, images: string[], cashbackInfos: { text: string, suggestedPercentage?: number, suggestedCap?: number }[] }> {
         const response = await fetch(`${API_BASE_URL}/Scraper/extract-card-details`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -176,13 +176,19 @@ export const scraperApi = {
         return response.json();
     },
 
-    async extractPromotions(url: string): Promise<{host: string, totalFound: number, promotions: any[]}> {
+    async extractPromotions(url: string): Promise<{ host: string, totalFound: number, promotions: any[] }> {
         const response = await fetch(`${API_BASE_URL}/Scraper/extract-promotions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url }),
         });
         if (!response.ok) throw new Error('Failed to extract promotions');
+        return response.json();
+    },
+
+    async getSupportedBanks(): Promise<{ bankName: string, url: string }[]> {
+        const response = await fetch(`${API_BASE_URL}/Scraper/supported-banks`);
+        if (!response.ok) throw new Error('Failed to fetch supported banks');
         return response.json();
     }
 };
@@ -263,7 +269,7 @@ export const promotionApi = {
         });
         if (!response.ok) throw new Error('Failed to delete promotion');
     },
-    
+
     async deleteAll(): Promise<void> {
         const response = await fetch(`${API_BASE_URL}/Promotions/all`, {
             method: 'DELETE',

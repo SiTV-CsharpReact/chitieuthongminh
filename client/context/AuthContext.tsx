@@ -24,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!token) return;
 
     try {
-      const response = await fetch('http://localhost:5291/api/auth/me', {
+      const response = await fetch('http://localhost:5000/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -48,11 +48,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password?: string) => {
     if (!password) {
-        // Fallback for oauth mock
-        password = "placeholder";
+      // Fallback for oauth mock
+      password = "placeholder";
     }
 
-    const response = await fetch('http://localhost:5291/api/auth/login', {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -85,12 +85,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const closeLoginModal = () => setIsLoginModalOpen(false);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
       isLoginModalOpen,
-      login, 
-      logout, 
+      login,
+      logout,
       updateUser,
       openLoginModal,
       closeLoginModal

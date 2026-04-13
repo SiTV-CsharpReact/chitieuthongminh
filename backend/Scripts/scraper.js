@@ -86,6 +86,7 @@ async function run() {
         process.exit(1);
     }
     
+    const items = searchResult.data || [];
     const results = [];
     for (const item of items) {
        try {
@@ -109,7 +110,7 @@ async function run() {
              Description: pInfo.infoExt1 || "",
              StartDate: item.effectDate,
              ValidUntil: item.expireDate,
-             SourceUrl: `https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId={item.proId}`,
+             SourceUrl: `https://www.vib.com.vn/vn/promotion/vib-world/detail?promotionId=${item.proId}`,
              CategoryTab: categoryName
            });
        } catch (e) {

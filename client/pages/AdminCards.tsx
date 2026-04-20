@@ -18,6 +18,7 @@ const AdminCards: React.FC = () => {
     const [cashbackRules, setCashbackRules] = useState<CashbackRule[]>([]);
     const [description, setDescription] = useState('');
     const [benefits, setBenefits] = useState<string[]>([]);
+    const [link, setLink] = useState('');
 
     // UI state
     const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +26,7 @@ const AdminCards: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         fetchCards();
@@ -56,7 +58,7 @@ const AdminCards: React.FC = () => {
     const banks = Array.from(new Set(cards.map(c => c.bank)));
 
     const handleBulkSaveCards = async (cardsToSave: any[]) => {
-        // setIsLoading(true);
+        setIsLoading(true);
         try {
             for (const card of cardsToSave) {
                 await cardApi.create(card);
@@ -68,7 +70,7 @@ const AdminCards: React.FC = () => {
             console.error('Failed to bulk save cards:', error);
             alert('Có lỗi xảy ra khi lưu thẻ đồng loạt.');
         } finally {
-            // setIsLoading(false);
+            setIsLoading(false);
         }
     };
 
@@ -79,6 +81,7 @@ const AdminCards: React.FC = () => {
             bank,
             bankName: bank, // Required property in Card type
             imageUrl,
+            link,
             annualFee,
             cashbackRules,
             description,
@@ -118,6 +121,7 @@ const AdminCards: React.FC = () => {
         setCashbackRules(card.cashbackRules);
         setDescription(card.description || '');
         setBenefits(card.benefits || []);
+        setLink(card.link || '');
         setShowModal(true);
     };
 
@@ -131,6 +135,7 @@ const AdminCards: React.FC = () => {
         setCashbackRules([{ category: 'Tất cả', percentage: 1 }]);
         setDescription('');
         setBenefits([]);
+        setLink('');
         setShowModal(true);
     };
 
@@ -410,7 +415,7 @@ const AdminCards: React.FC = () => {
                                             className="text-primary-500 hover:text-primary-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-colors"
                                         >
                                             <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-                                            Clone từ VIB
+                                            Clone từ Link
                                         </button>
                                     </div>
                                     <input
@@ -421,6 +426,19 @@ const AdminCards: React.FC = () => {
                                         placeholder="https://..."
                                     />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1">URL Chi tiết thẻ</label>
+                                    <input
+                                        type="text"
+                                        value={link}
+                                        onChange={e => setLink(e.target.value)}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl p-3 text-xs text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-primary-500 transition-all"
+                                        placeholder="https://www.bank.com/card-detail"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1">Phí thường niên</label>
                                     <div className="relative">

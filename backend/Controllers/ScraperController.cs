@@ -164,17 +164,28 @@ public class ScraperController : ControllerBase
 
             foreach (var node in doc.DocumentNode.Descendants())
             {
-                // Track headings
-                if (node.Name == "h1" || node.Name == "h2" || node.Name == "h3" || node.Name == "h4" || node.Name == "h5")
+                // Track headings for card naming
+                if (node.Name == "h1" || node.Name == "h2" || node.Name == "h3" || node.Name == "h4" || node.Name == "h5" || 
+                   (node.Name == "div" && node.GetAttributeValue("class", "").Contains("title")))
                 {
                     string title = HttpUtility.HtmlDecode(node.InnerText.Trim());
                     title = Regex.Replace(title, @"\s+", " ");
-                    if (title.Length > 3 && title.Length < 100)
+                    
+                    if (title.Length > 3 && title.Length < 120)
                     {
                         string lowerTitle = title.ToLower();
-                        string domain = uriResult.Host.Replace("www.", "").Split('.')[0].ToLower(); // e.g. 'vib'
+                        string domain = uriResult.Host.Replace("www.", "").Split('.')[0].ToLower();
                         
-                        if (lowerTitle.Contains(domain) || lowerTitle.Contains("thẻ"))
+                        // Intelligent check: Domain name, "thẻ", or major card brands
+                        bool isCardTitle = lowerTitle.Contains(domain) || 
+                                           lowerTitle.Contains("thẻ") || 
+                                           lowerTitle.Contains("visa") || 
+                                           lowerTitle.Contains("mastercard") || 
+                                           lowerTitle.Contains("jcb") || 
+                                           lowerTitle.Contains("american express") ||
+                                           lowerTitle.Contains("napas");
+
+                        if (isCardTitle)
                         {
                             currentCardName = title;
                             if (!cardsDict.ContainsKey(currentCardName))

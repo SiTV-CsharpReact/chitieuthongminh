@@ -11,6 +11,7 @@ public class SpendingData
 
     public string? UserId { get; set; }
     public decimal Amount { get; set; }
+    public decimal Salary { get; set; } // Lương hàng tháng của user
     public string? Category { get; set; }
     public DateTime Date { get; set; }
     public string? Description { get; set; }

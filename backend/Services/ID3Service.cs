@@ -16,11 +16,18 @@ public class ID3Service
     {
         var allCards = await _creditCardService.GetAsync();
         
-        // In a real ID3 implementation, we would build a tree based on historical successful matches.
-        // Since we don't have a huge dataset, we'll use an optimized selection logic 
-        // that mimics the "best fit" branch of a decision tree.
+        // ID3 Decision Branch 1: Filter by salary requirement
+        // If user provided salary, exclude cards they can't qualify for
+        var eligibleCards = allCards;
+        if (input.Salary > 0)
+        {
+            eligibleCards = allCards
+                .Where(c => c.MinSalary <= 0 || c.MinSalary <= input.Salary)
+                .ToList();
+        }
         
-        return allCards
+        // ID3 Decision Branch 2: Score & rank remaining cards
+        return eligibleCards
             .Select(card => new 
             { 
                 Card = card, 
@@ -35,7 +42,7 @@ public class ID3Service
     {
         decimal score = 0;
 
-        // Rule-based weights matching the ID3 feature importance
+        // Feature 1: Category matching (highest weight in ID3 tree)
         foreach (var rule in card.CashbackRules)
         {
             if (string.IsNullOrEmpty(rule.Category) || string.IsNullOrEmpty(input.Category)) continue;
@@ -61,11 +68,38 @@ public class ID3Service
             }
         }
 
-        // Logic for income level and annual fee (Economic feasibility branch)
+        // Feature 2: Salary bracket matching (new ID3 branch)
+        if (input.Salary > 0 && card.MinSalary > 0)
+        {
+            decimal salaryRatio = input.Salary / card.MinSalary;
+            
+            if (salaryRatio >= 1.0m && salaryRatio <= 1.5m)
+            {
+                // Perfect match: user salary is close to requirement
+                score += 40;
+            }
+            else if (salaryRatio > 1.5m && salaryRatio <= 3.0m)
+            {
+                // Over-qualified but still relevant
+                score += 20;
+            }
+            else if (salaryRatio > 3.0m)
+            {
+                // Way over-qualified, card might be too basic
+                score += 5;
+            }
+        }
+        else if (card.MinSalary == 0)
+        {
+            // No salary requirement = accessible to all
+            score += 10;
+        }
+
+        // Feature 3: Income level vs annual fee (Economic feasibility branch)
         if (input.IncomeLevel == "High" && card.AnnualFee > 1000000) score += 50;
         if (input.IncomeLevel == "Low" && card.AnnualFee == 0) score += 30;
 
-        // Credit score branch
+        // Feature 4: Credit score branch
         if (input.CreditScoreRange == "Excellent") score += 20;
 
         return score;

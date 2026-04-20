@@ -102,8 +102,10 @@ export const BankScraperModal: React.FC<BankScraperModalProps> = ({ isOpen, onCl
             return {
                 name: c.cardName,
                 bank: bankName,
+                bankName: bankName,
                 imageUrl: c.imageUrl || '',
                 link: url,
+                annualFee: 0,
                 cashbackRules: rules,
                 benefits: benefits
             };

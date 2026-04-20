@@ -14,6 +14,7 @@ export interface Card {
   imageUrl?: string;
   link?: string;
   annualFee: number;
+  minSalary?: number; // Lương tối thiểu (VNĐ). 0 = không yêu cầu
   cashbackRules: CashbackRule[];
   description?: string;
   benefits: string[];

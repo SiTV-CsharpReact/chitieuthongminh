@@ -10,12 +10,16 @@ public class CreditCard
     public string? Id { get; set; }
 
     public string Name { get; set; } = null!;
+    public string Bank { get; set; } = null!;
     public string BankName { get; set; } = null!;
     public string? BankLogo { get; set; }
     public string? ImageUrl { get; set; }
+    public string? Link { get; set; }
     public decimal AnnualFee { get; set; }
     
     public List<CashbackRule> CashbackRules { get; set; } = new();
+    
+    public decimal MinSalary { get; set; } // Lương tối thiểu (VNĐ). 0 = không yêu cầu
     
     public string? Description { get; set; }
     public List<string> Benefits { get; set; } = new();

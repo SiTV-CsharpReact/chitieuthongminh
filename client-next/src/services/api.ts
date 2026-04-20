@@ -277,3 +277,20 @@ export const promotionApi = {
         if (!response.ok) throw new Error('Failed to delete all promotions');
     }
 };
+
+export const chatApi = {
+    async sendMessage(message: string, history: { role: string; content: string }[] = []): Promise<{
+        reply: string;
+        intent: string;
+        suggestedCards?: any[];
+        quickReplies?: string[];
+    }> {
+        const response = await fetch(`${API_BASE_URL}/Chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, history }),
+        });
+        if (!response.ok) throw new Error('Failed to send chat message');
+        return response.json();
+    }
+};

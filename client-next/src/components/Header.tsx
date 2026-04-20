@@ -60,8 +60,18 @@ export const Header: React.FC = () => {
 
                 {/* Logo & Brand */}
                 <Link href="/" className="flex items-center gap-3.5 group">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg shadow-primary-500/20 transition-transform group-hover:scale-110">
-                        <span className="material-symbols-outlined text-[16px]">savings</span>
+                    <div className="flex h-10 w-10 items-center justify-center transition-transform group-hover:scale-110">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
+                            <defs>
+                                <linearGradient id="neonGreen" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#80e5a3"/><stop offset="100%" stopColor="#2a7a45"/></linearGradient>
+                                <linearGradient id="neonYellow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#fbc2eb"/><stop offset="100%" stopColor="#a6c1ee"/></linearGradient>
+                                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+                            </defs>
+                            <path d="M 100 20 L 170 60 L 170 130 L 100 180 L 30 130 L 30 60 Z" fill="none" stroke="url(#neonGreen)" strokeWidth="10" strokeLinejoin="round" filter="url(#glow)"/>
+                            <path d="M 60 110 L 100 140 L 140 70" fill="none" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" className="stroke-slate-800 dark:stroke-white"/>
+                            <path d="M 140 70 L 140 100 M 140 70 L 110 70" fill="none" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" className="stroke-slate-800 dark:stroke-white"/>
+                            <circle cx="70" cy="80" r="15" fill="url(#neonYellow)" filter="url(#glow)"/>
+                        </svg>
                     </div>
                     <div className="flex flex-col">
                         <h1 className="text-base font-black tracking-tight text-slate-900 dark:text-white transition-colors group-hover:text-primary-500">

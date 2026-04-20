@@ -4,6 +4,7 @@ import React from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { LoginModal } from '@/components/LoginModal';
+import { ChatbotWidget } from '@/components/ChatbotWidget';
 
 export default function ClientLayout({
   children,
@@ -18,6 +19,7 @@ export default function ClientLayout({
       </main>
       <Footer />
       <LoginModal />
+      <ChatbotWidget />
     </div>
   );
 }

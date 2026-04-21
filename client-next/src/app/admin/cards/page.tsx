@@ -23,6 +23,7 @@ export default function AdminCardsPage() {
     const [description, setDescription] = useState('');
     const [benefits, setBenefits] = useState<string[]>([]);
     const [link, setLink] = useState('');
+    const [registerUrl, setRegisterUrl] = useState('');
 
     // UI state
     const [searchTerm, setSearchTerm] = useState('');
@@ -86,6 +87,7 @@ export default function AdminCardsPage() {
             bankName: bank, // Required property in Card type
             imageUrl,
             link,
+            registerUrl,
             annualFee,
             minSalary,
             cashbackRules,
@@ -130,6 +132,7 @@ export default function AdminCardsPage() {
         setDescription(card.description || '');
         setBenefits(card.benefits || []);
         setLink(card.link || '');
+        setRegisterUrl(card.registerUrl || '');
         setShowModal(true);
     };
 
@@ -145,6 +148,7 @@ export default function AdminCardsPage() {
         setDescription('');
         setBenefits([]);
         setLink('');
+        setRegisterUrl('');
         setShowModal(true);
     };
 
@@ -245,6 +249,7 @@ export default function AdminCardsPage() {
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Yêu cầu lương</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Hoàn tiền tiêu biểu</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Hạn mức hoàn</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Link Đăng ký</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Thao tác</th>
                             </tr>
                         </thead>
@@ -311,6 +316,21 @@ export default function AdminCardsPage() {
                                                 <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 italic">Không giới hạn hoàn</span>
                                             )}
                                         </div>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        {card.registerUrl ? (
+                                            <a
+                                                href={card.registerUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-green-500/20 active:scale-95"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">how_to_reg</span>
+                                                Đăng ký
+                                            </a>
+                                        ) : (
+                                            <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600">—</span>
+                                        )}
                                     </td>
                                     <td className="px-8 py-5 text-right">
                                         <div className="flex justify-end gap-3 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
@@ -430,6 +450,30 @@ export default function AdminCardsPage() {
                                         placeholder="https://..."
                                     />
                                 </div>
+                            </div>
+
+                            {/* Register URL - full width */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[14px] text-green-500">how_to_reg</span>
+                                    Link Đăng ký thẻ (Register URL)
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="url"
+                                        value={registerUrl}
+                                        onChange={e => setRegisterUrl(e.target.value)}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-2xl p-4 pl-10 text-xs font-bold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-green-500 transition-all outline-none font-mono"
+                                        placeholder="https://cards.vpbank.com.vn/basic-details/..."
+                                    />
+                                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">link</span>
+                                </div>
+                                {registerUrl && (
+                                    <a href={registerUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-green-600 dark:text-green-400 font-bold flex items-center gap-1 ml-1 hover:underline">
+                                        <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                                        Kiểm tra link
+                                    </a>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">

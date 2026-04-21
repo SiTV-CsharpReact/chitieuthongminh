@@ -13,6 +13,7 @@ export interface Card {
   bankLogo?: string;
   imageUrl?: string;
   link?: string;
+  registerUrl?: string;
   annualFee: number;
   minSalary?: number; // Lương tối thiểu (VNĐ). 0 = không yêu cầu
   cashbackRules: CashbackRule[];

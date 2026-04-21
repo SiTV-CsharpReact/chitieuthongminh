@@ -15,6 +15,7 @@ public class CreditCard
     public string? BankLogo { get; set; }
     public string? ImageUrl { get; set; }
     public string? Link { get; set; }
+    public string? RegisterUrl { get; set; }
     public decimal AnnualFee { get; set; }
     
     public List<CashbackRule> CashbackRules { get; set; } = new();

@@ -13,6 +13,7 @@ interface ScrapedCard {
     id: string; // Internal temporary ID
     cardName: string;
     imageUrl?: string;
+    registerUrl?: string;
     cashbackInfos: CashbackInfo[];
     annualFee?: number;
     minSalary?: number;
@@ -151,6 +152,7 @@ export const BankScraperModal: React.FC<BankScraperModalProps> = ({ isOpen, onCl
                 bankName: bankName,
                 imageUrl: c.imageUrl || '',
                 link: url,
+                registerUrl: c.registerUrl || '',
                 annualFee: c.annualFee || 0,
                 minSalary: c.minSalary || 0,
                 cashbackRules: rules,
@@ -172,7 +174,7 @@ export const BankScraperModal: React.FC<BankScraperModalProps> = ({ isOpen, onCl
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-slate-900/60 transition-all duration-300">
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-6xl max-h-[92vh] shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-up">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-7xl max-h-[92vh] shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-up">
                 {/* Header & Search Bar */}
                 <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/20">
                     <div className="flex items-center justify-between mb-6">
@@ -297,91 +299,112 @@ export const BankScraperModal: React.FC<BankScraperModalProps> = ({ isOpen, onCl
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                                                <th className="px-6 py-4 w-12 text-center">
-                                                    <span className="material-symbols-outlined text-slate-400 text-lg">checklist</span>
+                                                <th className="px-4 py-3 w-10 text-center">
+                                                    <span className="material-symbols-outlined text-slate-400 text-base">checklist</span>
                                                 </th>
-                                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-24">Hình ảnh</th>
-                                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-1/4">Thông tin thẻ</th>
-                                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-48">Chi phí & Yêu cầu</th>
-                                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Hoàn tiền bóc tách</th>
-                                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-16 text-right">Xoá</th>
+                                                <th className="px-3 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-16">Ảnh</th>
+                                                <th className="px-3 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Tên thẻ</th>
+                                                <th className="px-3 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-40">Chi phí & Lương</th>
+                                                <th className="px-3 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Hoàn tiền</th>
+                                                <th className="px-3 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-44">Link Đăng ký</th>
+                                                <th className="px-3 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-12 text-right">Xoá</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                             {extractedCards.map(card => (
                                                 <tr key={card.id} className={`group hover:bg-slate-50/30 dark:hover:bg-slate-800/20 transition-all ${selectedIds.has(card.id) ? 'bg-primary-50/10 dark:bg-primary-900/10' : ''}`}>
-                                                    <td className="px-6 py-4 text-center">
+                                                    <td className="px-4 py-3 text-center">
                                                         <button onClick={() => toggleCardSelection(card.id)} className={`transition-colors ${selectedIds.has(card.id) ? 'text-primary-500' : 'text-slate-300 dark:text-slate-600'}`}>
-                                                            <span className="material-symbols-outlined text-xl">
+                                                            <span className="material-symbols-outlined text-lg">
                                                                 {selectedIds.has(card.id) ? 'check_box' : 'check_box_outline_blank'}
                                                             </span>
                                                         </button>
                                                     </td>
-                                                    <td className="px-4 py-4">
-                                                        <div className="w-16 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm p-1">
+                                                    <td className="px-3 py-3">
+                                                        <div className="w-14 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700 p-1">
                                                             {card.imageUrl ? (
                                                                 <img src={card.imageUrl} alt={card.cardName} className="w-full h-full object-contain" />
                                                             ) : (
-                                                                <span className="material-symbols-outlined text-slate-300 text-lg">credit_card</span>
+                                                                <span className="material-symbols-outlined text-slate-300 text-base">credit_card</span>
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-4">
-                                                        <div className="flex flex-col gap-1.5">
+                                                    <td className="px-3 py-3">
+                                                        <div className="flex flex-col gap-1">
                                                             <input 
                                                                 type="text" 
                                                                 value={card.cardName}
                                                                 onChange={e => handleCardFieldChange(card.id, 'cardName', e.target.value)}
-                                                                className="w-full bg-transparent border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-primary-500 rounded-lg px-2 py-1 text-sm font-bold text-slate-900 dark:text-white outline-none transition-all"
+                                                                className="w-full bg-transparent border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-primary-500 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-900 dark:text-white outline-none transition-all"
                                                                 placeholder="Tên thẻ"
                                                             />
-                                                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest px-2">{bankName}</span>
+                                                            <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest px-2">{bankName}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-4 space-y-3">
-                                                        <div className="flex items-center gap-2 group/input">
-                                                            <span className="material-symbols-outlined text-[14px] text-slate-400 group-focus-within/input:text-primary-500 transition-colors">payments</span>
+                                                    <td className="px-3 py-3 space-y-2">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[13px] text-slate-400">payments</span>
                                                             <input
                                                                 type="number"
                                                                 value={card.annualFee || ''}
                                                                 onChange={e => handleCardFieldChange(card.id, 'annualFee', Number(e.target.value))}
                                                                 placeholder="Phí thường niên"
-                                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-primary-500 transition-all shadow-inner"
+                                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-primary-500 transition-all"
                                                             />
                                                         </div>
-                                                        <div className="flex items-center gap-2 group/input">
-                                                            <span className="material-symbols-outlined text-[14px] text-slate-400 group-focus-within/input:text-green-500 transition-colors">work</span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[13px] text-slate-400">work</span>
                                                             <input
                                                                 type="number"
                                                                 value={card.minSalary || ''}
                                                                 onChange={e => handleCardFieldChange(card.id, 'minSalary', Number(e.target.value))}
                                                                 placeholder="Lương yêu cầu"
-                                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-green-500 transition-all shadow-inner"
+                                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-green-500 transition-all"
                                                             />
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-4">
-                                                        <div className="max-h-24 overflow-y-auto space-y-1.5 pr-2 scrollbar-hide">
-                                                            {card.cashbackInfos.length === 0 && <span className="text-xs text-slate-400 italic">Thẻ chưa có thông tin ưu đãi hiển thị</span>}
+                                                    <td className="px-3 py-3">
+                                                        <div className="max-h-20 overflow-y-auto space-y-1 pr-1 scrollbar-hide">
+                                                            {card.cashbackInfos.length === 0 && <span className="text-[10px] text-slate-400 italic">Chưa có ưu đãi</span>}
                                                             {card.cashbackInfos.map((info, i) => (
-                                                                <div key={i} className="text-[10px] text-slate-600 dark:text-slate-400 leading-tight">
-                                                                    <span className="text-slate-400 mx-1">•</span>
+                                                                <div key={i} className="text-[9px] text-slate-600 dark:text-slate-400 leading-tight">
+                                                                    <span className="text-slate-400 mr-1">•</span>
                                                                     {info.text}
                                                                     {(info.suggestedPercentage != null || info.suggestedCap != null) && (
-                                                                        <span className="ml-1 text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-900/20 px-1 py-0.5 rounded">
-                                                                            ({info.suggestedPercentage}% - {info.suggestedCap}đ)
+                                                                        <span className="ml-1 text-green-600 font-bold bg-green-50 dark:bg-green-900/20 px-1 rounded">
+                                                                            {info.suggestedPercentage}%{info.suggestedCap ? ` - ${info.suggestedCap}đ` : ''}
                                                                         </span>
                                                                     )}
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-4 text-right">
+                                                    <td className="px-3 py-3">
+                                                        <div className="flex flex-col gap-1.5">
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="url"
+                                                                    value={card.registerUrl || ''}
+                                                                    onChange={e => handleCardFieldChange(card.id, 'registerUrl', e.target.value)}
+                                                                    placeholder="https://..."
+                                                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg pl-6 pr-2 py-1 text-[9px] font-mono text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-green-500 transition-all"
+                                                                />
+                                                                <span className="material-symbols-outlined absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]">link</span>
+                                                            </div>
+                                                            {card.registerUrl && (
+                                                                <a href={card.registerUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-green-600 font-bold flex items-center gap-0.5 ml-1 hover:underline truncate">
+                                                                    <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                                                                    Xem
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right">
                                                         <button 
                                                             onClick={() => handleRemoveCard(card.id)}
-                                                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors inline-block"
+                                                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors"
                                                         >
-                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                            <span className="material-symbols-outlined text-[16px]">delete</span>
                                                         </button>
                                                     </td>
                                                 </tr>

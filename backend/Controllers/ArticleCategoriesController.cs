@@ -19,6 +19,20 @@ public class ArticleCategoriesController : ControllerBase
     public async Task<List<ArticleCategory>> Get() =>
         await _categoriesService.GetAsync();
 
+    [HttpGet("dropdown")]
+    public async Task<IActionResult> GetDropdown()
+    {
+        var categories = await _categoriesService.GetAsync();
+        var dropdownData = categories.Select(c => new
+        {
+            id = c.Id,
+            cateValue = c.Name,
+            cateName = c.Name,
+            cateColor = c.Color
+        });
+        return Ok(dropdownData);
+    }
+
     [HttpGet("{id:length(24)}")]
     public async Task<ActionResult<ArticleCategory>> Get(string id)
     {

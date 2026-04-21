@@ -1,4 +1,4 @@
-import { Card, Category, Article, ArticleCategory, CardPromotion } from '@/types';
+import { Card, Category, Article, ArticleCategory, CardPromotion, User } from '@/types';
 
 const API_BASE_URL = '/api';
 
@@ -292,5 +292,50 @@ export const chatApi = {
         });
         if (!response.ok) throw new Error('Failed to send chat message');
         return response.json();
+    }
+};
+
+const getCookie = (name: string) => {
+    if (typeof document === 'undefined') return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+    return null;
+};
+
+export const userApi = {
+    async getAll(): Promise<User[]> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch users');
+        return response.json();
+    },
+    
+    async updateRole(id: string, role: string): Promise<void> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/${id}`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+             },
+            body: JSON.stringify({ role }),
+        });
+        if (!response.ok) throw new Error('Failed to update user');
+    },
+
+    async delete(id: string): Promise<void> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to delete user');
     }
 };

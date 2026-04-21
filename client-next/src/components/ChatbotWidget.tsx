@@ -85,7 +85,7 @@ export const ChatbotWidget: React.FC = () => {
             setMessages([{
                 id: 'welcome',
                 role: 'assistant',
-                content: 'Xin chào! 👋 Tôi là **Trợ lý AI** của Chi Tiêu Thông Minh.\n\nHỏi tôi bất kỳ điều gì về thẻ tín dụng nhé!',
+                content: 'Xin chào! 👋 Tôi là **Trợ lý AI** của CredBack.\n\nHỏi tôi bất kỳ điều gì về thẻ tín dụng nhé!',
                 quickReplies: [
                     'Top thẻ hoàn tiền cao nhất',
                     'Tư vấn thẻ cho lương 15 triệu',
@@ -225,8 +225,8 @@ export const ChatbotWidget: React.FC = () => {
                 <button
                     onClick={isOpen ? () => setIsOpen(false) : handleOpen}
                     className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl group overflow-hidden pointer-events-auto ${isOpen
-                            ? 'bg-slate-800 hover:bg-slate-700 scale-100'
-                            : 'ring-[3px] ring-white dark:ring-slate-700 hover:scale-110 shadow-black/20'
+                        ? 'bg-slate-800 hover:bg-slate-700 scale-100'
+                        : 'ring-[3px] ring-white dark:ring-slate-700 hover:scale-110 shadow-black/20'
                         }`}
                     aria-label="Chat AI"
                 >
@@ -246,8 +246,8 @@ export const ChatbotWidget: React.FC = () => {
 
             {/* Chat Panel */}
             <div className={`fixed bottom-24 right-6 z-[199] w-[400px] max-w-[calc(100vw-2rem)] transition-all duration-500 ${isOpen
-                    ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
-                    : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
+                ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+                : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
                 }`}>
                 <div className="bg-white dark:bg-[#0c1222] rounded-[1.5rem] shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden flex flex-col h-[560px] border border-slate-200 dark:border-slate-800/80 ring-1 ring-slate-100 dark:ring-primary-500/10">
                     {/* Header */}
@@ -295,8 +295,8 @@ export const ChatbotWidget: React.FC = () => {
                                 )}
                                 <div className={`max-w-[82%] ${msg.role === 'user' ? 'order-first' : ''}`}>
                                     <div className={`rounded-2xl px-4 py-3 text-[13px] leading-relaxed ${msg.role === 'user'
-                                            ? 'bg-primary-600 text-white rounded-br-md ml-auto'
-                                            : 'bg-slate-100 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 rounded-bl-md border border-slate-200 dark:border-slate-700/40'
+                                        ? 'bg-primary-600 text-white rounded-br-md ml-auto'
+                                        : 'bg-slate-100 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 rounded-bl-md border border-slate-200 dark:border-slate-700/40'
                                         }`}>
                                         <div className="space-y-0.5 [&_strong]:text-primary-600 dark:[&_strong]:text-primary-300 [&_strong]:font-extrabold [&_em]:text-slate-500 dark:[&_em]:text-slate-400 [&_em]:not-italic [&_em]:text-[11px]">
                                             {renderContent(msg.content)}
@@ -355,8 +355,8 @@ export const ChatbotWidget: React.FC = () => {
                                 type="submit"
                                 disabled={!input.trim() || isTyping}
                                 className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${input.trim() && !isTyping
-                                        ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-500/20 scale-100'
-                                        : 'bg-primary-100 dark:bg-primary-900/40 text-primary-400 dark:text-primary-500/60 scale-90'
+                                    ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-500/20 scale-100'
+                                    : 'bg-primary-100 dark:bg-primary-900/40 text-primary-400 dark:text-primary-500/60 scale-90'
                                     }`}
                             >
                                 <span className="material-symbols-outlined text-lg">arrow_upward</span>

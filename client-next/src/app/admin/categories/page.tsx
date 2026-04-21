@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { categoryApi } from '@/services/api';
 import { Category } from '@/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function AdminCategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -49,8 +50,10 @@ export default function AdminCategoriesPage() {
         try {
             await categoryApi.delete(id);
             fetchCategories();
+            alert('Xóa danh mục thành công!');
         } catch (error) {
             console.error('Error deleting category:', error);
+            alert('Có lỗi xảy ra khi xóa danh mục.');
         }
     };
 
@@ -74,13 +77,16 @@ export default function AdminCategoriesPage() {
         try {
             if (isEditing && currentCategory.id) {
                 await categoryApi.update(currentCategory.id, currentCategory);
+                alert('Cập nhật danh mục thành công!');
             } else {
                 await categoryApi.create(currentCategory);
+                alert('Thêm danh mục mới thành công!');
             }
             setShowModal(false);
             fetchCategories();
         } catch (error) {
             console.error('Error saving category:', error);
+            alert('Có lỗi xảy ra khi lưu danh mục.');
         }
     };
 
@@ -100,7 +106,7 @@ export default function AdminCategoriesPage() {
     }, [pageSize, totalPages, currentPage]);
 
     return (
-        <div className="space-y-6 animate-fade-in p-4 lg:p-8">
+        <div className="space-y-6 animate-fade-in transition-all">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản lý danh mục</h1>
@@ -117,7 +123,7 @@ export default function AdminCategoriesPage() {
                     </button>
                     <button
                         onClick={handleOpenAdd}
-                        className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-primary-500/20 hover:bg-primary-600 transition-all hover:scale-105 active:scale-95"
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
                     >
                         <span className="material-symbols-outlined text-[20px]">add</span>
                         Thêm danh mục
@@ -275,16 +281,14 @@ export default function AdminCategoriesPage() {
                 )}
             </div>
 
-            {showModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setShowModal(false)}></div>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-slide-up border border-slate-200 dark:border-slate-800">
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{isEditing ? 'Sửa danh mục' : 'Thêm danh mục mới'}</h2>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                                <span className="material-symbols-outlined text-xl">close</span>
-                            </button>
-                        </div>
+            <Dialog open={showModal} onOpenChange={setShowModal}>
+                <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border-slate-200 dark:border-slate-800 p-0 gap-0 shadow-2xl">
+                    <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-left shrink-0">
+                        <DialogTitle className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">
+                            {isEditing ? 'Sửa danh mục' : 'Thêm danh mục mới'}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="max-h-[80vh] overflow-y-auto scrollbar-hide">
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 cursor-pointer group">
                                 <div className="relative flex items-center">
@@ -372,8 +376,8 @@ export default function AdminCategoriesPage() {
                             </div>
                         </form>
                     </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

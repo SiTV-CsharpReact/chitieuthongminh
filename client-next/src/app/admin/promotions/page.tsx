@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { promotionApi, scraperApi } from '@/services/api';
 import { CardPromotion } from '@/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function AdminPromotionsPage() {
     const [promotions, setPromotions] = useState<CardPromotion[]>([]);
@@ -108,13 +109,11 @@ export default function AdminPromotionsPage() {
     const currentItems = filteredPromotions.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     return (
-        <div className="max-w-7xl mx-auto pb-12 p-4 lg:p-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
+        <div className="space-y-6 animate-fade-in transition-all">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">
-                        Quản Lý Ưu Đãi Thẻ
-                    </h1>
-                    <p className="mt-2 text-slate-500 dark:text-slate-400">
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản Lý Ưu Đãi Thẻ</h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                         Quản lý hệ thống ưu đãi và khuyến mãi từ các ngân hàng
                     </p>
                 </div>
@@ -133,9 +132,10 @@ export default function AdminPromotionsPage() {
                     </button>
                     <button
                         onClick={() => setShowScraperModal(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 active:scale-95"
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
                     >
-                        <span className="material-symbols-outlined">api</span> Clone Từ VIB World
+                        <span className="material-symbols-outlined text-[20px]">api</span>
+                        Clone Từ VIB World
                     </button>
                 </div>
             </div>
@@ -318,10 +318,11 @@ export default function AdminPromotionsPage() {
             </div>
 
             {/* Scraper Modal */}
-            {showScraperModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700">
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 rounded-t-2xl">
+            <Dialog open={showScraperModal} onOpenChange={setShowScraperModal}>
+                <DialogContent className="max-w-4xl h-[90vh] bg-white dark:bg-slate-800 p-0 gap-0 border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+                    <DialogHeader className="hidden"><DialogTitle>Scraper Modal</DialogTitle></DialogHeader>
+                    <div className="flex flex-col h-full bg-white dark:bg-slate-800">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 shrink-0">
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">
                                     Robot Cào Dữ Liệu Ưu Đãi (Scraper)
@@ -402,15 +403,15 @@ export default function AdminPromotionsPage() {
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
 
             {/* Manual Import Modal */}
-            {showImportModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                        <div className="p-8">
-                            <div className="flex justify-between items-center mb-6">
+            <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+                <DialogContent className="max-w-2xl bg-white dark:bg-slate-800 p-0 gap-0 border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden shadow-2xl">
+                    <DialogHeader className="hidden"><DialogTitle>Import Data</DialogTitle></DialogHeader>
+                    <div className="p-8">
+                        <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-3">
                                     <span className="material-symbols-outlined text-indigo-600">upload_file</span>
                                     Nhập Dữ Liệu JSON
@@ -450,9 +451,8 @@ export default function AdminPromotionsPage() {
                                 </button>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

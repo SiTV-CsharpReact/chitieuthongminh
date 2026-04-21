@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 export const LoginModal: React.FC = () => {
-    const { isLoginModalOpen, closeLoginModal, login } = useAuth();
+    const { isLoginModalOpen, closeLoginModal, login, register } = useAuth();
     
     // UI State
     const [animate, setAnimate] = useState(false);
@@ -46,14 +46,18 @@ export const LoginModal: React.FC = () => {
         setError('');
         
         if (isRegister && password !== confirmPassword) {
-            setError("Mật khẩu xác nhận không khớp!");
+            setError('Mật khẩu xác nhận không khớp');
             return;
         }
         
         try {
-            await login(email, password);
+            if (isRegister) {
+                await register(name, email, password);
+            } else {
+                await login(email, password);
+            }
         } catch (err: any) {
-            setError(err.message || "Tài khoản hoặc mật khẩu không chính xác!");
+            setError(err.message || (isRegister ? "Đăng ký không thành công!" : "Tài khoản hoặc mật khẩu không chính xác!"));
         }
     };
 

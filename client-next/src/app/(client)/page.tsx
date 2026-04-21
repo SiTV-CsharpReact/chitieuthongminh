@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-
+import { ArrowRightOutlined } from '@ant-design/icons';
 const NumberTicker: React.FC<{ value: number, duration?: number, prefix?: string, suffix?: string }> = ({ value, duration = 2000, prefix = '', suffix = '' }) => {
   const [count, setCount] = useState(0);
 
@@ -86,7 +86,7 @@ export default function WelcomePage() {
                 <h2 className="text-3xl md:text-4xl lg:text-5xl  font-black tracking-tighter leading-[1.05] animate-fade-in-up">
                   <span className="text-slate-700 dark:text-slate-400 block mb-2">Chào mừng bạn đến với</span>
                   <span className="relative inline-block mt-2">
-                    <span className="text-gradient-shimmer hero-text-glow">Chi tiêu thông minh</span>
+                    <span className="text-gradient-shimmer hero-text-glow">CredBack - Chi tiêu thông minh</span>
                     <div className="absolute -bottom-3 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-primary-500 to-transparent scale-x-0 animate-scale-up [animation-delay:1.2s] origin-center opacity-60">
                       <div className="absolute inset-0 animated-underline-gradient"></div>
                     </div>
@@ -95,38 +95,15 @@ export default function WelcomePage() {
                 <p className="text-slate-400 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto md:mx-0 opacity-0 animate-[fadeIn_0.8s_ease-out_forwards] [animation-delay:1200ms]">
                   Hãy cho chúng tôi biết bạn là ai để nhận được đề xuất thẻ tín dụng phù hợp nhất với nhu cầu và phong cách sống của bạn.
                 </p>
-                {/* <h2 className="text-3xl md:text-4xl lg:text-5xl font-black mb-8 tracking-tighter leading-[1.1]">
-                  <div className="flex flex-wrap justify-center md:justify-start gap-x-3 mb-2">
-                    {['Chào', 'mừng', 'bạn', 'đến', 'với'].map((word, i) => (
-                      <span
-                        key={i}
-                        className="opacity-0 animate-blur-fade-in inline-block text-slate-700 dark:text-slate-400"
-                        style={{ animationDelay: `${200 + i * 100}ms` }}
-                      >
-                        {word}
-                      </span>
-                    ))}
-                  </div>
-                  <span className="relative inline-block mt-2">
-                    <span className="text-gradient-shimmer hero-text-glow inline-block opacity-0 animate-blur-fade-in [animation-delay:800ms]">
-                      Chi tiêu thông minh
-                    </span>
-                    <div className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary-500 to-transparent scale-x-0 animate-[scaleUp_0.8s_cubic-bezier(0.16,1,0.3,1)_forwards] [animation-delay:1800ms] origin-center opacity-50">
-                      <div className="absolute inset-0 animated-underline-gradient"></div>
-                    </div>
-                  </span>
-                </h2> */}
-              </div>
 
-              {/* <p className="text-slate-500 dark:text-slate-400 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto md:mx-0 animate-fade-in [animation-delay:0.8s] opacity-0" style={{ animationFillMode: 'forwards' }}>
-                Hãy cho chúng tôi biết bạn là ai để nhận được đề xuất thẻ tín dụng phù hợp nhất với nhu cầu và phong cách sống của bạn.
-              </p> */}
+              </div>
               <div className="mt-10 flex flex-wrap justify-center md:justify-start gap-4 opacity-0 animate-[fadeIn_0.8s_ease-out_forwards] [animation-delay:1600ms]">
                 <button
                   onClick={scrollToCategories}
-                  className="px-8 py-4 bg-primary-500 rounded-full font-bold text-white shadow-lg shadow-primary-500/30 hover:bg-primary-400 transition-all transform hover:-translate-y-1"
+                  className="flex items-center gap-2 px-8 py-4 bg-primary-500 rounded-full font-bold text-white shadow-lg shadow-primary-500/30 hover:bg-primary-400 transition-all transform hover:-translate-y-1"
                 >
                   Khám phá ngay
+                  <ArrowRightOutlined className="w-5 h-5 animate-slide-right" />
                 </button>
                 <button className="px-8 py-4 bg-slate-100 dark:bg-white/10 rounded-full font-bold text-slate-700 dark:text-white border border-slate-200 dark:border-white/10 backdrop-blur-sm hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Xem ưu đãi</button>
               </div>
@@ -247,7 +224,7 @@ export default function WelcomePage() {
                     {persona.description}
                   </p>
                   <Link
-                    href="/input"
+                    href={`/input?profile=${persona.id}`}
                     className={`w-full py-5 rounded-2xl text-sm font-black flex items-center justify-center gap-3 transition-all duration-300
                       ${isActive ? persona.btnClass : 'bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-white/10'}
                     `}

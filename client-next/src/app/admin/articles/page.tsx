@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { articleApi, categoryApi } from '@/services/api';
-import { Article, Category } from '@/types';
+import { articleApi, articleCategoryApi } from '@/services/api';
+import { Article, ArticleCategory } from '@/types';
 import { Editor } from '@tinymce/tinymce-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import FileManager from '@/components/FileManager';
 
 export default function AdminArticlesPage() {
     const [articles, setArticles] = useState<Article[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [categories, setCategories] = useState<ArticleCategory[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -40,7 +41,7 @@ export default function AdminArticlesPage() {
         try {
             const [articlesData, categoriesData] = await Promise.all([
                 articleApi.getAll(),
-                categoryApi.getAll()
+                articleCategoryApi.getAll()
             ]);
             setArticles(articlesData);
             setCategories(categoriesData);
@@ -133,18 +134,17 @@ export default function AdminArticlesPage() {
     };
 
     return (
-        <div className="p-4 lg:p-8 min-h-screen bg-slate-50 dark:bg-slate-950">
-            <div className="flex items-center justify-between mb-8">
+        <div className="space-y-6 animate-fade-in transition-all">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Quản lý bài viết</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Hệ thống Zenith News CMS Professional</p>
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản lý bài viết</h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Hệ thống Zenith News CMS Professional</p>
                 </div>
                 <button
                     onClick={() => { resetForm(); setIsModalOpen(true); }}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-[11px] transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2 group active:scale-95"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
                 >
-                    <span className="material-symbols-outlined text-[18px] group-hover:rotate-90 transition-transform">add</span>
-                    VIẾT BÀI MỚI
+                    <span className="material-symbols-outlined text-[20px]">add</span> THÊM BÀI VIẾT
                 </button>
             </div>
 
@@ -153,7 +153,7 @@ export default function AdminArticlesPage() {
                     <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
                 </div>
             ) : (
-                <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -180,9 +180,18 @@ export default function AdminArticlesPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[9px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-700">
-                                                {article.category}
-                                            </span>
+                                            {(() => {
+                                                const cat = categories.find(c => c.name === article.category);
+                                                return cat ? (
+                                                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest shadow-sm" style={{ backgroundColor: `${cat.color}20`, color: cat.color, border: `1px solid ${cat.color}40` }}>
+                                                        {article.category}
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[9px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-700">
+                                                        {article.category}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400">
                                             {article.createdAt ? new Date(article.createdAt).toLocaleDateString('vi-VN') : '-'}
@@ -212,26 +221,20 @@ export default function AdminArticlesPage() {
             )}
 
             {/* Editor Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 lg:p-4 animate-fade-in">
-                    <div className="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/90 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-                    <div className="relative bg-white dark:bg-slate-900 w-full max-w-[1400px] h-full lg:h-auto lg:max-h-[92vh] overflow-hidden lg:rounded-[1.5rem] shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 animate-scale-up">
-
-                        {/* Header */}
-                        <div className="flex items-center justify-between px-8 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-20">
-                            <div className="flex flex-col">
-                                <h2 className="text-lg font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-tight">
-                                    {currentArticle.id ? 'Hiệu chỉnh bài viết' : 'Tạo bài viết mới'}
-                                </h2>
-                                <p className="text-slate-400 dark:text-slate-500 text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5">Zenith CMS Pro v3.0 - Optimized Interface</p>
-                            </div>
-                            <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all">
-                                <span className="material-symbols-outlined text-xl">close</span>
-                            </button>
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="max-w-[1400px] h-[100dvh] lg:h-auto lg:max-h-[92vh] bg-white dark:bg-slate-900 p-0 gap-0 border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+                    {/* Header */}
+                    <DialogHeader className="flex flex-row items-center justify-between px-8 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-20 text-left">
+                        <div className="flex flex-col">
+                            <DialogTitle className="text-lg font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-tight">
+                                {currentArticle.id ? 'Hiệu chỉnh bài viết' : 'Tạo bài viết mới'}
+                            </DialogTitle>
+                            <p className="text-slate-400 dark:text-slate-500 text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5">Zenith CMS Pro v3.0 - Optimized Interface</p>
                         </div>
+                    </DialogHeader>
 
-                        {/* Body */}
-                        <div className="flex-grow overflow-y-auto px-8 py-6 flex flex-col lg:flex-row gap-6 scrollbar-hide pb-28 lg:pb-32">
+                    {/* Body */}
+                    <div className="flex-grow overflow-y-auto px-8 py-6 flex flex-col lg:flex-row gap-6 scrollbar-hide pb-28 lg:pb-32">
                             {/* Left Column */}
                             <div className="flex-grow space-y-5 lg:w-[68%]">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -368,8 +371,8 @@ export default function AdminArticlesPage() {
                                             <div className="space-y-1">
                                                 <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-1">Chuyên mục chính</label>
                                                 <select
-                                                    value={currentArticle.parentCategory || ''}
-                                                    onChange={e => setCurrentArticle(prev => ({ ...prev, parentCategory: e.target.value, category: e.target.value }))}
+                                                    value={currentArticle.category || ''}
+                                                    onChange={e => setCurrentArticle(prev => ({ ...prev, category: e.target.value }))}
                                                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-[12px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-emerald-500 transition-all appearance-none"
                                                 >
                                                     <option value="">Chọn Root...</option>
@@ -437,27 +440,24 @@ export default function AdminArticlesPage() {
                                 </button>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
 
-            {isPreviewOpen && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setIsPreviewOpen(false)}></div>
-                    <div className="relative bg-white dark:bg-slate-950 w-full max-w-[900px] h-full overflow-y-auto rounded-3xl shadow-2xl flex flex-col p-8 border border-slate-200 dark:border-slate-800">
-                        <button onClick={() => setIsPreviewOpen(false)} className="self-end p-2 text-slate-500 hover:text-red-500">
-                            <span className="material-symbols-outlined">close</span>
-                        </button>
-                        <div className="prose dark:prose-invert max-w-none">
-                            <h1 className="font-black text-3xl mb-6 leading-tight text-slate-900 dark:text-white">{currentArticle.title || 'Tiêu đề bài viết'}</h1>
-                            {currentArticle.coverImage && (
-                                <img src={currentArticle.coverImage} className="w-full rounded-2xl mb-8" alt="" />
-                            )}
-                            <div dangerouslySetInnerHTML={{ __html: currentArticle.content || '<p>Chưa có nội dung...</p>' }} />
-                        </div>
+            {/* Preview Modal */}
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-[900px] max-h-[90vh] bg-white dark:bg-slate-950 overflow-y-auto rounded-3xl shadow-2xl flex flex-col p-8 border-slate-200 dark:border-slate-800">
+                    <DialogHeader className="hidden">
+                        <DialogTitle>Preview</DialogTitle>
+                    </DialogHeader>
+                    <div className="prose dark:prose-invert max-w-none mt-4">
+                        <h1 className="font-black text-3xl mb-6 leading-tight text-slate-900 dark:text-white">{currentArticle.title || 'Tiêu đề bài viết'}</h1>
+                        {currentArticle.coverImage && (
+                            <img src={currentArticle.coverImage} className="w-full rounded-2xl mb-8" alt="" />
+                        )}
+                        <div dangerouslySetInnerHTML={{ __html: currentArticle.content || '<p>Chưa có nội dung...</p>' }} />
                     </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
 
             <FileManager
                 isOpen={isFileManagerOpen}

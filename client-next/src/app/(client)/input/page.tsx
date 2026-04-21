@@ -1,26 +1,38 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ExpenseCategory } from '@/types';
-import { cardApi } from '@/services/api';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { ExpenseCategory, Category } from '@/types';
+import { cardApi, categoryApi } from '@/services/api';
 
-const initialCategories: ExpenseCategory[] = [
-    { id: 'grocery', name: 'Đi chợ', icon: 'shopping_cart', amount: 0, isEditing: false },
-    { id: 'dining', name: 'Ăn uống', icon: 'restaurant', amount: 0, isEditing: true },
-    { id: 'shopping', name: 'Mua sắm', icon: 'shopping_bag', amount: 0, isEditing: false },
-    { id: 'travel', name: 'Du lịch & Di chuyển', icon: 'flight', amount: 0, isEditing: false },
-    { id: 'bills', name: 'Tiện ích & Hoá đơn', icon: 'receipt_long', amount: 0, isEditing: false },
-    { id: 'entertainment', name: 'Giải trí', icon: 'movie', amount: 0, isEditing: false },
-];
-
-const availableIcons = [
-    'shopping_cart', 'restaurant', 'shopping_bag', 'flight',
-    'receipt_long', 'movie', 'directions_car', 'pets',
-    'school', 'fitness_center', 'health_and_safety', 'home',
-    'child_care', 'sports_esports', 'local_cafe', 'local_gas_station',
-    'checkroom', 'local_hospital', 'smartphone', 'wifi'
-];
+// Profile definitions — only reference category names, actual data comes from API
+const profiles: Record<string, { label: string; icon: string; color: string; categoryNames: string[] }> = {
+    student: {
+        label: 'Sinh viên',
+        icon: 'school',
+        color: 'text-emerald-500',
+        categoryNames: ['Ăn uống', 'Siêu thị'],
+    },
+    worker: {
+        label: 'Người đi làm',
+        icon: 'work',
+        color: 'text-primary-500',
+        categoryNames: ['Ăn uống', 'Siêu thị', 'Du lịch', 'Di chuyển'],
+    },
+    family: {
+        label: 'Gia đình',
+        icon: 'family_restroom',
+        color: 'text-blue-500',
+        categoryNames: ['Ăn uống', 'Siêu thị', 'Giáo dục', 'Y tế'],
+    },
+    business: {
+        label: 'Doanh nghiệp',
+        icon: 'business',
+        color: 'text-teal-500',
+        categoryNames: ['Ăn uống', 'Siêu thị', 'Du lịch', 'Di chuyển', 'Mua sắm', 'Online'],
+    },
+};
 
 const analysisSteps = [
     "Đang tổng hợp dữ liệu chi tiêu...",
@@ -31,10 +43,19 @@ const analysisSteps = [
 ];
 
 export default function InputExpensesPage() {
-    const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
+    const searchParams = useSearchParams();
+    const profileKey = searchParams.get('profile') || 'worker';
+    const profile = profiles[profileKey] || profiles['worker'];
+
+    // All admin categories from API
+    const [allAdminCategories, setAllAdminCategories] = useState<Category[]>([]);
+    const [isPageLoading, setIsPageLoading] = useState(true);
+
+    const [categories, setCategories] = useState<ExpenseCategory[]>([]);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newCatName, setNewCatName] = useState('');
-    const [newCatIcon, setNewCatIcon] = useState(availableIcons[0]);
+
+    // Admin categories filtered for modal
+    const [hoveredCatId, setHoveredCatId] = useState<string | null>(null);
 
     // AI Analysis State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -45,6 +66,63 @@ export default function InputExpensesPage() {
     const [isEditingSalary, setIsEditingSalary] = useState<boolean>(true);
 
     const router = useRouter();
+
+    // Fetch all admin categories on page load and build initial categories
+    useEffect(() => {
+        setIsPageLoading(true);
+        categoryApi.getAll()
+            .then(data => {
+                setAllAdminCategories(data);
+
+                // Build initial categories from profile by matching admin category names
+                const matched: ExpenseCategory[] = [];
+                for (const catName of profile.categoryNames) {
+                    const adminCat = data.find(c => c.name.toLowerCase() === catName.toLowerCase());
+                    if (adminCat) {
+                        matched.push({
+                            id: adminCat.id || `cat_${Date.now()}_${matched.length}`,
+                            name: adminCat.name,
+                            icon: adminCat.icon || 'category',
+                            amount: 0,
+                            isEditing: matched.length === 0,
+                        });
+                    }
+                }
+
+                // Fallback: if API returned nothing, use profile names with default icons
+                if (matched.length === 0) {
+                    profile.categoryNames.forEach((name, i) => {
+                        matched.push({
+                            id: `fallback_${i}`,
+                            name,
+                            icon: 'category',
+                            amount: 0,
+                            isEditing: i === 0,
+                        });
+                    });
+                }
+
+                setCategories(matched);
+            })
+            .catch(err => {
+                console.error('Failed to load categories:', err);
+                // Fallback to profile names
+                setCategories(profile.categoryNames.map((name, i) => ({
+                    id: `fallback_${i}`,
+                    name,
+                    icon: 'category',
+                    amount: 0,
+                    isEditing: i === 0,
+                })));
+            })
+            .finally(() => setIsPageLoading(false));
+    }, [profileKey]);
+
+    // Filter admin categories for modal (exclude already added ones)
+    const modalCategories = useMemo(() => {
+        const existingNames = categories.map(c => c.name.toLowerCase());
+        return allAdminCategories.filter(c => !existingNames.includes(c.name.toLowerCase()));
+    }, [allAdminCategories, categories]);
 
     const toggleEdit = (id: string) => {
         setCategories(categories.map(c =>
@@ -67,22 +145,17 @@ export default function InputExpensesPage() {
         setSalary(num);
     };
 
-    const handleAddCategory = () => {
-        if (!newCatName.trim()) return;
-
-        const newId = `cat_` + Date.now();
+    const handleSelectAdminCategory = (adminCat: Category) => {
         const newCategory: ExpenseCategory = {
-            id: newId,
-            name: newCatName,
-            icon: newCatIcon,
+            id: adminCat.id || `cat_${Date.now()}`,
+            name: adminCat.name,
+            icon: adminCat.icon || 'category',
             amount: 0,
             isEditing: true
         };
 
         setCategories([...categories, newCategory]);
         setShowAddModal(false);
-        setNewCatName('');
-        setNewCatIcon(availableIcons[0]);
     };
 
     const totalAmount = categories.reduce((sum, cat) => sum + cat.amount, 0);
@@ -126,11 +199,27 @@ export default function InputExpensesPage() {
             {/* Header Gradient */}
             <div className="absolute top-0 left-0 w-full h-[350px] bg-gradient-to-b from-primary-100/50 to-slate-50 dark:from-primary-900/10 dark:to-slate-950 -z-10"></div>
 
-            <main className="flex-grow px-4 sm:px-8 pt-28 pb-16">
+            <main className="flex-grow px-4 sm:px-8 pt-18 pb-16">
                 <div className="mx-auto max-w-3xl">
+                    {/* Back button */}
+                    <Link
+                        href="/#category-section"
+                        className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors mb-8 group"
+                    >
+                        <span className="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                        Quay lại chọn đối tượng
+                    </Link>
+
+                    {/* Header with profile badge */}
                     <div className="text-center mb-12">
+                        {/* Profile badge */}
+                        <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm mb-6 animate-fade-in">
+                            <span className={`material-symbols-outlined text-xl ${profile.color}`}>{profile.icon}</span>
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{profile.label}</span>
+                        </div>
+
                         <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 mb-4 uppercase">
-                            Nhập Chi Tiêu Hàng Tháng
+                            Nhập khoản Chi Tiêu Hàng Tháng
                         </h1>
                         <p className="text-lg text-slate-500 dark:text-slate-400 font-medium max-w-xl mx-auto">
                             Cung cấp thông tin chi tiêu để nhận được đề xuất thẻ tín dụng tốt nhất cho bạn.
@@ -175,11 +264,28 @@ export default function InputExpensesPage() {
 
                         {/* Categories */}
                         <div className="space-y-8">
-                            {categories.map((cat) => (
-                                <div key={cat.id} className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6 last:border-0 last:pb-0 animate-fade-in-up">
+                            {isPageLoading ? (
+                                // Skeleton loading
+                                Array.from({ length: profile.categoryNames.length }).map((_, i) => (
+                                    <div key={i} className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0 animate-pulse">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                                            <div className="w-24 h-5 rounded-lg bg-slate-200 dark:bg-slate-800"></div>
+                                        </div>
+                                        <div className="w-28 h-10 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                                    </div>
+                                ))
+                            ) : (
+                            categories.map((cat) => (
+                                <div key={cat.id} className="relative flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6 last:border-0 last:pb-0 animate-fade-in-up group/cat">
                                     <div className="flex items-center gap-4">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-500">
+                                        <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-500">
                                             <span className="material-symbols-outlined text-2xl">{cat.icon}</span>
+                                            {/* Tooltip on hover */}
+                                            <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-700 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover/cat:opacity-100 pointer-events-none transition-opacity duration-200 shadow-lg z-10">
+                                                {cat.name}
+                                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900 dark:border-t-slate-700"></div>
+                                            </div>
                                         </div>
                                         <span className="text-lg font-bold text-slate-800 dark:text-slate-200">{cat.name}</span>
                                     </div>
@@ -212,7 +318,8 @@ export default function InputExpensesPage() {
                                         </button>
                                     )}
                                 </div>
-                            ))}
+                            ))
+                            )}
                         </div>
 
                         {/* Total Row */}
@@ -251,57 +358,65 @@ export default function InputExpensesPage() {
                 </div>
             </main>
 
-            {/* Add Category Modal */}
+            {/* Add Category Modal — fetched from Admin */}
             {showAddModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
                     <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
                     <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 transform transition-all scale-100 animate-scale-up">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Thêm danh mục mới</h3>
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Thêm danh mục</h3>
+                            <button onClick={() => setShowAddModal(false)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <span className="material-symbols-outlined text-slate-400">close</span>
+                            </button>
+                        </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Tên danh mục</label>
-                                <input
-                                    type="text"
-                                    className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary-500 focus:ring-primary-500 outline-none p-3 font-bold"
-                                    placeholder="VD: Mua sắm online, Xăng xe..."
-                                    value={newCatName}
-                                    onChange={(e) => setNewCatName(e.target.value)}
-                                    autoFocus
-                                />
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Chọn danh mục chi tiêu từ hệ thống để thêm vào bảng tính của bạn.</p>
+
+                        {isPageLoading ? (
+                            <div className="flex flex-col items-center justify-center py-12 gap-3">
+                                <div className="w-8 h-8 border-3 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-sm font-medium text-slate-400">Đang tải danh mục...</span>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Biểu tượng</label>
-                                <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto p-1 scrollbar-hide">
-                                    {availableIcons.map(icon => (
-                                        <button
-                                            key={icon}
-                                            onClick={() => setNewCatIcon(icon)}
-                                            className={`flex h-10 w-10 items-center justify-center rounded-lg transition-all ${newCatIcon === icon ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30 scale-110' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                        ) : modalCategories.length === 0 ? (
+                            <div className="text-center py-10">
+                                <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 mb-2 block">check_circle</span>
+                                <p className="text-sm font-bold text-slate-400">Bạn đã thêm tất cả danh mục có sẵn!</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1 scrollbar-hide">
+                                {modalCategories.map((adminCat) => (
+                                    <button
+                                        key={adminCat.id}
+                                        onClick={() => handleSelectAdminCategory(adminCat)}
+                                        onMouseEnter={() => setHoveredCatId(adminCat.id || null)}
+                                        onMouseLeave={() => setHoveredCatId(null)}
+                                        className="relative w-full flex items-center gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-primary-500/50 dark:hover:border-primary-500/30 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all group/item"
+                                    >
+                                        {/* Color dot */}
+                                        <div
+                                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover/item:scale-110"
+                                            style={{ backgroundColor: adminCat.color + '20' }}
                                         >
-                                            <span className="material-symbols-outlined text-xl">{icon}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                                            <span className="material-symbols-outlined text-xl" style={{ color: adminCat.color }}>
+                                                {adminCat.icon || 'category'}
+                                            </span>
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{adminCat.name}</span>
+                                        </div>
+                                        <span className="material-symbols-outlined text-lg text-slate-300 dark:text-slate-600 group-hover/item:text-primary-500 transition-colors">add_circle</span>
 
-                        <div className="mt-8 flex gap-3">
-                            <button
-                                onClick={() => setShowAddModal(false)}
-                                className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700"
-                            >
-                                Hủy bỏ
-                            </button>
-                            <button
-                                onClick={handleAddCategory}
-                                className="flex-1 rounded-xl bg-primary-500 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={!newCatName.trim()}
-                            >
-                                Thêm
-                            </button>
-                        </div>
+                                        {/* Tooltip */}
+                                        {hoveredCatId === adminCat.id && (
+                                            <div className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-700 text-white text-xs font-bold whitespace-nowrap shadow-lg z-20 animate-fade-in">
+                                                Thêm &quot;{adminCat.name}&quot; vào chi tiêu
+                                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900 dark:border-t-slate-700"></div>
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

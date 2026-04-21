@@ -13,7 +13,7 @@ export const Footer: React.FC = () => {
                             <span className="material-symbols-outlined text-[24px]">savings</span>
                         </div>
                         <div className="flex flex-col">
-                            <h2 className="text-xl font-black tracking-tight text-white">Chi tiêu thông minh</h2>
+                            <h2 className="text-xl font-black tracking-tight text-white">CredBack</h2>
                             <p className="text-[10px] font-bold uppercase tracking-widest text-primary-500">Hoàn tiền cực đã</p>
                         </div>
                     </Link>
@@ -35,7 +35,7 @@ export const Footer: React.FC = () => {
                     <ul className="space-y-4">
                         {[
                             { label: 'Trang chủ', path: '/' },
-                            { label: 'Đề xuất thẻ', path: '/recommendations' },
+                            // { label: 'Đề xuất thẻ', path: '/recommendations' },
                             { label: 'Tin tức', path: '/news' },
                             { label: 'Cài đặt', path: '/settings' }
                         ].map((link) => (
@@ -66,7 +66,7 @@ export const Footer: React.FC = () => {
                 <div className="space-y-6">
                     <h4 className="text-white font-bold uppercase tracking-widest text-xs">Stay Updated</h4>
                     <p className="text-slate-400 text-sm leading-relaxed">
-                        Nhận tin tức mới nhất về các ưu đãi thẻ tín dụng và mẹo chi tiêu thông minh.
+                        Nhận tin tức mới nhất về các ưu đãi thẻ tín dụng và mẹo CredBack.
                     </p>
                     <div className="relative group">
                         <input
@@ -84,7 +84,7 @@ export const Footer: React.FC = () => {
 
             <div className="max-w-7xl mx-auto px-6 mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
                 <p className="text-slate-500 text-xs font-medium">
-                    © {new Date().getFullYear()} Chi tiêu thông minh. Tất cả quyền được bảo lưu.
+                    © {new Date().getFullYear()} CredBack. Tất cả quyền được bảo lưu.
                 </p>
                 <div className="flex gap-8">
                     <a href="#" className="text-slate-500 hover:text-white text-xs font-medium transition-colors">Privacy Policy</a>

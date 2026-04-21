@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Manrope, Geist } from "next/font/google";
 import { Providers } from "@/context/Providers";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -10,7 +13,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Chi tiêu thông minh",
+  title: "CredBack",
   description: "Quản lý chi tiêu và gợi ý thẻ tín dụng thông minh",
 };
 
@@ -22,7 +25,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className="h-full antialiased"
+      className={cn("h-full antialiased", "font-sans", geist.variable)}
       suppressHydrationWarning
     >
       <head>

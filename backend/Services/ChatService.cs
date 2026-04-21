@@ -112,7 +112,7 @@ public class ChatService
     {
         var greetings = new[]
         {
-            "Xin chào! 👋 Tôi là **Trợ lý Tài chính AI** của Chi Tiêu Thông Minh. Tôi có thể giúp bạn:\n\n• 💳 Tư vấn chọn thẻ tín dụng phù hợp\n• 📊 So sánh các thẻ với nhau\n• 💰 Tìm thẻ hoàn tiền cao nhất\n• 🏦 Tra cứu thẻ theo ngân hàng\n\nBạn cần tôi hỗ trợ gì?",
+            "Xin chào! 👋 Tôi là **Trợ lý Tài chính AI** của CredBack. Tôi có thể giúp bạn:\n\n• 💳 Tư vấn chọn thẻ tín dụng phù hợp\n• 📊 So sánh các thẻ với nhau\n• 💰 Tìm thẻ hoàn tiền cao nhất\n• 🏦 Tra cứu thẻ theo ngân hàng\n\nBạn cần tôi hỗ trợ gì?",
             "Chào bạn! 🌟 Tôi là AI tư vấn thẻ tín dụng. Hãy cho tôi biết nhu cầu của bạn, tôi sẽ giúp bạn tìm chiếc thẻ hoàn hảo nhất! 💳",
         };
         return new ChatResponse

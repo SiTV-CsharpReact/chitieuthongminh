@@ -1,4 +1,4 @@
-# Hướng dẫn chạy dự án Chi Tiêu Thông Minh
+# Hướng dẫn chạy dự án CredBack
 
 Tài liệu này tổng hợp các câu lệnh cần thiết để khởi chạy toàn bộ hệ thống (Database, Backend, Frontend).
 

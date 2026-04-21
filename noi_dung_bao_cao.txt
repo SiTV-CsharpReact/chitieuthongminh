@@ -1,0 +1,133 @@
+DỰ THẢO NỘI DUNG BÁO CÁO DỰ ÁN
+Tên dự án: CHỈ TIÊU THÔNG MINH - Nền tảng Đề xuất Thẻ Tín dụng & Quản lý Hoàn tiền
+
+---
+
+DANH MỤC TỪ VIẾT TẮT, THUẬT NGỮ
+- UI/UX: User Interface / User Experience (Giao diện người dùng / Trải nghiệm người dùng)
+- API: Application Programming Interface (Giao diện lập trình ứng dụng)
+- CSDL / DB: Cơ sở dữ liệu (Database)
+- ORM: Object-Relational Mapping
+- EF Core: Entity Framework Core
+- AI: Artificial Intelligence (Trí tuệ nhân tạo)
+- CMS: Content Management System (Hệ thống quản trị nội dung)
+
+MỞ ĐẦU
+1. Tại sao lại chọn đề tài
+- Sự phát triển nhanh chóng của các dịch vụ tài chính khiến số lượng thẻ tín dụng trên thị trường vô cùng đa dạng.
+- Người dùng gặp khó khăn trong việc tra cứu, so sánh các điểm mạnh/yếu, phí thường niên và chính sách hoàn tiền (cashback) của từng thẻ để tìm ra thẻ phù hợp với nhu cầu và mức thu nhập cá nhân.
+- Nhu cầu về một trợ lý ảo (AI Chatbot) giúp tư vấn tài chính nhanh chóng và chính xác.
+2. Mô hình phát triển phần mềm
+- Đề tài sử dụng mô hình Thác Nước (Waterfall), đi từ việc thu thập yêu cầu, phân tích thiết kế hệ thống, lập trình, kiểm thử và cuối cùng là bảo trì triển khai. 
+3. Bài toán
+- Xây dựng website có giao diện hiện đại (dark/light mode), thân thiện giúp người dân tham khảo, so sánh các loại thẻ nhanh chóng.
+- Hệ thống quản trị (Admin/CMS - Zenith) mạnh mẽ giúp người quản lý có thể thu thập (cào/scrape dữ liệu) từ web ngân hàng (như VIB, VPBank) tự động thay vì nhập tay.
+- Trang bị chatbot AI nhận diện ý định NLP để tư vấn thẻ theo mức lương, nhu cầu hoàn tiền, và loại thẻ.
+4. Kỹ thuật, công nghệ
+- Frontend: Next.js 15, React 19, Tailwind CSS.
+- Backend: ASP.NET Core 9 (C#).
+- Cơ sở dữ liệu: SQLite / Entity Framework Core.
+- Khác: Playwright (Scraper cào dữ liệu tự động).
+5. Mục tiêu học phần
+- Hiểu và vận dụng được các phương pháp phân tích thiết kế hệ thống.
+- Thực hành xây dựng một ứng dụng đa tầng (Frontend - Backend - Database).
+6. Tóm tắt những nội dung sẽ giải quyết
+6.1. Mục tiêu đề tài: Hệ thống giúp so sánh thẻ, CMS quản lý tự động cào dữ liệu, hiển thị danh mục bài viết.
+6.2. Phương pháp thực hiện: Nghiên cứu tài liệu các ngân hàng, thiết kế database, phát triển Back-end REST APIs, phát triển Front-end Web App.
+6.3. Đối tượng nghiên cứu: Quy trình mở thẻ, thuộc tính của thẻ tín dụng, công nghệ React/Next.js và .NET Core.
+6.4. Cấu trúc của báo cáo: Gồm Mở đầu, 4 Chương chính và Kết luận (theo chuẩn mục lục).
+
+
+Chương 1: TỔNG QUAN VỀ BÀI TOÁN VÀ CÔNG NGHỆ, CÔNG CỤ
+1.1. Quy trình phát triển phần mềm
+1.1.1. Lý thuyết về mô hình Waterfall: Gồm các bước thiết lập tuần tự (Requirement -> Design -> Implementation -> Verification -> Maintenance).
+1.1.2. Áp dụng vào đề tài: Tuân thủ quy trình đi từ thiết kế tính năng đến mô hình hóa DFD/Use Case rồi mới bắt tay lập trình code API và Frontend.
+1.2. Hiện trạng: Thiếu cổng thông tin so sánh thẻ tín dụng tổng hợp, thông tin phân tán tại từng ngân hàng gây quá tải cho người dùng muốn tìm hiểu.
+1.3. Bài toán (Yêu cầu người dùng)
+1.3.1. Yêu cầu từ phía khách hàng:
+- Xem danh sách thẻ, biểu phí, mức hoàn tiền.
+- So sánh các thẻ cạnh nhau trực quan.
+- Chế độ Dark/Light mode, giao diện tương tác cao.
+- Chat với AI để nhận gợi ý (Ví dụ: "Lương 15 triệu nên mở thẻ gì?").
+- Đọc tin tức và cẩm nang tài chính.
+1.3.2. Yêu cầu từ phía nhà xe (Admin) - Trong dự án này là Nhà Quản trị:
+- Đăng nhập bảo mật vào hệ thống CMS.
+- Quản lý danh sách Thẻ, Ngân hàng, Bài viết (CRUD).
+- Tích hợp công cụ Scraping (cào dữ liệu) khuyến mãi trực tiếp từ trang chủ ngân hàng (VIB, v.v.).
+1.4. Công nghệ, công cụ
+1.4.1. Công cụ hỗ trợ phân tích thiết kế: Draw.io / StarUML.
+1.4.2. Công cụ lập trình: Visual Studio Code, Visual Studio 2022.
+1.4.3. Công cụ quản lý dự án: GitHub / Git, Trello.
+1.4.4. Công nghệ và framework: Next.js (App router), React, ASP.NET Core Web API.
+1.4.5. Công nghệ, công cụ CSDL: SQLite, Entity Framework Core, DBeaver/DataGrip.
+1.4.6. Công cụ đồ họa và UI/UX: Figma, Tailwind CSS (Vanilla CSS styling), Lucide-react, Google Fonts.
+1.4.7. Công cụ khác: Playwright (End-to-End browser library) cho Scraper.
+
+
+Chương 2: PHÂN TÍCH THIẾT KẾ HỆ THỐNG
+2.1. Yêu cầu hệ thống
+2.1.1. Yêu cầu chức năng: Quản lý Thẻ, Tính toán So sánh, NLP Chatbot Intent Detection, Scraping Data.
+2.1.2. Yêu cầu phi chức năng: Tốc độ phản hồi API < 500ms, Giao diện tương thích mobile (Responsive), UI mượt mà có animation. Chống OOM khi chạy backend.
+2.2. Phân tích thiết kế hướng cấu trúc
+2.2.1. Business Function Diagram (BFD): Biểu đồ phân rã các chức năng chính (Quản lý Data, Client Interface, ChatBot Integration).
+2.2.2. Data Flow Diagram (DFD): Luồng dữ liệu duyệt web, tìm kiếm thẻ, lưu trữ dữ liệu cào được từ web ngân hàng.
+2.2.3. Entity Relationship Diagram (ERD): Thể hiện quan hệ giữa Entities: CreditCard, Bank, Article, ArticleCategory, Promotion.
+2.3. Phân tích thiết kế hướng đối tượng
+2.3.1. Use Case Diagram: Khách (Guest) - Các Use case xem, so sánh, chat. Admin - Đăng nhập, đồng bộ (sync) scraper, thêm sửa xóa web data.
+2.3.2. Sequence Diagram: Luồng chuỗi mô tả hoạt động ChatbotAI từ lúc người dùng gửi -> Backend dùng Regex / NLP -> DB -> Trả về JSON cho Client render Markdown.
+2.3.3. Class Diagram: Sơ đồ các Controller (ChatController, ScraperController, CardController) và Services.
+
+
+Chương 3: XÂY DỰNG ỨNG DỤNG
+3.1. Kiến trúc hệ thống
+3.1.1. Presentation Layer (Tầng giao diện): Next.js components, Layouts, Widgets (Chatbot).
+3.1.2. Application Layer (Tầng ứng dụng): ASP.NET Controllers, Services Layer (ChatService, PlaywrightScraperService).
+3.1.3. Data Layer (Tầng dữ liệu): EF Core DbContext, SQLite Database.
+3.1.4. Kiến trúc tổng quan: Restful API Server-Client Architecture.
+3.2. Triển khai việc xây dựng
+3.2.1. Quản lý source code: Chia thư mục rõ ràng (/backend cho C#, /client-next cho Next.js, /client cho React Admin cũ).
+3.2.2. Quản lý dependencies: Nuget (Backend) và NPM (Frontend).
+3.2.3. Quản lý tiến độ: Theo dõi log commit Github.
+3.3. Một số kết quả
+3.3.1. Giao diện, chức năng dành cho khách hàng:
+- Trang chủ (Hero section đẹp mắt, Dark Mode toggle).
+- Trang So sánh thẻ.
+- Chatbot AI Floating nổi góc màn hình (hoạt ảnh typing, popup tooltip).
+3.3.2. Giao diện, chức năng dành cho quản lý (Admin):
+- CMS Đăng nhập bảo mật.
+- Bảng Dashboard quản trị các danh mục, cào dữ liệu website trực tiếp.
+
+
+Chương 4: KIỂM THỬ (VÀ TRIỂN KHAI) SẢN PHẨM
+4.1. Kiểm thử
+4.1.1. Kiểm thử đơn vị (Unit Testing): Test logic tính toán hoàn tiền, check hàm regex của Chatbot Services nhận diện đúng salary, intent.
+4.1.2. Kiểm thử tích hợp (Integration Testing): Test kết nối API giữa Next.js và ASP.NET.
+4.1.3. Kiểm thử hệ thống (System Testing): Test luồng end-to-end trên trình duyệt (thay đổi theme, chat popup, load dữ liệu trang).
+4.1.4. Kiểm thử chấp nhận (Acceptance Testing): Đánh giá UI/UX từ góc độ người mới dùng thử.
+4.1.5. Kết quả kiểm thử: UI ổn định, Chatbot phát hiện được chữ tiếng Việt không dấu (xin chao -> chào), Backend không bị tràn RAM (sửa lỗi exit code 137 bằng DOTNET_GCHeapHardLimit).
+4.2. Triển khai dự án
+4.2.1. Môi trường phát triển (Development): MacOS / Windows, localhost.
+4.2.2. Môi trường sản xuất (Production): Có thể build và deploy IIS / Docker / Vercel.
+4.2.3. Hướng dẫn cài đặt và chạy:
+- Frontend: `cd client-next`, `npm i`, `npm run dev`.
+- Backend: `cd backend`, `dotnet build`, `DOTNET_GCHeapHardLimit=0x10000000 dotnet run`.
+
+
+KẾT LUẬN
+1. Tóm tắt kiến thức, kỹ năng và sản phẩm: Nắm vững kỹ thuật lập trình FullStack hiện đại, xây dựng được platform hữu ích.
+2. So sánh với mục tiêu đề ra: Đã đáp ứng đầy đủ tính năng tư vấn, scraper tự động, có UI được thiết kế mức độ cao (premium).
+3. So sánh với yêu cầu thực tế: Có giá trị thiết thực nếu ứng dụng cho người dùng thực. Giao diện hoàn toàn ngang tầm các công ty Fintech.
+4. Ưu điểm: Hiệu ứng animation ấn tượng, Chatbot hoạt động mượt mà, Admin tool cào dữ liệu nhanh chóng bỏ qua Bot Protection (như Akamai).
+5. Nhược điểm và hạn chế: Chatbot hiện dụng Regex để bóc tách thay vì Model LLM sâu nên còn rập khuôn; SQLite chưa phù hợp với scale lớn.
+6. Hướng phát triển cải tiến: Tích hợp API OpenAI hoặc LLaMA để tăng cường thông minh cho Chatbot; Scale DB sang PostgreSQL.
+
+DANH MỤC TÀI LIỆU THAM KHẢO
+1. Microsoft ASP.NET Core Documentation
+2. Next.js 15 & React 19 Docs
+3. Tailwind CSS Documentation
+4. Playwright.dev
+
+PHỤ LỤC
+Phụ lục 1: Khảo sát (Giả định bảng các ý kiến sinh viên về khó khăn khi tìm thẻ)
+Phụ lục 2: Bảng phân công và tự đánh giá (Do nhóm tự điền)
+Phụ lục 3: Test Case (Các kịch bản test Chatbot, test Login)

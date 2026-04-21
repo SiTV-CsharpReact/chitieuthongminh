@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { articleCategoryApi } from '@/services/api';
+import { articleCategoryApi, articleApi } from '@/services/api';
 import { ArticleCategory } from '@/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function AdminArticleCategoriesPage() {
     const [categories, setCategories] = useState<ArticleCategory[]>([]);
@@ -74,26 +75,62 @@ export default function AdminArticleCategoriesPage() {
         }
     };
 
+    const handleSync = async () => {
+        try {
+            setLoading(true);
+            const articles = await articleApi.getAll();
+            const existingCats = await articleCategoryApi.getAll();
+            const existingCatNames = existingCats.map(c => c.name);
+
+            const distinctCatNames = [...new Set(articles.map(a => a.category).filter(c => c))];
+            
+            const colors = ['#f43f5e', '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6', '#06b6d4', '#ec4899'];
+            
+            for(let name of distinctCatNames) {
+                if(!existingCatNames.includes(name)) {
+                     const color = colors[Math.floor(Math.random() * colors.length)];
+                     await articleCategoryApi.create({
+                         name,
+                         slug: name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
+                         color,
+                         description: 'Chuyên mục tự động đồng bộ từ bài viết'
+                     });
+                }
+            }
+            await fetchCategories();
+        } catch (error) {
+            console.error(error);
+            alert('Lỗi đồng bộ');
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="max-w-7xl mx-auto p-4 lg:p-10">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 gap-4">
+        <div className="space-y-6 animate-fade-in transition-all">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50 uppercase">
-                        Chuyên Mục Tin Tức
-                    </h1>
-                    <p className="mt-2 text-slate-500 dark:text-slate-400 font-medium">
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Chuyên Mục Tin Tức</h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                         Quản lý hệ thống phân loại và sắp xếp các bài viết trên Zenith News ({categories.length} chuyên mục)
                     </p>
                 </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
-                >
-                    <span className="material-symbols-outlined text-[20px]">add</span> Thêm Mới
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleSync}
+                        className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 px-6 py-3 rounded-2xl font-bold transition-all shadow-sm flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">sync</span> ĐỒNG BỘ TỪ BÀI VIẾT
+                    </button>
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">add</span> Thêm Mới
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
                 {loading ? (
                     <div className="p-20 text-center text-slate-500 dark:text-slate-400 animate-pulse flex flex-col items-center gap-4">
                         <span className="material-symbols-outlined text-4xl animate-spin">sync</span>
@@ -171,14 +208,14 @@ export default function AdminArticleCategoriesPage() {
             </div>
 
             {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-scale-up">
-                        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                            <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 uppercase tracking-tight">
-                                {editingCategory ? 'Sửa Chuyên Mục' : 'Thêm Chuyên Mục'}
-                            </h3>
-                        </div>
+            <Dialog open={showModal} onOpenChange={setShowModal}>
+                <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border-slate-200 dark:border-slate-800 p-0 gap-0 shadow-2xl">
+                    <DialogHeader className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-left shrink-0">
+                        <DialogTitle className="text-2xl font-black text-slate-900 dark:text-slate-50 uppercase tracking-tight">
+                            {editingCategory ? 'Sửa Chuyên Mục' : 'Thêm Chuyên Mục'}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="max-h-[80vh] overflow-y-auto scrollbar-hide flex flex-col">
                         <div className="p-8 space-y-6">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Tên Chuyên Mục</label>
@@ -230,7 +267,7 @@ export default function AdminArticleCategoriesPage() {
                                 />
                             </div>
                         </div>
-                        <div className="p-8 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 gap-4 flex justify-end">
+                        <div className="p-8 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 gap-4 flex justify-end shrink-0">
                             <button
                                 onClick={() => setShowModal(false)}
                                 className="px-6 py-3 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-bold transition-colors uppercase text-[11px] tracking-widest"
@@ -245,8 +282,8 @@ export default function AdminArticleCategoriesPage() {
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

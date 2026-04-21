@@ -29,6 +29,37 @@ public class AuthController : ControllerBase
         public string Password { get; set; } = null!;
     }
 
+    public class RegisterRequest
+    {
+        public string Name { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string Password { get; set; } = null!;
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    {
+        var existingUser = await _usersCollection.Find(u => u.Email == request.Email).FirstOrDefaultAsync();
+        if (existingUser != null)
+        {
+            return BadRequest(new { message = "Email này đã được sử dụng!" });
+        }
+
+        var user = new User
+        {
+            Name = request.Name,
+            Email = request.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            Role = "User",
+            Avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(request.Name)}&background=random"
+        };
+
+        await _usersCollection.InsertOneAsync(user);
+
+        var token = GenerateJwtToken(user.Id!, user.Name, user.Email, user.Role, user.Avatar);
+        return Ok(new { token });
+    }
+
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {

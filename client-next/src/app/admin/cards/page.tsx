@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { cardApi, categoryApi } from '@/services/api';
 import { BankScraperModal } from '@/components/BankScraperModal';
 import { Card as CreditCard, CashbackRule, Category } from '@/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function AdminCardsPage() {
     const [cards, setCards] = useState<CreditCard[]>([]);
@@ -98,10 +99,12 @@ export default function AdminCardsPage() {
             } else {
                 await cardApi.create(cardData);
             }
+            alert('Lưu thẻ thành công!');
             fetchCards();
             closeModal();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving card:', error);
+            alert('Có lỗi xảy ra khi lưu thẻ: ' + (error.message || 'Kiểm tra lại dữ liệu nhập.'));
         }
     };
 
@@ -119,11 +122,11 @@ export default function AdminCardsPage() {
         setIsEditing(true);
         setCurrentCard(card);
         setName(card.name);
-        setBank(card.bank);
+        setBank(card.bank || card.bankName || '');
         setImageUrl(card.imageUrl || '');
-        setAnnualFee(card.annualFee);
+        setAnnualFee(card.annualFee || 0);
         setMinSalary(card.minSalary || 0);
-        setCashbackRules(card.cashbackRules);
+        setCashbackRules(card.cashbackRules || []);
         setDescription(card.description || '');
         setBenefits(card.benefits || []);
         setLink(card.link || '');
@@ -165,11 +168,11 @@ export default function AdminCardsPage() {
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-10 max-w-[1600px] mx-auto">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+        <div className="space-y-6 animate-fade-in transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Quản lý thẻ tín dụng</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">Hệ thống quản lý danh mục sản phẩm và chính sách ưu đãi</p>
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản lý thẻ tín dụng</h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Hệ thống quản lý danh mục sản phẩm và chính sách ưu đãi</p>
                 </div>
                 <div className="flex gap-4">
                     <button
@@ -184,7 +187,7 @@ export default function AdminCardsPage() {
                     </button>
                     <button
                         onClick={openAdd}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-xl shadow-indigo-500/20 transition-all hover:-translate-y-0.5 active:scale-95 uppercase tracking-widest"
+                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
                     >
                         <span className="material-symbols-outlined text-[20px]">add</span>
                         Thêm thẻ mới
@@ -232,7 +235,7 @@ export default function AdminCardsPage() {
             </div>
 
             {/* Cards Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm ring-1 ring-slate-100 dark:ring-slate-800 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
                 <div className="overflow-x-auto scrollbar-hide">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -320,7 +323,7 @@ export default function AdminCardsPage() {
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(card.id!)}
-                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 hover:shadow-xl hover:shadow-red-500/10 transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/40"
+                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 hover:shadow-xl hover:shadow-red-500/10 transition-all border border-transparent hover:border-red-100 dark:border-red-900/40"
                                                 title="Xóa thẻ khỏi hệ thống"
                                             >
                                                 <span className="material-symbols-outlined text-xl">delete</span>
@@ -369,20 +372,16 @@ export default function AdminCardsPage() {
             </div>
 
             {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md" onClick={closeModal}></div>
-                    <div className="relative bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-200 dark:border-slate-800 animate-scale-up">
-                        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0 bg-slate-50/50 dark:bg-slate-800/30">
-                            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                                {isEditing ? 'Chỉnh sửa thẻ' : 'Thêm thẻ mới'}
-                            </h2>
-                            <button onClick={closeModal} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                <span className="material-symbols-outlined text-xl">close</span>
-                            </button>
-                        </div>
+            <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
+                <DialogContent className="max-w-4xl bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border-slate-200 dark:border-slate-800 p-0 gap-0 shadow-2xl">
+                    <DialogHeader className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-left shrink-0">
+                        <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                            {isEditing ? 'Chỉnh sửa thẻ' : 'Thêm thẻ mới'}
+                        </DialogTitle>
+                    </DialogHeader>
 
-                        <form onSubmit={handleSave} className="overflow-y-auto p-8 space-y-6 scrollbar-hide">
+                    <div className="max-h-[80vh] overflow-y-auto scrollbar-hide">
+                        <form onSubmit={handleSave} className="p-8 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Tên thẻ</label>
@@ -458,6 +457,29 @@ export default function AdminCardsPage() {
                                         />
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">₫</span>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6 pt-2">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Mô tả thẻ</label>
+                                    <textarea
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-2xl p-4 text-xs font-bold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                                        placeholder="Mô tả chi tiết về đặc quyền thẻ..."
+                                        rows={2}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Lợi ích thẻ (Mỗi dòng một lợi ích)</label>
+                                    <textarea
+                                        value={benefits.join('\n')}
+                                        onChange={e => setBenefits(e.target.value.split('\n').filter(s => s.trim() !== ''))}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-2xl p-4 text-xs font-bold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                                        placeholder="Thanh toán tiện lợi&#10;Bảo mật cao"
+                                        rows={3}
+                                    />
                                 </div>
                             </div>
 
@@ -538,8 +560,8 @@ export default function AdminCardsPage() {
                             </div>
                         </form>
                     </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
             <BankScraperModal
                 isOpen={isScraperOpen}
                 onClose={() => setIsScraperOpen(false)}

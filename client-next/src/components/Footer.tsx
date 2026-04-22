@@ -36,7 +36,7 @@ export const Footer: React.FC = () => {
                     <ul className="space-y-4">
                         {[
                             { label: 'Trang chủ', path: '/' },
-                            // { label: 'Đề xuất thẻ', path: '/recommendations' },
+                            { label: 'Giới thiệu', path: '/about' },
                             { label: 'Tin tức', path: '/news' },
                             { label: 'Cài đặt', path: '/settings' }
                         ].map((link) => (

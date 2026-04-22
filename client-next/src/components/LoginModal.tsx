@@ -213,12 +213,12 @@ export const LoginModal: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                        <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
+                        <GoogleOAuthProvider clientId="758293316733-i5r47negbaobtekrrdo7se95q5kndtje.apps.googleusercontent.com">
                             <CustomGoogleLoginButton setError={setError} />
                         </GoogleOAuthProvider>
 
                         <FacebookLogin
-                            appId="YOUR_FACEBOOK_APP_ID"
+                            appId="1271349084626940"
                             autoLoad={false}
                             fields="name,email,picture"
                             callback={async (response: any) => {

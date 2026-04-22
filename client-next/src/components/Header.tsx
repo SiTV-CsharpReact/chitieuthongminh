@@ -10,10 +10,10 @@ import { Logo } from './Logo';
 
 const NAV_ITEMS = [
     { label: 'Trang chủ', path: '/' },
-    // { label: 'Đề xuất thẻ', path: '/recommendations' },
-    { label: 'Tất cả thẻ', path: '/cards' },
-    { label: 'Tin tức', path: '/news' },
-    { label: 'Cài đặt', path: '/settings' },
+    { label: 'Giới thiệu', path: '/about', icon: 'info' },
+    { label: 'Tất cả thẻ', path: '/cards', icon: 'credit_card' },
+    { label: 'Tin tức', path: '/news', icon: 'newspaper' },
+    { label: 'Cài đặt', path: '/settings', icon: 'settings' },
 ];
 
 export const Header: React.FC = () => {

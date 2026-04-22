@@ -36,10 +36,10 @@ export default function AllCardsPage() {
         <div className="min-h-screen bg-white dark:bg-[#050a12] text-slate-900 dark:text-white transition-colors duration-500 flex flex-col relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-[350px] bg-gradient-to-b from-slate-100/50 to-white dark:from-slate-900/10 dark:to-[#050a12] -z-10"></div>
 
-            <main className="flex-grow pt-32 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-20">
+            <main className="flex-grow pt-10 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-15">
                 <div className="mx-auto max-w-7xl">
 
-                    <div className="text-center mb-16">
+                    <div className="text-center mb-6">
                         <h1 className="text-4xl sm:text-5xl font-black mb-4 tracking-tight leading-tight uppercase">
                             Tất Cả Thẻ Tín Dụng
                         </h1>

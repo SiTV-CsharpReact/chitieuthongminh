@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
@@ -18,6 +18,8 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [cardId, setCardId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   const spendingAmount = Number(searchParams.get('spending')) || 10000000;
   const topCategory = searchParams.get('topCategory') || 'Ăn uống';
@@ -56,6 +58,39 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
 
     fetchCard();
   }, [cardId, spendingAmount, topCategory]);
+
+  useEffect(() => {
+    if (isModalOpen && card?.registerUrl && qrRef.current) {
+      import('qr-code-styling').then(({ default: QRCodeStyling }) => {
+        qrRef.current!.innerHTML = '';
+
+        const qrCode = new QRCodeStyling({
+          width: 260,
+          height: 260,
+          data: card.registerUrl,
+          image: "/logo.svg", // Dùng logo component SVG vừa lưu
+          qrOptions: {
+            errorCorrectionLevel: 'M' // Giảm mức độ sửa lỗi để mã QR bớt dày đặc (ít chấm hơn)
+          },
+          dotsOptions: {
+            color: "#000000", // Màu đen cho các chấm QR
+            type: "rounded"
+          },
+          cornersSquareOptions: {
+            color: "#18181b",
+            type: "extra-rounded"
+          },
+          imageOptions: {
+            crossOrigin: "anonymous",
+            margin: 8,
+            imageSize: 0.4
+          }
+        });
+        
+        qrCode.append(qrRef.current!);
+      });
+    }
+  }, [isModalOpen, card?.registerUrl]);
 
   if (loading) {
     return (
@@ -148,7 +183,16 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
                 </div>
 
                 <div className="mt-8 flex w-full flex-col gap-3">
-                  <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-500 h-12 px-6 text-base font-bold text-white transition-all shadow-lg shadow-primary-500/25 hover:bg-primary-600 hover:shadow-xl hover:shadow-primary-500/30 active:scale-95">
+                  <button
+                    onClick={() => {
+                      if (card.registerUrl) {
+                        setIsModalOpen(true);
+                      } else {
+                        alert("Thẻ này hiện chưa có đường dẫn đăng ký.");
+                      }
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-500 h-12 px-6 text-base font-bold text-white transition-all shadow-lg shadow-primary-500/25 hover:bg-primary-600 hover:shadow-xl hover:shadow-primary-500/30 active:scale-95"
+                  >
                     Mở thẻ ngay
                   </button>
                 </div>
@@ -225,6 +269,47 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
 
         </div>
       </div>
+
+      {/* QR Code Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
+          <div className="relative w-full max-w-md p-8 bg-white dark:bg-[#121212] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+
+            <h3 className="text-2xl font-bold text-primary-500 text-center mb-8 mt-2">
+              Quét mã để mở thẻ ngay
+            </h3>
+
+            <div className="flex justify-center mb-8">
+              <div className="bg-white p-3 rounded-3xl shadow-xl border border-slate-100 dark:border-none relative flex items-center justify-center min-h-[280px] min-w-[280px]">
+                <div ref={qrRef} />
+              </div>
+            </div>
+
+            <p className="text-slate-600 dark:text-slate-300 text-center text-[15px] leading-relaxed font-medium mb-10 max-w-[280px] mx-auto">
+              Sử dụng camera điện thoại hoặc ứng dụng để quét mã QR.
+            </p>
+
+            <div className="flex justify-center">
+              <a
+                href={card.registerUrl || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsModalOpen(false)}
+                className="text-primary-500 hover:text-primary-400 font-bold text-sm flex items-center gap-1 transition-colors"
+              >
+                Tiếp tục đăng ký trên trình duyệt web
+                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

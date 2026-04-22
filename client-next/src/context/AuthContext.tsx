@@ -9,6 +9,8 @@ interface AuthContextType {
   isLoading: boolean;
   isLoginModalOpen: boolean;
   login: (email: string, password?: string) => Promise<void>;
+  loginWithGoogle: (accessToken: string) => Promise<void>;
+  loginWithFacebook: (accessToken: string) => Promise<void>;
   register: (name: string, email: string, password?: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
@@ -119,6 +121,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoginModalOpen(false);
   };
 
+  const loginWithGoogle = async (accessToken: string) => {
+    const response = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || 'Google Login failed');
+    }
+
+    const data = await response.json();
+    setCookie('token', data.token);
+    await checkAuth();
+    setIsLoginModalOpen(false);
+  };
+
+  const loginWithFacebook = async (accessToken: string) => {
+    const response = await fetch('/api/auth/facebook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || 'Facebook Login failed');
+    }
+
+    const data = await response.json();
+    setCookie('token', data.token);
+    await checkAuth();
+    setIsLoginModalOpen(false);
+  };
+
   const logout = () => {
     setUser(null);
     removeCookie('token');
@@ -141,6 +179,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading,
       isLoginModalOpen,
       login,
+      loginWithGoogle,
+      loginWithFacebook,
       register,
       logout,
       updateUser,

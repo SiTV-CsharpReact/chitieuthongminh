@@ -13,7 +13,7 @@ public class User
     public string Email { get; set; } = null!;
 
     [BsonElement("PasswordHash")]
-    public string PasswordHash { get; set; } = null!;
+    public string? PasswordHash { get; set; }
 
     [BsonElement("Name")]
     public string Name { get; set; } = null!;
@@ -23,4 +23,10 @@ public class User
 
     [BsonElement("Role")]
     public string Role { get; set; } = "Admin";
+
+    [BsonElement("Provider")]
+    public string Provider { get; set; } = "Local";
+
+    [BsonElement("ProviderId")]
+    public string? ProviderId { get; set; }
 }

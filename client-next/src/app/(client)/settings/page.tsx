@@ -30,7 +30,7 @@ export default function SettingsPage() {
                     <p className="text-lg text-slate-500 dark:text-slate-400 max-w-md">
                         Vui lòng đăng nhập để truy cập cài đặt cá nhân và quản lý tài khoản của bạn.
                     </p>
-                    <Button size="lg" onClick={openLoginModal} className="rounded-xl font-bold px-8">
+                    <Button size="lg" onClick={openLoginModal} className="rounded-xl font-bold px-8 bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-500/25 transition-all">
                         Đăng nhập ngay
                     </Button>
                 </div>

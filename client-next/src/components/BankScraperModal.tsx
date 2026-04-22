@@ -16,6 +16,7 @@ interface ScrapedCard {
     cardName: string;
     imageUrl?: string;
     registerUrl?: string;
+    detailUrl?: string;
     cashbackInfos: CashbackInfo[];
     annualFee?: number;
     minSalary?: number;
@@ -80,12 +81,12 @@ export const BankScraperModal: React.FC<BankScraperModalProps> = ({ isOpen, onCl
 
             const data = await scraperApi.extractCard(url);
 
-            // Map with unique IDs
+            // Map with unique IDs — preserve auto-extracted annualFee/minSalary from backend
             const cardsWithIds = (data.cards || []).map((c: any, i: number) => ({
                 ...c,
                 id: `scraped-${Date.now()}-${i}`,
-                annualFee: 0,
-                minSalary: 0
+                annualFee: c.annualFee ?? 0,
+                minSalary: c.minSalary ?? 0
             }));
 
             setScrapedHost(data.host || '');

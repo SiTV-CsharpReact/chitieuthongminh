@@ -11,7 +11,7 @@ export default function ComparePage() {
 
     if (selectedCards.length === 0) {
         return (
-            <main className="flex-grow pt-32 px-4 pb-16 flex items-center justify-center min-h-[70vh]">
+            <main className="flex-grow pt-10 px-4 pb-16 flex items-center justify-center min-h-[70vh]">
                 <div className="text-center max-w-md">
                     <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 mb-6">
                         <span className="material-symbols-outlined text-4xl">compare_arrows</span>
@@ -27,7 +27,7 @@ export default function ComparePage() {
     }
 
     return (
-        <main className="flex-grow pt-32 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-16 bg-slate-50 dark:bg-[#0f0f0f] min-h-screen">
+        <main className="flex-grow pt-10 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-16 bg-slate-50 dark:bg-[#0f0f0f] min-h-screen">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex items-center justify-between">
                     <div>

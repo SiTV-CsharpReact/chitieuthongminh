@@ -12,7 +12,7 @@ function RecommendationsContent() {
     const { selectedCards, clearCompare } = useCompare();
     const router = useRouter();
     const searchParams = useSearchParams();
-    
+
     const spending = Number(searchParams.get('spending')) || 10000000;
     const salary = Number(searchParams.get('salary')) || 0;
     const topCategory = searchParams.get('topCategory') || 'Ăn uống';
@@ -73,7 +73,7 @@ function RecommendationsContent() {
     };
 
     return (
-        <main className="flex-grow pt-32 px-4 pb-16 sm:px-8 md:px-16 lg:px-24 xl:px-40 bg-slate-50 dark:bg-[#0f0f0f] min-h-screen">
+        <main className="flex-grow pt-10 px-4 pb-16 sm:px-8 md:px-16 lg:px-24 xl:px-40 bg-slate-50 dark:bg-[#0f0f0f] min-h-screen">
             <div className="mx-auto max-w-5xl">
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                     <div>

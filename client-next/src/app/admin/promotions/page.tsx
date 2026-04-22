@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { promotionApi, scraperApi } from '@/services/api';
 import { CardPromotion } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import AdminButton from '@/components/Admin/AdminButton';
 
 export default function AdminPromotionsPage() {
     const [promotions, setPromotions] = useState<CardPromotion[]>([]);
@@ -118,25 +119,27 @@ export default function AdminPromotionsPage() {
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                    <button
+                    <AdminButton
+                        variant="outline"
                         onClick={() => setShowImportModal(true)}
-                        className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 hover:scale-105 active:scale-95"
+                        icon="upload_file"
                     >
-                        <span className="material-symbols-outlined text-sm">upload_file</span> Nhập JSON
-                    </button>
-                    <button
+                        Nhập JSON
+                    </AdminButton>
+                    <AdminButton
+                        variant="outline"
                         onClick={handleDeleteAll}
-                        className="bg-white hover:bg-red-50 text-red-600 border border-red-200 px-5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 hover:scale-105 active:scale-95"
+                        icon="delete_sweep"
+                        className="text-red-500 border-red-200 hover:bg-red-50"
                     >
-                        <span className="material-symbols-outlined text-sm">delete_sweep</span> Xoá Tất Cả
-                    </button>
-                    <button
+                        Xoá Tất Cả
+                    </AdminButton>
+                    <AdminButton
                         onClick={() => setShowScraperModal(true)}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
+                        icon="api"
                     >
-                        <span className="material-symbols-outlined text-[20px]">api</span>
                         Clone Từ VIB World
-                    </button>
+                    </AdminButton>
                 </div>
             </div>
 
@@ -256,19 +259,21 @@ export default function AdminPromotionsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button 
-                                                    className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all"
+                                                <AdminButton
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="w-8 h-8 p-0"
+                                                    icon="edit"
                                                     title="Chỉnh sửa (Sắp ra mắt)"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">edit</span>
-                                                </button>
-                                                <button
+                                                />
+                                                <AdminButton
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-8 h-8 p-0 text-red-500 border-red-100 hover:bg-red-50 dark:hover:bg-red-900/30"
                                                     onClick={() => handleDelete(p.id!)}
-                                                    className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
+                                                    icon="delete"
                                                     title="Xoá ưu đãi"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">delete</span>
-                                                </button>
+                                                />
                                             </div>
                                         </td>
                                     </tr>
@@ -342,17 +347,15 @@ export default function AdminPromotionsPage() {
                                 placeholder="https://www.vib.com.vn/vn/promotion/vib-world"
                                 className="flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
                             />
-                            <button
+                            <AdminButton
                                 onClick={handleScraping}
                                 disabled={isScraping || !scrapeUrl}
-                                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                                loading={isScraping}
+                                icon={!isScraping ? "search" : undefined}
+                                className="px-6 py-3"
                             >
-                                {isScraping ? (
-                                    <><span className="material-symbols-outlined animate-spin">refresh</span> Đang rà quét...</>
-                                ) : (
-                                    <><span className="material-symbols-outlined">search</span> Bắt đầu quét</>
-                                )}
-                            </button>
+                                {isScraping ? 'Đang rà quét...' : 'Bắt đầu quét'}
+                            </AdminButton>
                         </div>
 
                         <div className="flex-1 overflow-auto p-6 bg-slate-50/50 dark:bg-slate-900/50">
@@ -388,19 +391,20 @@ export default function AdminPromotionsPage() {
                         </div>
 
                         <div className="p-6 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 flex justify-end gap-3 rounded-b-2xl">
-                            <button
+                            <AdminButton
+                                variant="ghost"
                                 onClick={() => { setScrapeResult([]); setShowScraperModal(false); }}
-                                className="px-5 py-2.5 text-slate-600 dark:text-slate-400 font-bold"
                             >
                                 Đóng
-                            </button>
-                            <button
+                            </AdminButton>
+                            <AdminButton
+                                variant="success"
                                 disabled={scrapeResult.length === 0}
                                 onClick={handleSaveExtracted}
-                                className="px-5 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-green-500/20"
+                                className="px-5 py-2.5"
                             >
                                 Lưu ({scrapeResult.length}) Dữ Liệu Này
-                            </button>
+                            </AdminButton>
                         </div>
                     </div>
                 </DialogContent>
@@ -433,7 +437,7 @@ export default function AdminPromotionsPage() {
                             />
 
                             <div className="flex gap-4">
-                                <button
+                                <AdminButton
                                     onClick={async () => {
                                         try {
                                             const data = JSON.parse(importJson);
@@ -445,10 +449,10 @@ export default function AdminPromotionsPage() {
                                             alert('Dữ liệu JSON không hợp lệ hoặc lỗi server');
                                         }
                                     }}
-                                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+                                    className="flex-1 py-4 rounded-2xl"
                                 >
                                     Lưu Dữ Liệu
-                                </button>
+                                </AdminButton>
                             </div>
                         </div>
                 </DialogContent>

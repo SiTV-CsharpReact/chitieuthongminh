@@ -6,6 +6,8 @@ import { Article, ArticleCategory } from '@/types';
 import { Editor } from '@tinymce/tinymce-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import FileManager from '@/components/FileManager';
+import AdminButton from '@/components/Admin/AdminButton';
+import AdminTable, { AdminTableColumn } from '@/components/Admin/AdminTable';
 
 export default function AdminArticlesPage() {
     const [articles, setArticles] = useState<Article[]>([]);
@@ -133,6 +135,59 @@ export default function AdminArticlesPage() {
         }
     };
 
+    const columns: AdminTableColumn<Article>[] = [
+        {
+            header: 'Bài viết',
+            key: 'title',
+            render: (article) => (
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex-shrink-0 overflow-hidden border border-slate-100 dark:border-slate-700">
+                        {article.coverImage && <img src={article.coverImage} className="w-full h-full object-cover" alt="" />}
+                    </div>
+                    <div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors line-clamp-1">{article.title}</div>
+                        <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">/{article.slug}</div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            header: 'Chuyên mục',
+            key: 'category',
+            render: (article) => {
+                const cat = categories.find(c => c.name === article.category);
+                return cat ? (
+                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest shadow-sm" style={{ backgroundColor: `${cat.color}20`, color: cat.color, border: `1px solid ${cat.color}40` }}>
+                        {article.category}
+                    </span>
+                ) : (
+                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[9px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-700">
+                        {article.category}
+                    </span>
+                );
+            }
+        },
+        {
+            header: 'Ngày tạo',
+            key: 'createdAt',
+            render: (article) => (
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                    {article.createdAt ? new Date(article.createdAt).toLocaleDateString('vi-VN') : '-'}
+                </span>
+            )
+        },
+        {
+            header: 'Trạng thái',
+            key: 'status',
+            render: (article) => (
+                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${article.status === 'published' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500'
+                    }`}>
+                    {article.status === 'published' ? 'Đã đăng' : 'Bản nháp'}
+                </span>
+            )
+        }
+    ];
+
     return (
         <div className="space-y-6 animate-fade-in transition-all">
             <div className="flex items-center justify-between">
@@ -140,85 +195,22 @@ export default function AdminArticlesPage() {
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản lý bài viết</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Hệ thống Zenith News CMS Professional</p>
                 </div>
-                <button
+                <AdminButton
                     onClick={() => { resetForm(); setIsModalOpen(true); }}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
+                    icon="add"
                 >
-                    <span className="material-symbols-outlined text-[20px]">add</span> THÊM BÀI VIẾT
-                </button>
+                    THÊM BÀI VIẾT
+                </AdminButton>
             </div>
 
-            {isLoading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-                </div>
-            ) : (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50/50 dark:bg-slate-800/50">
-                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Bài viết</th>
-                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Chuyên mục</th>
-                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Ngày tạo</th>
-                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Trạng thái</th>
-                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] text-right">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {articles.map(article => (
-                                    <tr key={article.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all cursor-pointer">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex-shrink-0 overflow-hidden border border-slate-100 dark:border-slate-700">
-                                                    {article.coverImage && <img src={article.coverImage} className="w-full h-full object-cover" alt="" />}
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors line-clamp-1">{article.title}</div>
-                                                    <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">/{article.slug}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {(() => {
-                                                const cat = categories.find(c => c.name === article.category);
-                                                return cat ? (
-                                                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest shadow-sm" style={{ backgroundColor: `${cat.color}20`, color: cat.color, border: `1px solid ${cat.color}40` }}>
-                                                        {article.category}
-                                                    </span>
-                                                ) : (
-                                                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[9px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-700">
-                                                        {article.category}
-                                                    </span>
-                                                );
-                                            })()}
-                                        </td>
-                                        <td className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                            {article.createdAt ? new Date(article.createdAt).toLocaleDateString('vi-VN') : '-'}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${article.status === 'published' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500'
-                                                }`}>
-                                                {article.status === 'published' ? 'Đã đăng' : 'Bản nháp'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <button onClick={() => handleEdit(article)} className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 rounded-lg transition-all">
-                                                    <span className="material-symbols-outlined text-[18px]">edit_square</span>
-                                                </button>
-                                                <button onClick={() => handleDelete(article.id!)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all">
-                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
+            <AdminTable
+                columns={columns}
+                data={articles}
+                isLoading={isLoading}
+                onEdit={handleEdit}
+                onDelete={(article) => handleDelete(article.id!)}
+                emptyMessage="Không có bài viết nào"
+            />
 
             {/* Editor Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -410,34 +402,40 @@ export default function AdminArticlesPage() {
                         {/* Action Bar */}
                         <div className="fixed bottom-0 left-0 w-full h-20 flex items-center justify-between px-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl z-50 border-t border-slate-100 dark:border-slate-800">
                             <div className="flex items-center gap-2">
-                                <button
+                                <AdminButton
+                                    variant="ghost"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2.5 text-slate-500 hover:text-red-500 rounded-xl transition-all font-bold uppercase tracking-widest text-[10px]"
+                                    size="sm"
                                 >
                                     ĐÓNG
-                                </button>
+                                </AdminButton>
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <button
+                                <AdminButton
+                                    variant="outline"
                                     onClick={() => setIsPreviewOpen(true)}
-                                    className="px-5 py-2.5 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                                    size="sm"
+                                    className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20"
                                 >
                                     XEM TRƯỚC
-                                </button>
-                                <button
+                                </AdminButton>
+                                <AdminButton
+                                    variant="outline"
                                     onClick={() => handleSave('draft')}
-                                    className="px-5 py-2.5 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                                    size="sm"
                                 >
                                     LƯU NHÁP
-                                </button>
-                                <button
+                                </AdminButton>
+                                <AdminButton
+                                    variant="primary"
                                     onClick={() => handleSave('published')}
-                                    disabled={isSaving}
-                                    className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl px-8 py-3 font-black uppercase tracking-widest text-[11px]"
+                                    loading={isSaving}
+                                    size="sm"
+                                    className="px-8"
                                 >
                                     XUẤT BẢN
-                                </button>
+                                </AdminButton>
                             </div>
                         </div>
                 </DialogContent>

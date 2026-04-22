@@ -5,6 +5,7 @@ import { cardApi, categoryApi } from '@/services/api';
 import { BankScraperModal } from '@/components/BankScraperModal';
 import { Card as CreditCard, CashbackRule, Category } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import AdminButton from '@/components/Admin/AdminButton';
 
 export default function AdminCardsPage() {
     const [cards, setCards] = useState<CreditCard[]>([]);
@@ -32,6 +33,7 @@ export default function AdminCardsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         fetchCards();
@@ -114,9 +116,42 @@ export default function AdminCardsPage() {
         if (!window.confirm('Bạn có chắc chắn muốn xóa thẻ này?')) return;
         try {
             await cardApi.delete(id);
+            setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
             fetchCards();
         } catch (error) {
             console.error('Error deleting card:', error);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.size} thẻ đã chọn?`)) return;
+        setIsLoading(true);
+        try {
+            await Promise.all(Array.from(selectedIds).map(id => cardApi.delete(id)));
+            setSelectedIds(new Set());
+            fetchCards();
+        } catch (error) {
+            console.error('Error bulk deleting cards:', error);
+            alert('Có lỗi xảy ra khi xóa hàng loạt.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === paginatedCards.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(paginatedCards.map(c => c.id!)));
         }
     };
 
@@ -179,23 +214,49 @@ export default function AdminCardsPage() {
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Hệ thống quản lý danh mục sản phẩm và chính sách ưu đãi</p>
                 </div>
                 <div className="flex gap-4">
-                    <button
+                    <AdminButton
+                        variant="outline"
                         onClick={() => {
                             setShowModal(false);
                             setIsScraperOpen(true);
                         }}
-                        className="flex items-center gap-2 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-100 px-6 py-3 rounded-2xl text-sm font-bold transition-all active:scale-95 border border-slate-200 dark:border-slate-700 shadow-sm"
+                        icon="travel_explore"
                     >
-                        <span className="material-symbols-outlined text-[20px] text-primary-500">travel_explore</span>
                         Clone từ Link
-                    </button>
-                    <button
+                    </AdminButton>
+                    <AdminButton
                         onClick={openAdd}
-                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
+                        icon="add"
                     >
-                        <span className="material-symbols-outlined text-[20px]">add</span>
                         Thêm thẻ mới
-                    </button>
+                    </AdminButton>
+                </div>
+            </div>
+
+            {/* Bulk Action Toolbar */}
+            <div className={`overflow-hidden transition-all duration-300 ease-out ${selectedIds.size > 0 ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                <div className="flex items-center justify-between bg-primary-500 text-white px-5 py-3 rounded-2xl shadow-lg shadow-primary-500/25">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[18px]">check_box</span>
+                        <span className="text-sm font-bold">Đã chọn <strong>{selectedIds.size}</strong> thẻ</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setSelectedIds(new Set())}
+                            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-white/20 hover:bg-white/30 transition-all"
+                        >
+                            Bỏ chọn
+                        </button>
+                        <button
+                            onClick={handleBulkDelete}
+                            disabled={isLoading}
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold bg-red-500 hover:bg-red-600 transition-all shadow-md disabled:opacity-60"
+                        >
+                            <span className="material-symbols-outlined text-[16px]">delete_forever</span>
+                            Xóa {selectedIds.size} thẻ
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -244,6 +305,15 @@ export default function AdminCardsPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                                <th className="px-5 py-5 w-12">
+                                    <input
+                                        type="checkbox"
+                                        checked={paginatedCards.length > 0 && selectedIds.size === paginatedCards.length}
+                                        ref={el => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < paginatedCards.length; }}
+                                        onChange={toggleSelectAll}
+                                        className="w-4 h-4 rounded accent-primary-500 cursor-pointer"
+                                    />
+                                </th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Thẻ & Ngân hàng</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Phí thường niên</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Yêu cầu lương</th>
@@ -255,7 +325,18 @@ export default function AdminCardsPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {paginatedCards.map(card => (
-                                <tr key={card.id} className="group hover:bg-slate-50/30 dark:hover:bg-slate-800/20 transition-all">
+                                <tr key={card.id} className={`group transition-all ${selectedIds.has(card.id!)
+                                        ? 'bg-primary-500/5 dark:bg-primary-500/10'
+                                        : 'hover:bg-slate-50/30 dark:hover:bg-slate-800/20'
+                                    }`}>
+                                    <td className="px-5 py-5">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.has(card.id!)}
+                                            onChange={() => toggleSelect(card.id!)}
+                                            className="w-4 h-4 rounded accent-primary-500 cursor-pointer"
+                                        />
+                                    </td>
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-5">
                                             <div className="w-20 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm p-1">
@@ -334,20 +415,22 @@ export default function AdminCardsPage() {
                                     </td>
                                     <td className="px-8 py-5 text-right">
                                         <div className="flex justify-end gap-3 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                                            <button
+                                            <AdminButton
+                                                variant="ghost"
                                                 onClick={() => openEdit(card)}
-                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-indigo-600 hover:shadow-xl hover:shadow-indigo-500/10 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
+                                                icon="edit_square"
+                                                size="sm"
+                                                className="w-10 h-10 p-0"
                                                 title="Chỉnh sửa chi tiết"
-                                            >
-                                                <span className="material-symbols-outlined text-xl">edit_square</span>
-                                            </button>
-                                            <button
+                                            />
+                                            <AdminButton
+                                                variant="outline"
                                                 onClick={() => handleDelete(card.id!)}
-                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 hover:shadow-xl hover:shadow-red-500/10 transition-all border border-transparent hover:border-red-100 dark:border-red-900/40"
+                                                icon="delete"
+                                                size="sm"
+                                                className="w-10 h-10 p-0 text-red-500 border-red-100 hover:bg-red-50 dark:border-red-900/40 dark:hover:bg-red-900/20"
                                                 title="Xóa thẻ khỏi hệ thống"
-                                            >
-                                                <span className="material-symbols-outlined text-xl">delete</span>
-                                            </button>
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -595,12 +678,12 @@ export default function AdminCardsPage() {
                             </div>
 
                             <div className="pt-6">
-                                <button
+                                <AdminButton
                                     type="submit"
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-[0.98] uppercase tracking-[0.2em]"
+                                    className="w-full py-5 rounded-2xl text-sm"
                                 >
                                     {isEditing ? 'Lưu thay đổi cập nhật' : 'Khởi tạo thẻ ngay'}
-                                </button>
+                                </AdminButton>
                             </div>
                         </form>
                     </div>

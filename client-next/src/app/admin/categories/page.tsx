@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { categoryApi } from '@/services/api';
 import { Category } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import AdminButton from '@/components/Admin/AdminButton';
+import AdminTable, { AdminTableColumn } from '@/components/Admin/AdminTable';
 
 export default function AdminCategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -105,6 +107,90 @@ export default function AdminCategoriesPage() {
         }
     }, [pageSize, totalPages, currentPage]);
 
+    const columns: AdminTableColumn<Category>[] = [
+        {
+            header: 'Danh mục',
+            key: 'name',
+            width: '25%',
+            render: (cate) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${cate.color}20`, color: cate.color }}>
+                        <span className="material-symbols-outlined text-[18px]">{cate.icon || 'category'}</span>
+                    </div>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{cate.name}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Phân Loại',
+            key: 'isFrequent',
+            width: '130px',
+            render: (cate) => (
+                cate.isFrequent ? (
+                    <span className="px-2 py-1 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 text-[10px] font-black flex items-center gap-1 w-fit">
+                        <span className="text-xs">🔥</span> Thường dùng
+                    </span>
+                ) : (
+                    <span className="px-2 py-1 rounded-md bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-bold flex items-center gap-1 w-fit">
+                        Mặc định
+                    </span>
+                )
+            )
+        },
+        {
+            header: 'Giao diện',
+            key: 'color',
+            width: '20%',
+            render: (cate) => (
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full border border-slate-200 dark:border-slate-700 shrink-0" style={{ backgroundColor: cate.color }}></div>
+                    <span className="font-mono text-[11px] text-slate-400 font-bold">{cate.color}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Danh sách Tag MCC',
+            key: 'mccCodes',
+            render: (cate) => (
+                (!cate.mccCodes || cate.mccCodes.length === 0) ? (
+                    <span className="text-[10px] text-slate-400 font-bold italic">Chưa map MCC</span>
+                ) : (
+                    <div className="group relative">
+                        <div className="flex flex-wrap gap-1.5 items-center max-w-[280px]">
+                            {cate.mccCodes.slice(0, 5).map(code => (
+                                <span key={code} className="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1 border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="material-symbols-outlined text-[10px] opacity-70">sell</span>
+                                    {code}
+                                </span>
+                            ))}
+                            {cate.mccCodes.length > 5 && (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 cursor-help transition-all hover:bg-slate-300 dark:hover:bg-slate-600">
+                                    +{cate.mccCodes.length - 5} mã nữa...
+                                </span>
+                            )}
+                        </div>
+
+                        {cate.mccCodes.length > 5 && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 ml-[290px] hidden group-hover:block z-50 animate-fade-in w-max">
+                                <div className="bg-slate-800 dark:bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl w-[320px]">
+                                    <p className="text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-widest border-b border-slate-700 pb-2">Toàn bộ {cate.mccCodes.length} mã MCC</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {cate.mccCodes.map(code => (
+                                            <span key={code} className="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-700 text-slate-300 border border-slate-600">
+                                                {code}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-slate-800 dark:bg-slate-900 border-l border-b border-slate-700 transform rotate-45"></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )
+            )
+        }
+    ];
+
     return (
         <div className="space-y-6 animate-fade-in transition-all">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -113,135 +199,31 @@ export default function AdminCategoriesPage() {
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Định nghĩa các nhóm chi tiêu, màu sắc và MCC tự động định tuyến</p>
                 </div>
                 <div className="flex gap-2">
-                    <button
+                    <AdminButton
+                        variant="outline"
                         onClick={handleSeed}
-                        disabled={isSeeding}
-                        className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                        loading={isSeeding}
+                        icon="sync"
                     >
-                        <span className={`material-symbols-outlined text-[20px] ${isSeeding ? 'animate-spin' : ''}`}>sync</span>
                         Khởi tạo Chuẩn MCC
-                    </button>
-                    <button
+                    </AdminButton>
+                    <AdminButton
                         onClick={handleOpenAdd}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
+                        icon="add"
                     >
-                        <span className="material-symbols-outlined text-[20px]">add</span>
                         Thêm danh mục
-                    </button>
+                    </AdminButton>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-800/50 overflow-hidden flex flex-col">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-max">
-                        <thead>
-                            <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-1/4">Danh mục</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-32">Phân Loại</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-1/5">Giao diện</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-auto">Danh sách Tag MCC</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right w-32">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                            {isLoading ? (
-                                Array(5).fill(0).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={5} className="px-6 py-4"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/3"></div></td>
-                                    </tr>
-                                ))
-                            ) : categories.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold text-sm">Chưa có danh mục nào</td>
-                                </tr>
-                            ) : (
-                                paginatedCategories.map((cate) => (
-                                    <tr key={cate.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${cate.color}20`, color: cate.color }}>
-                                                    <span className="material-symbols-outlined text-[18px]">{cate.icon || 'category'}</span>
-                                                </div>
-                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{cate.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {cate.isFrequent ? (
-                                                <span className="px-2 py-1 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 text-[10px] font-black flex items-center gap-1 w-fit">
-                                                    <span className="text-xs">🔥</span> Thường dùng
-                                                </span>
-                                            ) : (
-                                                <span className="px-2 py-1 rounded-md bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-bold flex items-center gap-1 w-fit">
-                                                    Mặc định
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-4 h-4 rounded-full border border-slate-200 dark:border-slate-700 shrink-0" style={{ backgroundColor: cate.color }}></div>
-                                                <span className="font-mono text-[11px] text-slate-400 font-bold">{cate.color}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 relative">
-                                            {(!cate.mccCodes || cate.mccCodes.length === 0) ? (
-                                                <span className="text-[10px] text-slate-400 font-bold italic">Chưa map MCC</span>
-                                            ) : (
-                                                <div className="group relative">
-                                                    <div className="flex flex-wrap gap-1.5 items-center max-w-[280px]">
-                                                        {cate.mccCodes.slice(0, 5).map(code => (
-                                                            <span key={code} className="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1 border border-slate-200/50 dark:border-slate-700/50">
-                                                                <span className="material-symbols-outlined text-[10px] opacity-70">sell</span>
-                                                                {code}
-                                                            </span>
-                                                        ))}
-                                                        {cate.mccCodes.length > 5 && (
-                                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 cursor-help transition-all hover:bg-slate-300 dark:hover:bg-slate-600">
-                                                                +\{cate.mccCodes.length - 5} mã nữa...
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Tooltip on Hover */}
-                                                    {cate.mccCodes.length > 5 && (
-                                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 ml-[290px] hidden group-hover:block z-50 animate-fade-in w-max">
-                                                            <div className="bg-slate-800 dark:bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl w-[320px]">
-                                                                <p className="text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-widest border-b border-slate-700 pb-2">Toàn bộ {cate.mccCodes.length} mã MCC</p>
-                                                                <div className="flex flex-wrap gap-1.5">
-                                                                    {cate.mccCodes.map(code => (
-                                                                        <span key={code} className="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-700 text-slate-300 border border-slate-600">
-                                                                            {code}
-                                                                        </span>
-                                                                    ))}
-                                                                </div>
-                                                                <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-slate-800 dark:bg-slate-900 border-l border-b border-slate-700 transform rotate-45"></div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleOpenEdit(cate)}
-                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">edit</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => cate.id && handleDelete(cate.id)}
-                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+            <AdminTable
+                columns={columns}
+                data={paginatedCategories}
+                isLoading={isLoading}
+                onEdit={handleOpenEdit}
+                onDelete={(cate) => cate.id && handleDelete(cate.id)}
+                emptyMessage="Chưa có danh mục nào"
+            />
 
                 {/* Pagination Footer */}
                 {categories.length > 0 && (
@@ -279,7 +261,7 @@ export default function AdminCategoriesPage() {
                         </div>
                     </div>
                 )}
-            </div>
+
 
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border-slate-200 dark:border-slate-800 p-0 gap-0 shadow-2xl">

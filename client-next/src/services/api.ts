@@ -166,7 +166,15 @@ export const scraperApi = {
         return response.json();
     },
 
-    async extractCard(url: string): Promise<{ host: string, images: string[], cashbackInfos: { text: string, suggestedPercentage?: number, suggestedCap?: number }[] }> {
+    async extractCard(url: string): Promise<{
+        host: string;
+        cards: {
+            cardName: string;
+            imageUrl?: string;
+            registerUrl?: string;
+            cashbackInfos: { text: string; suggestedPercentage?: number; suggestedCap?: number }[];
+        }[];
+    }> {
         const response = await fetch(`${API_BASE_URL}/Scraper/extract-card-details`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

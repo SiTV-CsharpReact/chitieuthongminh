@@ -25,6 +25,7 @@ public class CardScrapedDto
 {
     public string CardName { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    public string? RegisterUrl { get; set; }
     public List<CashbackInfoObj> CashbackInfos { get; set; } = new List<CashbackInfoObj>();
 }
 
@@ -161,6 +162,9 @@ public class ScraperController : ControllerBase
 
             var keywords = new[] { "hoàn tiền", "cashback", "chi tiêu", "hoàn", "tặng", "điểm", "rút", "miễn phí", "lãi suất", "ưu đãi", "trả góp" };
             var seenTexts = new HashSet<string>();
+            // Collect ALL register links in order (for positional/keyword fallback)
+            var allRegisterLinks = new List<string>();
+            var seenLinks = new HashSet<string>();
 
             foreach (var node in doc.DocumentNode.Descendants())
             {
@@ -212,6 +216,47 @@ public class ScraperController : ControllerBase
                             if (string.IsNullOrEmpty(cardsDict[currentCardName].ImageUrl))
                             {
                                 cardsDict[currentCardName].ImageUrl = src;
+                            }
+                        }
+                    }
+                }
+
+                // Extract anchor links — collect ALL register links globally + try adjacent assignment
+                if (node.Name == "a")
+                {
+                    string href = node.GetAttributeValue("href", "").Trim();
+                    if (!string.IsNullOrEmpty(href) && !href.StartsWith("#") && !href.StartsWith("javascript"))
+                    {
+                        // Resolve relative URL
+                        if (href.StartsWith("//")) href = uriResult.Scheme + ":" + href;
+                        else if (href.StartsWith("/")) href = uriResult.Scheme + "://" + uriResult.Host + href;
+                        else if (!href.StartsWith("http")) href = request.Url.Substring(0, request.Url.LastIndexOf('/') + 1) + href;
+
+                        string linkText = HttpUtility.HtmlDecode(node.InnerText.Trim()).ToLower();
+                        string hrefLower = href.ToLower();
+
+                        // Check if this looks like a register/apply link
+                        bool isRegisterLink =
+                            linkText.Contains("đăng ký") || linkText.Contains("dang ky") ||
+                            linkText.Contains("mở thẻ") || linkText.Contains("mo the") ||
+                            linkText.Contains("apply") || linkText.Contains("register") ||
+                            linkText.Contains("mở ngay") || linkText.Contains("đăng ký ngay") ||
+                            hrefLower.Contains("register") || hrefLower.Contains("dang-ky") ||
+                            hrefLower.Contains("apply") || hrefLower.Contains("mo-the") ||
+                            hrefLower.Contains("open-card") || hrefLower.Contains("basic-details") ||
+                            hrefLower.Contains("cards.") && (hrefLower.Contains("confirm") || hrefLower.Contains("apply"));
+
+                        if (isRegisterLink)
+                        {
+                            // Try adjacent assignment (works when button is next to card heading)
+                            if (string.IsNullOrEmpty(cardsDict[currentCardName].RegisterUrl))
+                                cardsDict[currentCardName].RegisterUrl = href;
+
+                            // Always collect globally for post-processing fallback
+                            if (!seenLinks.Contains(href))
+                            {
+                                seenLinks.Add(href);
+                                allRegisterLinks.Add(href);
                             }
                         }
                     }
@@ -270,6 +315,62 @@ public class ScraperController : ControllerBase
             }
 
             var finalCards = cardsDict.Values.Where(c => !string.IsNullOrEmpty(c.ImageUrl) || c.CashbackInfos.Any()).ToList();
+
+            // === POST-PROCESS: Match register links to cards that still lack one ===
+            // Needed when banks list all "Dăng ký" buttons in a block AFTER the cards (e.g. VPBank)
+            var cardsWithoutReg = finalCards.Where(c => string.IsNullOrEmpty(c.RegisterUrl)).ToList();
+            if (cardsWithoutReg.Count > 0 && allRegisterLinks.Count > 0)
+            {
+                var remainingLinks = new List<string>(allRegisterLinks);
+
+                // Strategy 1: URL slug/keyword match — try to find link whose URL contains keywords from card name
+                foreach (var card in cardsWithoutReg.ToList())
+                {
+                    // Build keyword list from card name (keep English product names: gameon, shopee, flex, world, etc.)
+                    string nameLower = card.CardName.ToLower();
+                    var nameKeywords = Regex.Matches(nameLower, @"[a-z0-9]{3,}")
+                        .Cast<Match>()
+                        .Select(m => m.Value)
+                        .Where(w => w.Length >= 4 && w != "bank" && w != "card" && w != "tin" && w != "dung" && w != "the")
+                        .ToList();
+
+                    string? matched = remainingLinks.FirstOrDefault(link =>
+                        nameKeywords.Any(kw => link.ToLower().Contains(kw)));
+
+                    if (matched != null)
+                    {
+                        card.RegisterUrl = matched;
+                        remainingLinks.Remove(matched);
+                    }
+                }
+
+                // Strategy 2: utm_content match — parse utm_content param and compare to card name
+                var stillNoReg2 = finalCards.Where(c => string.IsNullOrEmpty(c.RegisterUrl)).ToList();
+                foreach (var card in stillNoReg2.ToList())
+                {
+                    string nameLower = card.CardName.ToLower();
+                    string? matched = remainingLinks.FirstOrDefault(link =>
+                    {
+                        var utmMatch = Regex.Match(link, @"utm_content=([^&]+)", RegexOptions.IgnoreCase);
+                        if (!utmMatch.Success) return false;
+                        string utmVal = Uri.UnescapeDataString(utmMatch.Groups[1].Value).ToLower();
+                        return nameLower.Contains(utmVal) || utmVal.Split(new[]{'-','_',' '}).Any(w => w.Length > 3 && nameLower.Contains(w));
+                    });
+
+                    if (matched != null)
+                    {
+                        card.RegisterUrl = matched;
+                        remainingLinks.Remove(matched);
+                    }
+                }
+
+                // Strategy 3: Positional fallback — N-th card without URL gets N-th remaining link
+                var stillNoReg3 = finalCards.Where(c => string.IsNullOrEmpty(c.RegisterUrl)).ToList();
+                for (int i = 0; i < Math.Min(stillNoReg3.Count, remainingLinks.Count); i++)
+                {
+                    stillNoReg3[i].RegisterUrl = remainingLinks[i];
+                }
+            }
 
             return Ok(new
             {

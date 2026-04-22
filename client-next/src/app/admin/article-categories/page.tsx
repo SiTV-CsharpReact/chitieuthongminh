@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { articleCategoryApi, articleApi } from '@/services/api';
 import { ArticleCategory } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import AdminButton from '@/components/Admin/AdminButton';
+import AdminTable, { AdminTableColumn } from '@/components/Admin/AdminTable';
 
 export default function AdminArticleCategoriesPage() {
     const [categories, setCategories] = useState<ArticleCategory[]>([]);
@@ -105,6 +107,52 @@ export default function AdminArticleCategoriesPage() {
         }
     };
 
+    const columns: AdminTableColumn<ArticleCategory>[] = [
+        {
+            header: 'Thông tin Chuyên MụC',
+            key: 'name',
+            width: '25%',
+            render: (cat) => (
+                <div className="flex items-center gap-4">
+                    <div className="w-2 h-8 rounded-full" style={{ backgroundColor: cat.color }}></div>
+                    <span className="font-bold text-slate-900 dark:text-slate-100 text-base">{cat.name}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Đường dẫn tĩnh (Slug)',
+            key: 'slug',
+            width: '20%',
+            render: (cat) => (
+                <span className="font-mono text-[11px] bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                    {cat.slug}
+                </span>
+            )
+        },
+        {
+            header: 'Mô Tả Tiêu Biểu',
+            key: 'description',
+            width: '35%',
+            render: (cat) => (
+                <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1 font-medium italic">
+                    {cat.description || '-'}
+                </p>
+            )
+        },
+        {
+            header: 'Định danh màu',
+            key: 'color',
+            width: '10%',
+            align: 'center',
+            render: (cat) => (
+                <div className="inline-flex items-center gap-2 group/color">
+                    <div className="w-6 h-6 rounded-lg shadow-sm border border-white dark:border-slate-700" style={{ backgroundColor: cat.color }}></div>
+                    <span className="text-[10px] font-mono text-slate-400 opacity-0 group-hover/color:opacity-100 transition-opacity uppercase">{cat.color}</span>
+                </div>
+            )
+        }
+    ];
+
     return (
         <div className="space-y-6 animate-fade-in transition-all">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
@@ -115,97 +163,30 @@ export default function AdminArticleCategoriesPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
+                    <AdminButton
+                        variant="outline"
                         onClick={handleSync}
-                        className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 px-6 py-3 rounded-2xl font-bold transition-all shadow-sm flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
+                        icon="sync"
                     >
-                        <span className="material-symbols-outlined text-[20px]">sync</span> ĐỒNG BỘ TỪ BÀI VIẾT
-                    </button>
-                    <button
+                        ĐỒNG BỘ TỪ BÀI VIẾT
+                    </AdminButton>
+                    <AdminButton
                         onClick={() => handleOpenModal()}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 uppercase tracking-widest text-xs"
+                        icon="add"
                     >
-                        <span className="material-symbols-outlined text-[20px]">add</span> Thêm Mới
-                    </button>
+                        Thêm Mới
+                    </AdminButton>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-                {loading ? (
-                    <div className="p-20 text-center text-slate-500 dark:text-slate-400 animate-pulse flex flex-col items-center gap-4">
-                        <span className="material-symbols-outlined text-4xl animate-spin">sync</span>
-                        <p className="font-black uppercase tracking-widest text-[10px]">Đang đồng bộ hóa dữ liệu...</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto scrollbar-hide">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-slate-400/80 uppercase text-[10px] font-black tracking-[0.2em]">
-                                    <th className="px-8 py-5 w-[25%] uppercase">Thông tin Chuyên MụC</th>
-                                    <th className="px-8 py-5 w-[20%] uppercase">Đường dẫn tĩnh (Slug)</th>
-                                    <th className="px-8 py-5 w-[35%] uppercase">Mô Tả Tiêu Biểu</th>
-                                    <th className="px-8 py-5 w-[10%] text-center">Định danh màu</th>
-                                    <th className="px-8 py-5 w-[10%] text-right font-sans">Thao Tác</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                                {categories.map((cat) => (
-                                    <tr key={cat.id} className="group hover:bg-slate-50/30 dark:hover:bg-slate-800/20 transition-all">
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-2 h-8 rounded-full" style={{ backgroundColor: cat.color }}></div>
-                                                <span className="font-bold text-slate-900 dark:text-slate-100 text-base">{cat.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className="font-mono text-[11px] bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
-                                                {cat.slug}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1 font-medium italic">
-                                                {cat.description || '-'}
-                                            </p>
-                                        </td>
-                                        <td className="px-8 py-5 text-center">
-                                            <div className="inline-flex items-center gap-2 group/color">
-                                                <div className="w-6 h-6 rounded-lg shadow-sm border border-white dark:border-slate-700" style={{ backgroundColor: cat.color }}></div>
-                                                <span className="text-[10px] font-mono text-slate-400 opacity-0 group-hover/color:opacity-100 transition-opacity uppercase">{cat.color}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5 text-right">
-                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
-                                                <button
-                                                    onClick={() => handleOpenModal(cat)}
-                                                    className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all border border-transparent hover:border-indigo-100"
-                                                >
-                                                    <span className="material-symbols-outlined text-xl">edit_square</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(cat.id!)}
-                                                    className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all border border-transparent hover:border-red-100"
-                                                >
-                                                    <span className="material-symbols-outlined text-xl">delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {categories.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="p-20 text-center">
-                                            <div className="flex flex-col items-center gap-4 opacity-30">
-                                                <span className="material-symbols-outlined text-6xl">category</span>
-                                                <p className="font-bold uppercase tracking-widest text-xs">Phân loại trống</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+            <AdminTable
+                columns={columns}
+                data={categories}
+                isLoading={loading}
+                onEdit={handleOpenModal}
+                onDelete={(cat) => handleDelete(cat.id!)}
+                emptyMessage="Phân loại trống"
+            />
 
             {/* Modal */}
             <Dialog open={showModal} onOpenChange={setShowModal}>

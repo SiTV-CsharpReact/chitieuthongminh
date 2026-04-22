@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { cardApi } from '@/services/api';
 import { Card as CreditCard } from '@/types';
+import AdminButton from '@/components/Admin/AdminButton';
+import AdminConfirm from '@/components/Admin/AdminConfirm';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Cell
@@ -34,6 +36,7 @@ export default function AdminDashboardPage() {
         { title: 'Hệ thống đã sẵn sàng', time: 'Vừa xong', type: 'system', icon: 'check_circle' },
         { title: 'Khởi tạo dashboard', time: '1 phút trước', type: 'system', icon: 'dashboard' },
     ]);
+    const [showSeedConfirm, setShowSeedConfirm] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -50,7 +53,7 @@ export default function AdminDashboardPage() {
     };
 
     const handleSeed = async () => {
-        if (!window.confirm('Bạn có muốn xóa dữ liệu cũ và tạo lại toàn bộ 10 thẻ & danh mục mẫu không?')) return;
+        setShowSeedConfirm(false);
         setIsSeeding(true);
         try {
             await cardApi.seedAll();
@@ -99,14 +102,17 @@ export default function AdminDashboardPage() {
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Tổng quan hệ thống</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Dữ liệu phân tích cập nhật theo thời gian thực</p>
                 </div>
-                <button
-                    onClick={handleSeed}
+                <AdminButton
+                    onClick={() => setShowSeedConfirm(true)}
                     disabled={isSeeding}
-                    className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shadow-md"
+                    loading={isSeeding}
+                    variant="primary"
+                    icon={!isSeeding ? "database" : undefined}
+                    size="sm"
+                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4"
                 >
-                    <span className="material-symbols-outlined text-[18px]">{isSeeding ? 'sync' : 'database'}</span>
                     {isSeeding ? 'Đang tạo...' : 'Tạo lại dữ liệu mẫu'}
-                </button>
+                </AdminButton>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -199,7 +205,13 @@ export default function AdminDashboardPage() {
             <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-800/50">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-black text-lg text-slate-900 dark:text-white">Hoạt động hệ thống (Thực tế)</h3>
-                    <button className="text-[10px] font-black text-primary-500 uppercase tracking-widest hover:underline">Xem tất cả</button>
+                    <AdminButton
+                        variant="ghost"
+                        size="sm"
+                        className="text-[10px]"
+                    >
+                        Xem tất cả
+                    </AdminButton>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {activities.map((act, i) => (
@@ -215,6 +227,17 @@ export default function AdminDashboardPage() {
                     ))}
                 </div>
             </div>
+
+            <AdminConfirm
+                isOpen={showSeedConfirm}
+                onClose={() => setShowSeedConfirm(false)}
+                onConfirm={handleSeed}
+                title="Tạo lại dữ liệu mẫu?"
+                description="Hành động này sẽ xoá toàn bộ dữ liệu hiện tại (Thẻ, Danh mục, Ưu đãi) và thay thế bằng 10 bộ dữ liệu mẫu chuẩn. Bạn có chắc chắn muốn thực hiện?"
+                confirmText="Đồng ý, tạo mẫu"
+                variant="warning"
+                isLoading={isSeeding}
+            />
         </div>
     );
 }

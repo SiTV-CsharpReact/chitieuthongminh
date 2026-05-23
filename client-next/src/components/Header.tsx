@@ -84,7 +84,7 @@ export const Header: React.FC = () => {
                             </span>
                         </h1>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            Hoàn tiền cực đã
+                            Thẻ tín dụng tốt nhất
                         </p>
                     </div>
                 </Link>

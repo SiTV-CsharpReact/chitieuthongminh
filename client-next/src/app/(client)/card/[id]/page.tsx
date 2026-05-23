@@ -86,7 +86,7 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
             imageSize: 0.4
           }
         });
-        
+
         qrCode.append(qrRef.current!);
       });
     }
@@ -130,7 +130,7 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
   };
 
   return (
-    <main className="flex-grow pt-18 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-16 min-h-screen bg-slate-50 dark:bg-[#0f0f0f]">
+    <main className="flex-grow pt-10 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-16 min-h-screen bg-slate-50 dark:bg-[#0f0f0f]">
       <div className="mx-auto max-w-7xl">
 
         <div className="mb-10">

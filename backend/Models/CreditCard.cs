@@ -24,6 +24,9 @@ public class CreditCard
     
     public string? Description { get; set; }
     public List<string> Benefits { get; set; } = new();
+    public string? CreditLimit { get; set; }
+    public string? InterestRate { get; set; }
+    public string? TermsPdfUrl { get; set; }
 }
 
 public class CashbackRule

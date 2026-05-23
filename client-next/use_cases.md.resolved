@@ -1,0 +1,449 @@
+# CÁC CA SỬ DỤNG (USE CASES) – HỆ THỐNG CHI TIÊU THÔNG MINH
+
+## Tổng quan tác nhân và ca sử dụng
+
+### Danh sách tác nhân
+
+| Tác nhân | Mô tả |
+|----------|-------|
+| **Khách vãng lai (Guest)** | Người truy cập website mà chưa đăng nhập. Có thể sử dụng hầu hết chức năng tra cứu, so sánh thẻ, chatbot AI mà không cần tài khoản |
+| **Người dùng (User)** | Người đã đăng ký và đăng nhập. Kế thừa toàn bộ quyền của Guest, thêm quản lý tài khoản cá nhân |
+| **Quản trị viên (Admin)** | Người quản lý hệ thống CMS Zenith. Quản lý thẻ, danh mục, bài viết và công cụ scraper |
+
+> [!NOTE]
+> Trong project thực tế, hầu hết API endpoints (CreditCards, Categories, Chat, Articles, Spending, Recommendation) **không yêu cầu `[Authorize]`**. Chỉ có `UsersController` và `GET /api/auth/me` mới bắt buộc xác thực JWT. Do đó, Khách vãng lai có thể sử dụng phần lớn chức năng mà không cần đăng nhập.
+
+### Ma trận tác nhân – ca sử dụng
+
+| Tác nhân | Ca sử dụng |
+|----------|------------|
+| **Khách vãng lai (Guest)** | UC-05, UC-06, UC-07, UC-08, UC-09, UC-10, UC-11, UC-12 |
+| **Người dùng (User)** | UC-01, UC-02, UC-03, UC-04 + toàn bộ của Guest |
+| **Admin** | UC-01, UC-02, UC-03, UC-04, UC-13, UC-14, UC-15 |
+
+---
+
+## UC-01: Đăng ký tài khoản
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-01 |
+| **Tên** | Đăng ký tài khoản |
+| **Tác nhân** | Khách vãng lai (Guest) |
+| **Mô tả** | Cho phép người dùng tạo tài khoản mới bằng email/mật khẩu hoặc đăng nhập qua Google/Facebook |
+| **Điều kiện tiên quyết** | Người dùng chưa có tài khoản trong hệ thống |
+
+**Luồng chính:**
+1. Người dùng truy cập trang Đăng ký
+2. Nhập Họ tên, Email, Mật khẩu
+3. Hệ thống kiểm tra email chưa tồn tại
+4. Hệ thống mã hóa mật khẩu (BCrypt), tạo avatar mặc định, gán Role = "User"
+5. Lưu vào MongoDB collection `Users`
+6. Tạo JWT token và trả về cho client
+7. Chuyển hướng đến trang chủ
+
+**Luồng thay thế:**
+- **3a.** Email đã tồn tại → Trả về lỗi "Email này đã được sử dụng!"
+- **1b.** Người dùng chọn "Đăng nhập bằng Google" → Gọi Google API lấy userinfo → Tạo tài khoản Provider = "Google"
+- **1c.** Người dùng chọn "Đăng nhập bằng Facebook" → Gọi Facebook Graph API → Tạo tài khoản Provider = "Facebook"
+
+**Kết quả:** Tài khoản mới được tạo, JWT token trả về client
+
+---
+
+## UC-02: Đăng nhập
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-02 |
+| **Tên** | Đăng nhập |
+| **Tác nhân** | User, Admin |
+| **Mô tả** | Xác thực người dùng và cấp quyền truy cập hệ thống |
+| **Điều kiện tiên quyết** | Đã có tài khoản |
+
+**Luồng chính:**
+1. Người dùng nhập Email và Mật khẩu
+2. Hệ thống kiểm tra tài khoản Admin cố định (`admin@zenith.com`)
+3. Nếu không phải admin → Tìm user trong DB, verify BCrypt hash
+4. Tạo JWT token (chứa: id, name, email, role, avatar)
+5. Trả token về client, lưu vào cookie
+
+**Luồng thay thế:**
+- **3a.** Sai email/mật khẩu → Trả lỗi "Email hoặc mật khẩu không chính xác!"
+- **1b.** Đăng nhập Google → Verify access_token với Google API → Link tài khoản nếu đã tồn tại
+- **1c.** Đăng nhập Facebook → Verify access_token với Facebook API
+
+**Kết quả:** JWT token hợp lệ, người dùng được xác thực
+
+---
+
+## UC-03: Đăng xuất
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-03 |
+| **Tên** | Đăng xuất |
+| **Tác nhân** | User, Admin |
+| **Mô tả** | Kết thúc phiên làm việc |
+| **Điều kiện tiên quyết** | Đã đăng nhập |
+
+**Luồng chính:**
+1. Người dùng nhấn nút "Đăng xuất"
+2. Client xóa JWT token khỏi cookie/localStorage
+3. Chuyển hướng về trang đăng nhập
+
+**Kết quả:** Phiên làm việc kết thúc
+
+---
+
+## UC-04: Quản lý tài khoản
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-04 |
+| **Tên** | Quản lý tài khoản |
+| **Tác nhân** | User, Admin |
+| **Mô tả** | Xem và cập nhật thông tin cá nhân |
+| **Điều kiện tiên quyết** | Đã đăng nhập |
+
+**Luồng chính:**
+1. Người dùng truy cập trang Settings (`/settings`)
+2. Hệ thống gọi `GET /api/auth/me` để lấy thông tin (id, email, name, role, avatar)
+3. Hiển thị thông tin tài khoản
+4. Người dùng chỉnh sửa thông tin → Hệ thống cập nhật
+
+**Kết quả:** Thông tin tài khoản được hiển thị/cập nhật
+
+---
+
+## UC-05: Chọn nhóm đối tượng (Persona)
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-05 |
+| **Tên** | Chọn nhóm đối tượng |
+| **Tác nhân** | Khách vãng lai (Guest), User |
+| **Mô tả** | Người dùng chọn persona để hệ thống gợi ý danh mục chi tiêu phù hợp |
+| **Điều kiện tiên quyết** | Không |
+
+**Luồng chính:**
+1. Người dùng truy cập trang chủ, cuộn đến section "Chọn đối tượng" (`#category-section`)
+2. Chọn 1 trong 4 persona: **Sinh viên**, **Người đi làm**, **Gia đình**, **Doanh nghiệp**
+3. Hệ thống điều hướng đến `/input?profile={key}`
+
+| Persona | Danh mục mặc định |
+|---------|-------------------|
+| Sinh viên | Ăn uống, Siêu thị |
+| Người đi làm | Ăn uống, Siêu thị, Du lịch, Di chuyển |
+| Gia đình | Ăn uống, Siêu thị, Giáo dục, Y tế |
+| Doanh nghiệp | Ăn uống, Siêu thị, Du lịch, Di chuyển, Mua sắm, Online |
+
+**Kết quả:** Chuyển sang trang nhập chi tiêu với danh mục phù hợp persona
+
+---
+
+## UC-06: Nhập thông tin chi tiêu
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-06 |
+| **Tên** | Nhập thông tin chi tiêu |
+| **Tác nhân** | Khách vãng lai (Guest), User |
+| **Mô tả** | Nhập lương và số tiền chi tiêu theo danh mục để nhận đề xuất thẻ |
+| **Điều kiện tiên quyết** | Đã chọn persona (UC-05) |
+
+**Luồng chính:**
+1. Trang `/input` load danh mục từ API (`GET /api/categories`)
+2. Map danh mục admin vào danh mục mặc định của persona
+3. Người dùng nhập **Lương hàng tháng** (VND)
+4. Nhập số tiền cho từng danh mục chi tiêu
+5. (Tùy chọn) Nhấn "Thêm danh mục khác" → Modal hiển thị danh mục chưa thêm từ API
+6. Hệ thống tính **tổng chi tiêu**, xác định **danh mục chi tiêu cao nhất**
+7. Nhấn "Xem đề xuất thẻ" → Gọi `POST /api/spending` lưu dữ liệu
+8. Hiển thị animation phân tích AI (5 bước, ~4 giây)
+9. Điều hướng đến `/recommendations`
+
+**Luồng thay thế:**
+- **2a.** API categories lỗi → Fallback dùng tên danh mục mặc định từ profile
+
+**Kết quả:** Dữ liệu chi tiêu được lưu, chuyển sang trang đề xuất
+
+---
+
+## UC-07: Xem đề xuất thẻ tín dụng
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-07 |
+| **Tên** | Xem đề xuất thẻ tín dụng |
+| **Tác nhân** | Khách vãng lai (Guest), User |
+| **Mô tả** | Xem danh sách thẻ được đề xuất dựa trên dữ liệu chi tiêu |
+| **Điều kiện tiên quyết** | Đã nhập chi tiêu (UC-06) |
+
+**Luồng chính:**
+1. Trang `/recommendations` nhận params: `spending`, `salary`, `topCategory`
+2. Gọi `POST /api/recommendation` với SpendingData (incomeLevel, creditScoreRange...)
+3. Backend `ID3Service` phân tích dữ liệu bằng thuật toán ID3 Decision Tree
+4. Trả về danh sách `CreditCard` phù hợp nhất
+5. Hiển thị thẻ đề xuất kèm: tên, ngân hàng, phí thường niên, cashback, mức lương tối thiểu
+
+**Kết quả:** Danh sách thẻ tín dụng phù hợp nhất với người dùng
+
+---
+
+## UC-08: Xem danh sách tất cả thẻ
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-08 |
+| **Tên** | Xem danh sách tất cả thẻ |
+| **Tác nhân** | Khách vãng lai (Guest), User |
+| **Mô tả** | Duyệt toàn bộ thẻ tín dụng trong hệ thống |
+| **Điều kiện tiên quyết** | Không |
+
+**Luồng chính:**
+1. Truy cập trang `/cards`
+2. Hệ thống gọi `GET /api/creditcards`
+3. Hiển thị danh sách thẻ dạng lưới (grid) với: hình ảnh, tên thẻ, ngân hàng, phí thường niên
+4. Nhấn vào thẻ → Chuyển đến `/card/{id}` xem chi tiết
+5. Trang chi tiết hiển thị: Benefits, CashbackRules, CreditLimit, InterestRate, TermsPdfUrl
+
+**Kết quả:** Danh sách thẻ tín dụng được hiển thị
+
+---
+
+## UC-09: So sánh thẻ tín dụng
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-09 |
+| **Tên** | So sánh thẻ tín dụng |
+| **Tác nhân** | Khách vãng lai (Guest), User |
+| **Mô tả** | So sánh trực quan 2-3 thẻ cạnh nhau |
+| **Điều kiện tiên quyết** | Có ít nhất 2 thẻ trong hệ thống |
+
+**Luồng chính:**
+1. Truy cập `/compare`
+2. Chọn 2-3 thẻ muốn so sánh
+3. Hệ thống hiển thị bảng so sánh: Phí thường niên, Cashback %, Mức lương tối thiểu, Hạn mức, Lãi suất, Quyền lợi
+
+**Kết quả:** Bảng so sánh chi tiết giữa các thẻ
+
+---
+
+## UC-10: Đọc tin tức và khuyến mãi
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-10 |
+| **Tên** | Đọc tin tức và khuyến mãi |
+| **Tác nhân** | Khách vãng lai (Guest), User |
+| **Mô tả** | Đọc bài viết, tin tức tài chính và khuyến mãi thẻ |
+| **Điều kiện tiên quyết** | Không |
+
+**Luồng chính:**
+1. Truy cập `/news`
+2. Gọi `GET /api/articles` lấy danh sách bài viết
+3. Hiển thị bài viết theo danh mục (từ `GET /api/articlecategories`)
+4. Nhấn vào bài → Chuyển đến `/news/{id}` xem chi tiết (Title, Content, CoverImage, Author, Category)
+
+**Kết quả:** Bài viết được hiển thị
+
+---
+
+## UC-11: Tương tác với Chatbot AI
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-11 |
+| **Tên** | Tương tác với Chatbot AI |
+| **Tác nhân** | Khách vãng lai (Guest), User |
+| **Mô tả** | Chat với AI để nhận tư vấn thẻ tín dụng theo nhu cầu cá nhân |
+| **Điều kiện tiên quyết** | Không |
+
+**Luồng chính:**
+1. Nhấn nút Chatbot nổi (floating) ở góc màn hình
+2. Popup chat mở ra với animation
+3. Người dùng nhập tin nhắn (VD: "Lương 15 triệu nên mở thẻ gì?")
+4. Gọi `POST /api/chat` gửi message
+5. `ChatService` xử lý: Regex/NLP nhận diện intent (salary, category, card type)
+6. Truy vấn DB tìm thẻ phù hợp
+7. Trả về JSON → Client render dạng Markdown
+8. Hiển thị hiệu ứng typing animation
+
+**Luồng thay thế:**
+- **3a.** Tin nhắn rỗng → Trả lỗi "Message is required"
+- **5a.** Không nhận diện được intent → Trả gợi ý câu hỏi mẫu
+
+**Kết quả:** Chatbot trả lời tư vấn thẻ phù hợp
+
+---
+
+## UC-12: Mở thẻ tín dụng qua Submit
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-12 |
+| **Tên** | Mở thẻ tín dụng |
+| **Tác nhân** | Khách vãng lai (Guest), User |
+| **Mô tả** | Chuyển hướng đến trang đăng ký thẻ của ngân hàng |
+| **Điều kiện tiên quyết** | Đã xem chi tiết thẻ |
+
+**Luồng chính:**
+1. Xem chi tiết thẻ tại `/card/{id}`
+2. Nhấn nút "Mở thẻ" / "Đăng ký ngay"
+3. Hệ thống mở URL `RegisterUrl` của thẻ (link đến trang đăng ký ngân hàng)
+
+**Luồng thay thế:**
+- **3a.** Thẻ không có `RegisterUrl` → Ẩn nút hoặc hiển thị liên hệ ngân hàng
+
+**Kết quả:** Người dùng được chuyển đến trang mở thẻ của ngân hàng
+
+---
+
+## UC-13: Quản lý thẻ tín dụng (Admin)
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-13 |
+| **Tên** | Quản lý thẻ tín dụng |
+| **Tác nhân** | Admin |
+| **Mô tả** | CRUD thẻ tín dụng và cào dữ liệu tự động từ website ngân hàng |
+| **Điều kiện tiên quyết** | Đã đăng nhập với Role = Admin |
+
+**Luồng chính – Thêm thẻ thủ công:**
+1. Truy cập Admin CMS `/admin/cards`
+2. Nhấn "Thêm thẻ mới"
+3. Nhập: Name, Bank, BankName, AnnualFee, MinSalary, CashbackRules, Benefits, ImageUrl, RegisterUrl, CreditLimit, InterestRate
+4. Gọi `POST /api/creditcards` → Auto-download ảnh ngoài về local (`/upload/image/{bank}/`)
+5. Lưu tên thẻ vào `appsettings.json` ScrapedCardNames
+
+**Luồng chính – Cào dữ liệu tự động (Scraper):**
+1. Nhập URL trang thẻ ngân hàng (VIB, VPBank...)
+2. Gọi `POST /api/scraper/extract-card-details`
+3. Scraper parse HTML: trích xuất tên thẻ, ảnh, phí, cashback, lãi suất, link đăng ký
+4. Hỗ trợ: Next.js `__NEXT_DATA__`, SPA hidden links, detail page enrichment
+5. Admin review kết quả → Chọn import vào DB
+
+**Luồng chính – Cập nhật/Xóa:**
+- `PUT /api/creditcards/{id}` → Cập nhật thông tin
+- `DELETE /api/creditcards/{id}` → Xóa thẻ
+
+**Kết quả:** Thẻ tín dụng được quản lý trong hệ thống
+
+---
+
+## UC-14: Quản lý danh mục chi tiêu (Admin)
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-14 |
+| **Tên** | Quản lý danh mục chi tiêu |
+| **Tác nhân** | Admin |
+| **Mô tả** | CRUD danh mục chi tiêu và đồng bộ mã MCC chuẩn quốc tế |
+| **Điều kiện tiên quyết** | Đã đăng nhập Admin |
+
+**Luồng chính – Xem danh sách:**
+1. Truy cập `/admin/categories`
+2. Gọi `GET /api/categories` → Hiển thị: Name, Color, Icon, MccCodes, IsFrequent
+
+**Luồng chính – Thêm/Sửa/Xóa:**
+- `POST /api/categories` → Thêm danh mục (Name, Color, Icon, MccCodes)
+- `PUT /api/categories/{id}` → Cập nhật
+- `DELETE /api/categories/{id}` → Xóa
+
+**Luồng chính – Seed MCC tự động:**
+1. Nhấn "Đồng bộ MCC"
+2. Gọi `POST /api/categories/seed-mcc`
+3. `CategoryService.SeedMccAsync()` tự động tạo danh mục chuẩn với mã MCC quốc tế
+
+**Kết quả:** Danh mục chi tiêu và mã MCC được quản lý
+
+---
+
+## UC-15: Quản lý tin tức / Blog (Admin)
+
+| Thuộc tính | Mô tả |
+|------------|-------|
+| **Mã UC** | UC-15 |
+| **Tên** | Quản lý tin tức / Blog |
+| **Tác nhân** | Admin |
+| **Mô tả** | CRUD bài viết và danh mục bài viết |
+| **Điều kiện tiên quyết** | Đã đăng nhập Admin |
+
+**Luồng chính – Quản lý bài viết:**
+1. Truy cập `/admin/articles`
+2. `GET /api/articles` → Hiển thị danh sách
+3. Thêm bài: `POST /api/articles` (Title, Slug, Excerpt, Content, Category, Author, CoverImage)
+4. Sửa: `PUT /api/articles/{id}` → Cập nhật UpdatedAt
+5. Xóa: `DELETE /api/articles/{id}`
+
+**Luồng chính – Quản lý danh mục bài viết:**
+1. Truy cập `/admin/article-categories`
+2. `GET /api/articlecategories` → Hiển thị (Name, Slug, Description, Color)
+3. Dropdown data: `GET /api/articlecategories/dropdown`
+4. CRUD: POST / PUT / DELETE tương tự
+
+**Kết quả:** Bài viết và danh mục được quản lý
+
+---
+
+## Ma trận Tác nhân – Ca sử dụng
+
+```mermaid
+graph LR
+    subgraph Actors
+        G["🌐 Guest (Khách vãng lai)"]
+        U["👤 User (Người dùng)"]
+        A["👨‍💼 Admin (Quản trị viên)"]
+    end
+
+    subgraph "Không cần đăng nhập"
+        UC05[UC-05: Chọn Persona]
+        UC06[UC-06: Nhập chi tiêu]
+        UC07[UC-07: Xem đề xuất thẻ]
+        UC08[UC-08: Xem tất cả thẻ]
+        UC09[UC-09: So sánh thẻ]
+        UC10[UC-10: Đọc tin tức]
+        UC11[UC-11: Chatbot AI]
+        UC12[UC-12: Mở thẻ]
+    end
+
+    subgraph "Yêu cầu đăng nhập"
+        UC01[UC-01: Đăng ký]
+        UC02[UC-02: Đăng nhập]
+        UC03[UC-03: Đăng xuất]
+        UC04[UC-04: Quản lý tài khoản]
+    end
+
+    subgraph "Yêu cầu quyền Admin"
+        UC13[UC-13: QL Thẻ tín dụng]
+        UC14[UC-14: QL Danh mục]
+        UC15[UC-15: QL Tin tức]
+    end
+
+    G --> UC05 --> UC06 --> UC07
+    G --> UC08 & UC09 & UC10 & UC11 & UC12
+    G -.->|Đăng ký| UC01
+    U --> UC01 & UC02 & UC03 & UC04
+    U --> UC05 & UC06 & UC07 & UC08 & UC09 & UC10 & UC11 & UC12
+    A --> UC02 & UC03 & UC04
+    A --> UC13 & UC14 & UC15
+```
+
+## Mapping API Endpoints
+
+| UC | API Endpoint | Method |
+|----|-------------|--------|
+| UC-01 | `/api/auth/register` | POST |
+| UC-01 | `/api/auth/google`, `/api/auth/facebook` | POST |
+| UC-02 | `/api/auth/login` | POST |
+| UC-04 | `/api/auth/me` | GET |
+| UC-06 | `/api/categories`, `/api/spending` | GET, POST |
+| UC-07 | `/api/recommendation` | POST |
+| UC-08 | `/api/creditcards`, `/api/creditcards/{id}` | GET |
+| UC-10 | `/api/articles`, `/api/articlecategories` | GET |
+| UC-11 | `/api/chat` | POST |
+| UC-13 | `/api/creditcards`, `/api/scraper/extract-card-details` | CRUD, POST |
+| UC-14 | `/api/categories`, `/api/categories/seed-mcc` | CRUD, POST |
+| UC-15 | `/api/articles`, `/api/articlecategories` | CRUD |

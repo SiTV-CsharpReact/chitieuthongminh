@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
                         </div>
                         <div className="flex flex-col">
                             <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">CredBack</h2>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary-500">Hoàn tiền cực đã</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary-500">Thẻ tín dụng tốt nhất</p>
                         </div>
                     </Link>
                     <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs">

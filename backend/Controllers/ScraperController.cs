@@ -29,6 +29,9 @@ public class CardScrapedDto
     public string? DetailUrl { get; set; }
     public decimal? AnnualFee { get; set; }
     public decimal? MinSalary { get; set; }
+    public string? CreditLimit { get; set; }
+    public string? InterestRate { get; set; }
+    public string? TermsPdfUrl { get; set; }
     public List<CashbackInfoObj> CashbackInfos { get; set; } = new List<CashbackInfoObj>();
 }
 
@@ -92,32 +95,55 @@ public class ScraperController : ControllerBase
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
 
-            var cardNodes = doc.DocumentNode.SelectNodes("//div[contains(@class, 'img-card1')]//img");
+            // Try multiple selectors to find card images
+            var cardNodes = doc.DocumentNode.SelectNodes("//div[contains(@class, 'img-card1')]//img")
+                ?? doc.DocumentNode.SelectNodes("//div[contains(@class, 'card')]//img")
+                ?? doc.DocumentNode.SelectNodes("//div[contains(@class, 'product')]//img");
+            
             if (cardNodes == null || cardNodes.Count == 0)
             {
                 return Ok(new List<object>());
             }
 
             var result = new List<object>();
+            var seenNames = new HashSet<string>();
 
             foreach (var node in cardNodes)
             {
                 var src = node.GetAttributeValue("src", string.Empty);
+                var dataSrc = node.GetAttributeValue("data-src", string.Empty);
                 var alt = node.GetAttributeValue("alt", string.Empty);
 
-                if (string.IsNullOrEmpty(src)) continue;
+                // Prefer data-src (lazy-loaded real image) over src (placeholder/QR)
+                var imgUrl = !string.IsNullOrWhiteSpace(dataSrc) ? dataSrc : src;
+                if (string.IsNullOrEmpty(imgUrl)) continue;
 
-                if (src.StartsWith("/"))
-                {
-                    src = "https://www.vib.com.vn" + src;
-                }
+                // Resolve relative URLs
+                if (imgUrl.StartsWith("/")) imgUrl = "https://www.vib.com.vn" + imgUrl;
+                else if (imgUrl.StartsWith("//")) imgUrl = "https:" + imgUrl;
 
-                if (!src.Contains("wps/wcm")) continue;
+                string lowerUrl = imgUrl.ToLower();
+
+                // FILTER OUT: QR codes, logos, icons, SVGs, data URIs, tiny images
+                if (lowerUrl.Contains("qr") || lowerUrl.Contains("barcode")) continue;
+                if (lowerUrl.EndsWith(".svg") || lowerUrl.EndsWith(".gif")) continue;
+                if (lowerUrl.Contains("logo") || lowerUrl.Contains("icon") || lowerUrl.Contains("favicon")) continue;
+                if (lowerUrl.StartsWith("data:")) continue;
+                if (lowerUrl.Contains("1x1") || lowerUrl.Contains("pixel") || lowerUrl.Contains("spacer")) continue;
+
+                // Require wps/wcm path (VIB CMS) OR common image extensions
+                bool isVibCms = lowerUrl.Contains("wps/wcm");
+                bool isImage = lowerUrl.EndsWith(".png") || lowerUrl.EndsWith(".jpg") || lowerUrl.EndsWith(".jpeg") || lowerUrl.EndsWith(".webp");
+                if (!isVibCms && !isImage) continue;
+
+                string cardName = string.IsNullOrEmpty(alt) ? "Thẻ VIB" : alt.Trim();
+                if (seenNames.Contains(cardName)) continue;
+                seenNames.Add(cardName);
 
                 result.Add(new
                 {
-                    Name = string.IsNullOrEmpty(alt) ? "Thẻ VIB" : alt,
-                    ImageUrl = src
+                    Name = cardName,
+                    ImageUrl = imgUrl
                 });
             }
 
@@ -195,6 +221,41 @@ public class ScraperController : ControllerBase
                 }
             }
 
+            // === PRE-SCAN 2: Fallback for SPA hidden links (like VPBank "Xem thêm") ===
+            // Look for any links in the raw HTML that look like detail pages under the current directory
+            string basePath = uriResult.AbsolutePath.TrimEnd('/');
+            if (basePath.Length > 1)
+            {
+                var hiddenLinkMatches = Regex.Matches(html, @"href=\""(" + Regex.Escape(basePath) + @"/[a-zA-Z0-9-]+)\""");
+                foreach (Match m in hiddenLinkMatches)
+                {
+                    string href = m.Groups[1].Value;
+                    string slug = href.Substring(href.LastIndexOf('/') + 1);
+                    string lowerSlug = slug.ToLower();
+                    // Exclude generic/pagination/news/feature links
+                    if (lowerSlug.Length > 3 && 
+                        lowerSlug != "the-tin-dung" &&
+                        !lowerSlug.Contains("page") && 
+                        !lowerSlug.Contains("compare") && 
+                        !lowerSlug.Contains("rut-tien") && 
+                        !lowerSlug.Contains("tra-gop") && 
+                        !lowerSlug.Contains("tin-tuc") && 
+                        !lowerSlug.Contains("so-sanh") && 
+                        !lowerSlug.Contains("uu-dai") && 
+                        !lowerSlug.Contains("khuyen-mai") &&
+                        !lowerSlug.Contains("cc-01") && 
+                        !lowerSlug.Contains("commcredit"))
+                    {
+                        string dummyName = "Thẻ " + slug.Replace("-", " ");
+                        if (!cardsDict.Values.Any(c => c.DetailUrl != null && c.DetailUrl.EndsWith(href)))
+                        {
+                            string fullUrl = uriResult.Scheme + "://" + uriResult.Host + href;
+                            cardsDict[dummyName] = new CardScrapedDto { CardName = dummyName, DetailUrl = fullUrl };
+                        }
+                    }
+                }
+            }
+
             foreach (var node in doc.DocumentNode.Descendants())
             {
                 // Track headings for card naming
@@ -209,14 +270,23 @@ public class ScraperController : ControllerBase
                         string lowerTitle = title.ToLower();
                         string domain = uriResult.Host.Replace("www.", "").Split('.')[0].ToLower();
                         
+                        bool isNewsOrGuide = lowerTitle.Contains("có nên") || 
+                                             lowerTitle.Contains("?") || 
+                                             lowerTitle.Contains("hướng dẫn") || 
+                                             lowerTitle.Contains("cách") ||
+                                             lowerTitle.Contains("an toàn") ||
+                                             lowerTitle.Contains("giải đáp") ||
+                                             lowerTitle.Contains("mất thẻ") ||
+                                             lowerTitle.Contains("danh sách thẻ");
+
                         // Intelligent check: Domain name, "thẻ", or major card brands
-                        bool isCardTitle = lowerTitle.Contains(domain) || 
+                        bool isCardTitle = !isNewsOrGuide && (lowerTitle.Contains(domain) || 
                                            lowerTitle.Contains("thẻ") || 
                                            lowerTitle.Contains("visa") || 
                                            lowerTitle.Contains("mastercard") || 
                                            lowerTitle.Contains("jcb") || 
                                            lowerTitle.Contains("american express") ||
-                                           lowerTitle.Contains("napas");
+                                           lowerTitle.Contains("napas"));
 
                         if (isCardTitle)
                         {
@@ -289,6 +359,11 @@ public class ScraperController : ControllerBase
                                 allRegisterLinks.Add(href);
                             }
                         }
+                        else if (hrefLower.EndsWith(".pdf") || (hrefLower.Contains("pdf") && (linkText.Contains("điều khoản") || linkText.Contains("biểu phí") || linkText.Contains("thể lệ") || linkText.Contains("terms") || linkText.Contains("fee"))))
+                        {
+                            if (string.IsNullOrEmpty(cardsDict[currentCardName].TermsPdfUrl))
+                                cardsDict[currentCardName].TermsPdfUrl = href;
+                        }
                         else if (href.Contains(uriResult.Host))
                         {
                             // Detect card detail links: same host, longer path than listing page, contains card keywords
@@ -327,6 +402,54 @@ public class ScraperController : ControllerBase
                     if (seenTexts.Contains(text)) continue;
 
                     string lowerText = text.ToLower();
+
+                    // --- Extract MinSalary from listing text ---
+                    if (cardsDict[currentCardName].MinSalary == null)
+                    {
+                        var salaryMatch = Regex.Match(lowerText, @"(thu nhập|lương|salary|income)[^\d]{0,40}?(\d[\d.,]*)\s*(triệu|tr|nghìn|k)", RegexOptions.IgnoreCase);
+                        if (salaryMatch.Success)
+                        {
+                            cardsDict[currentCardName].MinSalary = ParseAmount(salaryMatch.Groups[2].Value, salaryMatch.Groups[3].Value);
+                        }
+                    }
+
+                    // --- Extract CreditLimit from listing text ---
+                    if (cardsDict[currentCardName].CreditLimit == null)
+                    {
+                        var limitMatch = Regex.Match(lowerText, @"(hạn mức|credit limit|limit)[^\d]{0,40}?(\d[\d.,]*)\s*(tỷ|triệu|tr|nghìn)", RegexOptions.IgnoreCase);
+                        if (limitMatch.Success)
+                        {
+                            string unit = limitMatch.Groups[3].Value.ToLower();
+                            string val = limitMatch.Groups[2].Value;
+                            cardsDict[currentCardName].CreditLimit = val + " " + limitMatch.Groups[3].Value;
+                        }
+                    }
+
+                    // --- Extract InterestRate from listing text ---
+                    if (cardsDict[currentCardName].InterestRate == null)
+                    {
+                        var rateMatch = Regex.Match(lowerText, @"(lãi suất|interest rate|interest)[^\d]{0,30}?(\d[\d.,]*)\s*%", RegexOptions.IgnoreCase);
+                        if (rateMatch.Success)
+                        {
+                            cardsDict[currentCardName].InterestRate = rateMatch.Groups[2].Value + "%";
+                        }
+                    }
+
+                    // --- Extract AnnualFee from listing text ---
+                    if (cardsDict[currentCardName].AnnualFee == null)
+                    {
+                        if (Regex.IsMatch(lowerText, @"miễn phí thường niên|phí thường niên[:\s]*miễn phí|free annual"))
+                        {
+                            cardsDict[currentCardName].AnnualFee = 0;
+                        }
+                        else
+                        {
+                            var feeMatch = Regex.Match(lowerText, @"phí thường niên[^\d]{0,40}?(\d[\d.,]*)\s*(triệu|tr|nghìn|k|đồng|vnd|vnđ)", RegexOptions.IgnoreCase);
+                            if (feeMatch.Success)
+                                cardsDict[currentCardName].AnnualFee = ParseAmount(feeMatch.Groups[1].Value, feeMatch.Groups[2].Value);
+                        }
+                    }
+
                     if (keywords.Any(k => lowerText.Contains(k)))
                     {
                         seenTexts.Add(text);
@@ -469,10 +592,21 @@ public class ScraperController : ControllerBase
                 await Task.WhenAll(enrichTasks);
             }
 
+            var filteredCards = finalCards
+                .Where(c => c.CardName != "Thẻ chung" && c.CardName.Length < 100)
+                .Where(c => !string.IsNullOrEmpty(c.ImageUrl))
+                .Where(c => {
+                    string lowerName = c.CardName.ToLower();
+                    bool isNews = lowerName.Contains("?") || lowerName.Contains("có nên") || lowerName.Contains("hướng dẫn") || lowerName.Contains("cách") || lowerName.Contains("an toàn") || lowerName.Contains("giải đáp") || lowerName.Contains("mất thẻ") || lowerName.Contains("danh sách thẻ");
+                    return !isNews;
+                })
+                .ToList();
+
             return Ok(new
             {
                 Host = uriResult.Host,
-                Cards = finalCards
+                TotalFound = filteredCards.Count,
+                Cards = filteredCards
             });
         }
         catch (Exception ex)
@@ -496,6 +630,43 @@ public class ScraperController : ControllerBase
             // Flatten all text for regex matching
             string allText = HttpUtility.HtmlDecode(doc.DocumentNode.InnerText);
             allText = Regex.Replace(allText, @"\s+", " ");
+
+            // --- Extract Title if missing or dummy ---
+            if (card.CardName.StartsWith("Thẻ ") && card.CardName.Contains("-"))
+            {
+                var titleMatch = Regex.Match(allText, @"\\""title\\"":\{\""text\"":\""([^\""]+)\""");
+                if (titleMatch.Success)
+                {
+                    card.CardName = Regex.Unescape(titleMatch.Groups[1].Value);
+                }
+                else
+                {
+                    var h1 = doc.DocumentNode.SelectSingleNode("//h1");
+                    if (h1 == null) h1 = doc.DocumentNode.SelectSingleNode("//h2");
+                    if (h1 != null)
+                    {
+                        string h1Text = HttpUtility.HtmlDecode(h1.InnerText.Trim());
+                        if (h1Text.Length > 3 && h1Text.Length < 100) card.CardName = h1Text;
+                    }
+                }
+            }
+
+            // --- Extract Image if missing ---
+            if (string.IsNullOrEmpty(card.ImageUrl))
+            {
+                var imgNode = doc.DocumentNode.SelectSingleNode("//img[contains(@src, 'cards') or contains(@src, 'the-tin-dung')]");
+                if (imgNode == null) imgNode = doc.DocumentNode.SelectSingleNode("//main//img[not(contains(@src, 'logo')) and not(contains(@src, 'icon'))]");
+                if (imgNode != null)
+                {
+                    var src = imgNode.GetAttributeValue("src", "");
+                    if (!string.IsNullOrEmpty(src))
+                    {
+                        if (src.StartsWith("//")) src = "https:" + src;
+                        else if (src.StartsWith("/")) { var u = new Uri(detailUrl); src = u.Scheme + "://" + u.Host + src; }
+                        card.ImageUrl = src;
+                    }
+                }
+            }
             string allTextLower = allText.ToLower();
 
             // --- Extract Annual Fee ---
@@ -538,6 +709,22 @@ public class ScraperController : ControllerBase
                 }
             }
 
+            // --- Extract CreditLimit from detail ---
+            if (card.CreditLimit == null)
+            {
+                var limitMatch = Regex.Match(allTextLower, @"(hạn mức|credit limit)[^\d]{0,60}?(\d[\d.,]*)\s*(tỷ|triệu|tr\b|nghìn)", RegexOptions.IgnoreCase);
+                if (limitMatch.Success)
+                    card.CreditLimit = limitMatch.Groups[2].Value + " " + limitMatch.Groups[3].Value;
+            }
+
+            // --- Extract InterestRate from detail ---
+            if (card.InterestRate == null)
+            {
+                var rateMatch = Regex.Match(allTextLower, @"(lãi suất|interest rate)[^\d]{0,30}?(\d[\d.,]*)\s*%", RegexOptions.IgnoreCase);
+                if (rateMatch.Success)
+                    card.InterestRate = rateMatch.Groups[2].Value + "%";
+            }
+
             // --- Extract additional cashback infos from detail page ---
             var detailKeywords = new[] { "hoàn tiền", "cashback", "tích điểm", "điểm thưởng", "ưu đãi", "miễn phí", "trả góp" };
             var seenTexts = new HashSet<string>(card.CashbackInfos.Select(c => c.Text));
@@ -572,6 +759,100 @@ public class ScraperController : ControllerBase
                 }
 
                 card.CashbackInfos.Add(new CashbackInfoObj { Text = text, SuggestedPercentage = pctFound, SuggestedCap = capFound });
+            }
+
+            // --- Fallback for Next.js embedded data strings (like VPBank "Tính năng nổi bật") ---
+            var scriptNodes = doc.DocumentNode.SelectNodes("//script");
+            if (scriptNodes != null)
+            {
+                foreach (var script in scriptNodes)
+                {
+                    string scriptContent = script.InnerText;
+                    if (string.IsNullOrWhiteSpace(scriptContent)) continue;
+
+                    // Decode unicode HTML entities commonly used in JS frameworks
+                    string decodedContent = scriptContent
+                        .Replace("\\u003c", "<")
+                        .Replace("\\u003e", ">")
+                        .Replace("\\u0026", "&")
+                        .Replace("\\\"", "\"");
+
+                    var matches = Regex.Matches(decodedContent, @">([^<]{10,300})<");
+                    foreach (Match m in matches)
+                    {
+                        string text = HttpUtility.HtmlDecode(m.Groups[1].Value.Trim());
+                        text = Regex.Replace(text, @"\s+", " ");
+
+                        if (text.Length < 10 || text.Length > 300) continue;
+                        if (seenTexts.Contains(text)) continue;
+
+                        string lowerText = text.ToLower();
+                        if (!detailKeywords.Any(k => lowerText.Contains(k))) continue;
+
+                        seenTexts.Add(text);
+
+                        var pctMatch = Regex.Match(text, @"(\d+(?:[.,]\d+)?)\s*%");
+                        decimal? pctFound = null;
+                        if (pctMatch.Success && decimal.TryParse(pctMatch.Groups[1].Value.Replace(',', '.'), out decimal pctVal))
+                            pctFound = pctVal;
+
+                        var capMatch = Regex.Match(text, @"(\d+(?:[.,]\d+)?)\s*(triệu|tr|nghìn|k|đ|vnđ)");
+                        decimal? capFound = null;
+                        if (capMatch.Success && decimal.TryParse(capMatch.Groups[1].Value.Replace(',', '.'), out decimal capVal))
+                        {
+                            string unit = capMatch.Groups[2].Value.ToLower();
+                            capFound = unit is "triệu" or "tr" ? capVal * 1000000 : unit is "nghìn" or "k" ? capVal * 1000 : capVal;
+                        }
+
+                        card.CashbackInfos.Add(new CashbackInfoObj { Text = text, SuggestedPercentage = pctFound, SuggestedCap = capFound });
+                    }
+                }
+            }
+
+            // --- Extract PDF from detail page ---
+            if (card.TermsPdfUrl == null)
+            {
+                var pdfLinks = doc.DocumentNode.SelectNodes("//a");
+                if (pdfLinks != null)
+                {
+                    foreach (var link in pdfLinks)
+                    {
+                        var href = link.GetAttributeValue("href", "");
+                        var linkText = HttpUtility.HtmlDecode(link.InnerText.Trim()).ToLower();
+                        var hrefLower = href.ToLower();
+                        if (hrefLower.EndsWith(".pdf") || (hrefLower.Contains("pdf") && (linkText.Contains("điều khoản") || linkText.Contains("biểu phí") || linkText.Contains("thể lệ") || linkText.Contains("terms") || linkText.Contains("fee"))))
+                        {
+                            if (href.StartsWith("//")) href = "https:" + href;
+                            else if (href.StartsWith("/"))
+                            {
+                                var uri = new Uri(detailUrl);
+                                href = uri.Scheme + "://" + uri.Host + href;
+                            }
+                            card.TermsPdfUrl = href;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Fallback for Next.js / SPAs where PDF links are hidden in JS chunks
+            if (card.TermsPdfUrl == null)
+            {
+                var pdfMatch = Regex.Match(html, @"https?:\/\/[^\s""']+?\.pdf", RegexOptions.IgnoreCase);
+                if (!pdfMatch.Success)
+                    pdfMatch = Regex.Match(html, @"\/[^\s""']+?\.pdf", RegexOptions.IgnoreCase);
+
+                if (pdfMatch.Success)
+                {
+                    var href = pdfMatch.Value;
+                    if (href.StartsWith("//")) href = "https:" + href;
+                    else if (href.StartsWith("/"))
+                    {
+                        var uri = new Uri(detailUrl);
+                        href = uri.Scheme + "://" + uri.Host + href;
+                    }
+                    card.TermsPdfUrl = href;
+                }
             }
         }
         catch { /* Ignore individual detail page errors silently */ }
@@ -840,5 +1121,106 @@ public class ScraperController : ControllerBase
         }
 
         return new List<object>();
+    }
+
+    // ===== IMAGE DOWNLOAD API =====
+    public class DownloadImageRequest
+    {
+        public string ImageUrl { get; set; } = string.Empty;
+        public string BankName { get; set; } = string.Empty;
+        public string CardName { get; set; } = string.Empty;
+    }
+
+    [HttpPost("download-image")]
+    public async Task<IActionResult> DownloadImage([FromBody] DownloadImageRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ImageUrl) || string.IsNullOrWhiteSpace(request.BankName))
+            return BadRequest(new { message = "ImageUrl and BankName are required" });
+
+        try
+        {
+            var localPath = await DownloadAndSaveFileInternal(request.ImageUrl, request.BankName, request.CardName);
+            if (localPath == null)
+                return BadRequest(new { message = "Failed to download image" });
+
+            return Ok(new { localPath });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Lỗi tải ảnh: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
+    /// Downloads a file from URL and saves to upload/image/{bankName}/{slug}/{filename}
+    /// Returns the absolute local URL like http://localhost:5000/upload/image/VIB/the-vib-cashback/the-vib-cashback.png
+    /// </summary>
+    public async Task<string?> DownloadAndSaveFileInternal(string fileUrl, string bankName, string? cardName = null, string? baseUrl = null)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(fileUrl) || !fileUrl.StartsWith("http"))
+                return null;
+
+            // Sanitize bank name for folder
+            string safeBankName = Regex.Replace(bankName.Trim(), @"[^\w\s-]", "").Replace(" ", "-");
+            if (string.IsNullOrWhiteSpace(safeBankName)) safeBankName = "unknown";
+
+            // Build slug from card name or URL
+            string slug;
+            if (!string.IsNullOrWhiteSpace(cardName))
+            {
+                slug = Regex.Replace(cardName.ToLower().Trim(), @"[^\w\s-]", "");
+                slug = Regex.Replace(slug, @"\s+", "-");
+                slug = Regex.Replace(slug, @"-+", "-").Trim('-');
+            }
+            else
+            {
+                slug = Path.GetFileNameWithoutExtension(new Uri(fileUrl).AbsolutePath);
+                slug = Regex.Replace(slug, @"[^\w-]", "-");
+            }
+            if (string.IsNullOrWhiteSpace(slug)) slug = "card-" + Guid.NewGuid().ToString("N")[..8];
+
+            // Create directory: upload/image/{safeBankName}/{slug}
+            string uploadDir = Path.Combine(_env.ContentRootPath, "upload", "image", safeBankName, slug);
+            Directory.CreateDirectory(uploadDir);
+
+            // Get extension from URL or default to .png if it's an image
+            string ext = Path.GetExtension(new Uri(fileUrl).AbsolutePath).ToLower();
+            if (string.IsNullOrEmpty(ext) || ext.Length > 5)
+                ext = fileUrl.Contains(".pdf") ? ".pdf" : ".png";
+
+            string fileName = slug + ext;
+            string filePath = Path.Combine(uploadDir, fileName);
+
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                try { baseUrl = $"{this.Request.Scheme}://{this.Request.Host}"; }
+                catch { baseUrl = "http://localhost:5000"; }
+            }
+
+            string relativeUrl = $"/upload/image/{safeBankName}/{slug}/{fileName}";
+            string absoluteUrl = baseUrl + relativeUrl;
+
+            // Skip if already downloaded
+            if (System.IO.File.Exists(filePath))
+                return absoluteUrl;
+
+            // Download
+            var response = await _httpClient.GetAsync(fileUrl);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            if (bytes.Length < 500) return null; // Too small, likely invalid
+
+            await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+
+            return absoluteUrl;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"DownloadAndSaveFile error: {ex.Message}");
+            return null;
+        }
     }
 }

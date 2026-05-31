@@ -74,12 +74,14 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
             </p>
           </div>
 
-          <div className="flex gap-3 items-start">
-            <span className="material-symbols-outlined text-primary-500 mt-0.5 text-[20px]">shopping_cart</span>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              Nhận <strong className="text-slate-900 dark:text-white">x3 điểm</strong> cho mọi chi tiêu mua sắm trực tuyến.
-            </p>
-          </div>
+          {card.cashbackRate !== undefined && card.cashbackCategory && (
+            <div className="flex gap-3 items-start">
+              <span className="material-symbols-outlined text-primary-500 mt-0.5 text-[20px]">percent</span>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Nhận hoàn tiền <strong className="text-slate-900 dark:text-white">{card.cashbackRate}%</strong> cho chi tiêu <strong className="text-slate-900 dark:text-white">{card.cashbackCategory}</strong>.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer: Stats & Actions */}

@@ -22,6 +22,10 @@ export interface Card {
   cashbackAmount?: number;
   creditLimit?: string;
   interestRate?: string;
+  isBest?: boolean;
+  matchScore?: number;
+  cashbackCategory?: string;
+  cashbackRate?: number;
 }
 
 export interface ExpenseCategory {

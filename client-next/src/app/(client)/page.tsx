@@ -33,6 +33,8 @@ export default function HomePage() {
   const [cashbackRange, setCashbackRange] = useState([0, 16]);
   const [feeFilter, setFeeFilter] = useState('Tất cả');
   const [creditLimit, setCreditLimit] = useState([0, 2000]);
+  const [pageSize, setPageSize] = useState(6);
+  const [currentPage, setCurrentPage] = useState(1);
   const { selectedCards: compareCards } = useCompare();
 
   useEffect(() => {
@@ -60,6 +62,14 @@ export default function HomePage() {
     if (feeFilter === 'Trên 1.000.000đ' && card.annualFee <= 1000000) return false;
     return true;
   });
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredCards.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedCards = filteredCards.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1); }, [selectedBank, feeFilter, selectedInterest, pageSize]);
 
   const scrollToCards = () => {
     document.getElementById('cards-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -265,17 +275,31 @@ export default function HomePage() {
 
               {/* Card Results */}
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     Chúng tôi tìm thấy <strong className="text-slate-900 dark:text-white">{filteredCards.length} thẻ</strong> phù hợp với bạn
                   </p>
-                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                    className="text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                  >
-                    <option>Phù hợp với bạn</option>
-                    <option>Hoàn tiền cao nhất</option>
-                    <option>Phí thấp nhất</option>
-                  </select>
+                  <div className="flex items-center gap-3">
+                    {/* Page Size */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 font-medium hidden sm:inline">Hiển thị</span>
+                      <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}
+                        className="text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                      >
+                        {[6, 9, 12, 24].map(n => (
+                          <option key={n} value={n}>{n} thẻ</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Sort */}
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                      className="text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                    >
+                      <option>Phù hợp với bạn</option>
+                      <option>Hoàn tiền cao nhất</option>
+                      <option>Phí thấp nhất</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -288,8 +312,8 @@ export default function HomePage() {
                         <div className="h-3 w-2/3 bg-slate-100 dark:bg-slate-800 rounded"></div>
                       </div>
                     ))
-                  ) : filteredCards.length > 0 ? (
-                    filteredCards.map(card => {
+                  ) : paginatedCards.length > 0 ? (
+                    paginatedCards.map(card => {
                       const topRule = card.cashbackRules?.reduce((best, r) => r.percentage > (best?.percentage || 0) ? r : best, card.cashbackRules[0]);
                       return (
                         <div key={card.id} className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-primary-500/40 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 overflow-hidden flex flex-col">
@@ -367,6 +391,55 @@ export default function HomePage() {
                     </div>
                   )}
                 </div>
+
+                {/* Pagination */}
+                {!loading && filteredCards.length > pageSize && (
+                  <div className="flex flex-wrap items-center justify-between gap-4 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-xs text-slate-400 font-medium">
+                      Trang {safePage}/{totalPages} · Hiển thị {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filteredCards.length)} / {filteredCards.length} thẻ
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={safePage <= 1}
+                        className="flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 hover:border-primary-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        <span className="material-symbols-outlined text-lg">chevron_left</span>
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                        .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                          if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...');
+                          acc.push(p);
+                          return acc;
+                        }, [])
+                        .map((p, idx) =>
+                          typeof p === 'string' ? (
+                            <span key={`dots-${idx}`} className="w-9 h-9 flex items-center justify-center text-xs text-slate-400">…</span>
+                          ) : (
+                            <button
+                              key={p}
+                              onClick={() => setCurrentPage(p)}
+                              className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${
+                                p === safePage
+                                  ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                                  : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 hover:border-primary-300'
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          )
+                        )}
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={safePage >= totalPages}
+                        className="flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 hover:border-primary-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        <span className="material-symbols-outlined text-lg">chevron_right</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

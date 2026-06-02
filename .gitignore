@@ -41,3 +41,4 @@ Thumbs.db
 client/dist/
 backend/bin/
 backend/obj/
+backend/upload/image.zip

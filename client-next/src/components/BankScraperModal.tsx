@@ -197,11 +197,17 @@ export const BankScraperModal: React.FC<BankScraperModalProps> = ({ isOpen, onCl
             key: 'imageUrl',
             width: '80px',
             render: (card) => (
-                <div className="w-14 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700 p-1">
+                <div className="w-14 h-9 flex items-center justify-center">
                     {card.imageUrl ? (
-                        <img src={card.imageUrl} alt={card.cardName} className="w-full h-full object-contain" />
+                        <img 
+                            src={card.imageUrl} 
+                            alt={card.cardName} 
+                            className="max-h-full max-w-full object-contain rounded-md shadow-sm border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" 
+                        />
                     ) : (
-                        <span className="material-symbols-outlined text-slate-300 text-base">credit_card</span>
+                        <div className="w-full h-full rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                            <span className="material-symbols-outlined text-slate-300 text-base">credit_card</span>
+                        </div>
                     )}
                 </div>
             )

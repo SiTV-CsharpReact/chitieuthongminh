@@ -1,4 +1,4 @@
-import { Card, Category, Article, ArticleCategory, CardPromotion, User } from '@/types';
+import { Card, Category, Article, ArticleCategory, CardPromotion, User, SpendingData } from '@/types';
 
 const API_BASE_URL = '/api';
 
@@ -58,6 +58,12 @@ export const cardApi = {
             body: JSON.stringify(data),
         });
         if (!response.ok) throw new Error('Failed to save spending data');
+        return response.json();
+    },
+
+    async getSpending(): Promise<SpendingData[]> {
+        const response = await fetch(`${API_BASE_URL}/Spending`);
+        if (!response.ok) throw new Error('Failed to fetch spending data');
         return response.json();
     },
 
@@ -347,3 +353,17 @@ export const userApi = {
         if (!response.ok) throw new Error('Failed to delete user');
     }
 };
+
+export const imageApi = {
+    async upload(file: File, folder = 'cards'): Promise<{ success: boolean; files: { name: string; path: string; size: number; url: string }[] }> {
+        const formData = new FormData();
+        formData.append('files', file);
+        const response = await fetch(`${API_BASE_URL}/Image/upload?folder=${folder}`, {
+            method: 'POST',
+            body: formData,
+        });
+        if (!response.ok) throw new Error('Failed to upload image');
+        return response.json();
+    }
+};
+

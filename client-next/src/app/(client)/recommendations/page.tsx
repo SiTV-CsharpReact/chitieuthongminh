@@ -1,13 +1,356 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CardItem } from '@/components/CardItem';
-import { Card } from '@/types';
+import { Card, CashbackRule } from '@/types';
 import { useCompare } from '@/context/CompareContext';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cardApi } from '@/services/api';
+import { cleanCardName } from '@/lib/utils';
+
+// ═══════════════════════════════════════════════════════════
+// COMBO ENGINE — Tính toán phân bổ chi tiêu tối ưu 2 thẻ
+// ═══════════════════════════════════════════════════════════
+
+interface SpendingCategory {
+    name: string;
+    amount: number;
+}
+
+interface CardCashbackResult {
+    card: Card;
+    totalCashback: number;
+    breakdown: { category: string; amount: number; cashback: number; rate: number; capped: boolean }[];
+}
+
+interface ComboCard {
+    card: Card;
+    label: string;
+    cashback: number;
+    color: string;
+}
+
+interface ComboResult {
+    cards: ComboCard[];
+    totalCashback: number;
+    savingsVsSingle: number;
+    savingsPercent: number;
+    allocation: {
+        category: string;
+        amount: number;
+        assignedTo: number; // index in cards array
+        cashback: number;
+        rate: number;
+    }[];
+}
+
+function findMatchingRule(rules: CashbackRule[], categoryName: string): CashbackRule | null {
+    // Exact match first
+    const exact = rules.find(r =>
+        r.category.toLowerCase() === categoryName.toLowerCase()
+    );
+    if (exact) return exact;
+
+    // Partial match
+    const partial = rules.find(r =>
+        r.category.toLowerCase().includes(categoryName.toLowerCase()) ||
+        categoryName.toLowerCase().includes(r.category.toLowerCase())
+    );
+    if (partial) return partial;
+
+    // Synonym matching for dining
+    const diningWords = ['ăn uống', 'ẩm thực', 'nhà hàng', 'dining', 'food'];
+    const isDiningCategory = diningWords.some(w => categoryName.toLowerCase().includes(w));
+    if (isDiningCategory) {
+        const diningRule = rules.find(r => diningWords.some(w => r.category.toLowerCase().includes(w)));
+        if (diningRule) return diningRule;
+    }
+
+    // Shopping synonyms
+    const shoppingWords = ['mua sắm', 'shopping', 'thời trang'];
+    const isShoppingCategory = shoppingWords.some(w => categoryName.toLowerCase().includes(w));
+    if (isShoppingCategory) {
+        const shoppingRule = rules.find(r => shoppingWords.some(w => r.category.toLowerCase().includes(w)));
+        if (shoppingRule) return shoppingRule;
+    }
+
+    // General "all" rule as fallback
+    const allRule = rules.find(r =>
+        r.category === 'Tất cả' || r.category === 'All' || r.category === 'Mọi chi tiêu'
+    );
+    return allRule || null;
+}
+
+function calculateCardCashback(card: Card, spendingCategories: SpendingCategory[]): CardCashbackResult {
+    const breakdown: CardCashbackResult['breakdown'] = [];
+    let runningTotal = 0;
+
+    for (const sc of spendingCategories) {
+        const rule = findMatchingRule(card.cashbackRules, sc.name);
+        if (!rule || rule.percentage <= 0) {
+            breakdown.push({ category: sc.name, amount: sc.amount, cashback: 0, rate: 0, capped: false });
+            continue;
+        }
+
+        let cashback = (sc.amount * rule.percentage) / 100;
+        let capped = false;
+
+        // Apply per-rule cap
+        if (rule.capAmount && rule.capAmount > 0 && cashback > rule.capAmount) {
+            cashback = rule.capAmount;
+            capped = true;
+        }
+
+        breakdown.push({ category: sc.name, amount: sc.amount, cashback, rate: rule.percentage, capped });
+        runningTotal += cashback;
+    }
+
+    // Apply monthly cap
+    if (card.maxCashbackPerMonth && card.maxCashbackPerMonth > 0 && runningTotal > card.maxCashbackPerMonth) {
+        const ratio = card.maxCashbackPerMonth / runningTotal;
+        for (const b of breakdown) {
+            b.cashback = Math.round(b.cashback * ratio);
+            if (ratio < 1) b.capped = true;
+        }
+        runningTotal = card.maxCashbackPerMonth;
+    }
+
+    return { card, totalCashback: Math.round(runningTotal), breakdown };
+}
+
+const COMBO_COLORS = ['#10b981', '#06b6d4', '#8b5cf6'];
+const COMBO_LABELS = ['Thẻ chính', 'Thẻ phụ', 'Thẻ bổ sung'];
+const COMBO_TW_COLORS = [
+    { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50/50 dark:bg-emerald-950/20', border: 'border-emerald-100/50 dark:border-emerald-900/30', btn: 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' },
+    { text: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-50/50 dark:bg-cyan-950/20', border: 'border-cyan-100/50 dark:border-cyan-900/30', btn: 'bg-cyan-500 hover:bg-cyan-600 shadow-cyan-500/20' },
+    { text: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50/50 dark:bg-violet-950/20', border: 'border-violet-100/50 dark:border-violet-900/30', btn: 'bg-violet-500 hover:bg-violet-600 shadow-violet-500/20' },
+];
+
+function evaluateCombo(comboCards: Card[], spendingCategories: SpendingCategory[]): { totalCashback: number; allocation: ComboResult['allocation']; cardCashbacks: number[] } {
+    const cardSpendings: SpendingCategory[][] = comboCards.map(() => []);
+    const allocation: ComboResult['allocation'] = [];
+
+    for (const sc of spendingCategories) {
+        let bestIdx = 0;
+        let bestEffective = 0;
+        let bestRate = 0;
+
+        for (let k = 0; k < comboCards.length; k++) {
+            const rule = findMatchingRule(comboCards[k].cashbackRules, sc.name);
+            if (!rule) continue;
+            const raw = (sc.amount * rule.percentage) / 100;
+            const effective = rule.capAmount ? Math.min(raw, rule.capAmount) : raw;
+            if (effective > bestEffective) {
+                bestEffective = effective;
+                bestIdx = k;
+                bestRate = rule.percentage;
+            }
+        }
+
+        cardSpendings[bestIdx].push(sc);
+        allocation.push({ category: sc.name, amount: sc.amount, assignedTo: bestIdx, cashback: bestEffective, rate: bestRate });
+    }
+
+    const results = comboCards.map((c, i) => calculateCardCashback(c, cardSpendings[i]));
+    const totalCashback = results.reduce((sum, r) => sum + r.totalCashback, 0);
+
+    // Update allocation with capped values
+    const finalAllocation = allocation.map(a => {
+        const entry = results[a.assignedTo].breakdown.find(b => b.category === a.category);
+        return { ...a, cashback: entry?.cashback || a.cashback };
+    });
+
+    return { totalCashback, allocation: finalAllocation, cardCashbacks: results.map(r => r.totalCashback) };
+}
+
+function findBestCombo(cards: Card[], spendingCategories: SpendingCategory[]): ComboResult | null {
+    if (cards.length < 2 || spendingCategories.length < 2) return null;
+
+    const singleResults = cards.map(c => calculateCardCashback(c, spendingCategories));
+    const bestSingle = singleResults.reduce((best, curr) =>
+        curr.totalCashback > best.totalCashback ? curr : best
+    );
+
+    // Only check top 12 cards for performance
+    const topCards = [...singleResults]
+        .sort((a, b) => b.totalCashback - a.totalCashback)
+        .slice(0, 12)
+        .map(r => r.card);
+
+    let bestCombo: ComboResult | null = null;
+
+    // Try 2-card combos
+    for (let i = 0; i < topCards.length; i++) {
+        for (let j = i + 1; j < topCards.length; j++) {
+            if (topCards[i].bankName === topCards[j].bankName) continue;
+            const combo = [topCards[i], topCards[j]];
+            const result = evaluateCombo(combo, spendingCategories);
+            const savings = result.totalCashback - bestSingle.totalCashback;
+            const savingsPercent = bestSingle.totalCashback > 0 ? (savings / bestSingle.totalCashback) * 100 : 0;
+
+            if (savings > 0 && (!bestCombo || result.totalCashback > bestCombo.totalCashback)) {
+                bestCombo = {
+                    cards: combo.map((c, idx) => ({ card: c, label: COMBO_LABELS[idx], cashback: result.cardCashbacks[idx], color: COMBO_COLORS[idx] })),
+                    totalCashback: result.totalCashback,
+                    savingsVsSingle: savings,
+                    savingsPercent,
+                    allocation: result.allocation,
+                };
+            }
+        }
+    }
+
+    // Try 3-card combos (only if we have 3+ categories)
+    if (spendingCategories.length >= 3) {
+        const top8 = topCards.slice(0, 8);
+        for (let i = 0; i < top8.length; i++) {
+            for (let j = i + 1; j < top8.length; j++) {
+                if (top8[i].bankName === top8[j].bankName) continue;
+                for (let k = j + 1; k < top8.length; k++) {
+                    if (top8[k].bankName === top8[i].bankName || top8[k].bankName === top8[j].bankName) continue;
+                    const combo = [top8[i], top8[j], top8[k]];
+                    const result = evaluateCombo(combo, spendingCategories);
+                    const savings = result.totalCashback - bestSingle.totalCashback;
+                    const savingsPercent = bestSingle.totalCashback > 0 ? (savings / bestSingle.totalCashback) * 100 : 0;
+
+                    if (savings > 0 && (!bestCombo || result.totalCashback > bestCombo.totalCashback)) {
+                        bestCombo = {
+                            cards: combo.map((c, idx) => ({ card: c, label: COMBO_LABELS[idx], cashback: result.cardCashbacks[idx], color: COMBO_COLORS[idx] })),
+                            totalCashback: result.totalCashback,
+                            savingsVsSingle: savings,
+                            savingsPercent,
+                            allocation: result.allocation,
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    if (bestCombo && bestCombo.savingsPercent >= 10) {
+        return bestCombo;
+    }
+    return null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMBO RECOMMENDATION UI
+// ═══════════════════════════════════════════════════════════
+
+function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult; bestSingleCashback: number }) {
+    const cardCount = combo.cards.length;
+    const gridClass = cardCount === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2';
+
+    return (
+        <div className="relative mb-10 animate-[scaleUp_0.8s_ease-out]">
+            {/* Glowing background */}
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 opacity-50 blur-xl animate-[pulse_3s_infinite]"></div>
+
+            <div className="relative rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-400/50 overflow-hidden shadow-2xl">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/30 dark:via-teal-950/30 dark:to-cyan-950/30 px-6 sm:px-8 py-5 border-b border-emerald-100 dark:border-emerald-900/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                                <span className="material-symbols-outlined text-white text-xl">lightbulb</span>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-slate-900 dark:text-white">Chiến lược Combo: Dùng {cardCount} thẻ</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Chia chi tiêu giữa {cardCount} ngân hàng để tối ưu hoàn tiền</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/30 w-fit">
+                            <span className="material-symbols-outlined text-lg">trending_up</span>
+                            <span className="text-sm font-black">+{combo.savingsVsSingle.toLocaleString('vi-VN')}đ/tháng</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Cards comparison - dynamic grid */}
+                <div className={`grid grid-cols-1 ${gridClass}`}>
+                    {combo.cards.map((cc, idx) => {
+                        const tw = COMBO_TW_COLORS[idx];
+                        const categories = combo.allocation.filter(a => a.assignedTo === idx);
+                        const isLast = idx === cardCount - 1;
+                        return (
+                            <div key={cc.card.id} className={`p-6 ${!isLast ? 'border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800' : ''}`}>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-14 h-10 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex-shrink-0">
+                                        {cc.card.imageUrl && <img src={cc.card.imageUrl} alt={cc.card.name} className="w-full h-full object-cover" />}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className={`text-xs font-bold uppercase tracking-widest ${tw.text}`}>{cc.label}</p>
+                                        <h4 className="text-sm font-black text-slate-900 dark:text-white truncate">{cleanCardName(cc.card.name)}</h4>
+                                        <p className="text-[10px] text-slate-400 font-medium">{cc.card.bankName}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 mb-4">
+                                    {categories.map((a, i) => (
+                                        <div key={i} className={`flex items-center justify-between py-1.5 px-3 rounded-lg ${tw.bg} border ${tw.border}`}>
+                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{a.category}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] font-bold ${tw.text}`}>{a.rate}%</span>
+                                                <span className={`text-xs font-black ${tw.text}`}>+{a.cashback.toLocaleString('vi-VN')}đ</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subtotal</span>
+                                    <span className={`text-lg font-black ${tw.text}`}>{cc.cashback.toLocaleString('vi-VN')}đ</span>
+                                </div>
+
+                                {cc.card.registerUrl ? (
+                                    <a href={cc.card.registerUrl} target="_blank" rel="noopener noreferrer"
+                                        className={`mt-4 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all ${tw.btn}`}>
+                                        Đăng ký thẻ
+                                        <span className="material-symbols-outlined text-base">arrow_forward</span>
+                                    </a>
+                                ) : (
+                                    <Link href={`/card/${cc.card.id}`}
+                                        className={`mt-4 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all ${tw.btn}`}>
+                                        Xem chi tiết
+                                        <span className="material-symbols-outlined text-base">arrow_forward</span>
+                                    </Link>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Summary footer */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 px-6 sm:px-8 py-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="flex items-center gap-6">
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Combo {cardCount} thẻ</p>
+                                <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{combo.totalCashback.toLocaleString('vi-VN')}đ<span className="text-xs font-semibold text-slate-400">/tháng</span></p>
+                            </div>
+                            <div className="w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chỉ 1 thẻ</p>
+                                <p className="text-xl font-black text-slate-400 line-through">{bestSingleCashback.toLocaleString('vi-VN')}đ<span className="text-xs font-semibold">/tháng</span></p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                            <span className="material-symbols-outlined text-lg">savings</span>
+                            <span className="text-sm font-black">Tiết kiệm thêm {combo.savingsPercent.toFixed(0)}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════
+// GAMIFIED BEST CARD (unchanged from original)
+// ═══════════════════════════════════════════════════════════
 
 function GamifiedBestCard({ card }: { card: Card }) {
     const { isInCompare, addToCompare, removeFromCompare } = useCompare();
@@ -120,8 +463,13 @@ function GamifiedBestCard({ card }: { card: Card }) {
     );
 }
 
+// ═══════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════
+
 function RecommendationsContent() {
     const { selectedCards, clearCompare } = useCompare();
+    const { user } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -133,6 +481,23 @@ function RecommendationsContent() {
     const [visibleCount, setVisibleCount] = useState(3);
     const [loading, setLoading] = useState(true);
     const [selectedBank, setSelectedBank] = useState<string>('Tất cả ngân hàng');
+    const [spendingBreakdown, setSpendingBreakdown] = useState<SpendingCategory[]>([]);
+
+    // Load spending breakdown from sessionStorage
+    useEffect(() => {
+        try {
+            const stored = sessionStorage.getItem('spendingBreakdown');
+            if (stored) {
+                const parsed = JSON.parse(stored) as SpendingCategory[];
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setSpendingBreakdown(parsed);
+                    return;
+                }
+            }
+        } catch { /* ignore */ }
+        // Fallback: single category from URL
+        setSpendingBreakdown([{ name: topCategory, amount: spending }]);
+    }, [topCategory, spending]);
 
     useEffect(() => {
         const fetchRecommendations = async () => {
@@ -147,15 +512,27 @@ function RecommendationsContent() {
                 });
 
                 const cardsWithCashback = results.map((card: Card, index: number) => {
+                    // Calculate cashback using full breakdown if available
+                    if (spendingBreakdown.length > 1) {
+                        const result = calculateCardCashback(card, spendingBreakdown);
+                        const topRule = result.breakdown.reduce((best, curr) => curr.rate > best.rate ? curr : best, result.breakdown[0]);
+                        return {
+                            ...card,
+                            cashbackAmount: result.totalCashback,
+                            isBest: index === 0,
+                            cashbackCategory: topRule?.category || topCategory,
+                            cashbackRate: topRule?.rate || 0,
+                        };
+                    }
+
+                    // Fallback: single category logic
                     const matchingRule = card.cashbackRules.find(r =>
                         topCategory.toLowerCase().includes(r.category.toLowerCase()) ||
                         r.category.toLowerCase().includes(topCategory.toLowerCase())
                     );
-
                     const generalRule = card.cashbackRules.find(r =>
                         r.category === 'Tất cả' || r.category === 'All' || r.category === 'Mọi chi tiêu'
                     );
-
                     const appliedRule = matchingRule || generalRule;
                     const rate = appliedRule ? appliedRule.percentage : 0;
                     const appliedCategory = appliedRule ? appliedRule.category : topCategory;
@@ -164,7 +541,28 @@ function RecommendationsContent() {
                     return { ...card, cashbackAmount, isBest: index === 0, cashbackCategory: appliedCategory, cashbackRate: rate };
                 });
 
-                setCards(cardsWithCashback);
+                // Re-sort by actual cashback amount and keep only top cards with cashback > 0
+                cardsWithCashback.sort((a: Card, b: Card) => (b.cashbackAmount || 0) - (a.cashbackAmount || 0));
+                const topCardsWithCashback = cardsWithCashback.filter((c: Card) => (c.cashbackAmount || 0) > 0).slice(0, 10);
+                if (topCardsWithCashback.length > 0) topCardsWithCashback[0].isBest = true;
+
+                setCards(topCardsWithCashback);
+
+                // Save to search history
+                if (user?.id && cardsWithCashback.length > 0) {
+                    try {
+                        const historyKey = `search_history_${user.id}`;
+                        const existing = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                        const newEntry = {
+                            id: Date.now().toString(),
+                            date: new Date().toISOString(),
+                            query: `Chi tiêu ${(spending / 1000000).toFixed(0)}tr - ${topCategory}`,
+                            results: cardsWithCashback.slice(0, 6).map((c: Card) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, bankName: c.bankName })),
+                        };
+                        const updated = [newEntry, ...existing].slice(0, 20);
+                        localStorage.setItem(historyKey, JSON.stringify(updated));
+                    } catch { /* ignore storage errors */ }
+                }
             } catch (e) {
                 console.error("Failed to fetch recommendations:", e);
             } finally {
@@ -173,7 +571,21 @@ function RecommendationsContent() {
         };
 
         fetchRecommendations();
-    }, [spending, topCategory]);
+    }, [spending, topCategory, spendingBreakdown]);
+
+    // Calculate combo recommendation
+    const comboResult = useMemo(() => {
+        if (cards.length < 2 || spendingBreakdown.length < 2) return null;
+        return findBestCombo(cards, spendingBreakdown);
+    }, [cards, spendingBreakdown]);
+
+    const bestSingleCashback = useMemo(() => {
+        if (cards.length === 0) return 0;
+        return Math.max(...cards.map(c => {
+            const result = calculateCardCashback(c, spendingBreakdown);
+            return result.totalCashback;
+        }));
+    }, [cards, spendingBreakdown]);
 
     const filteredCards = cards.filter(card =>
         selectedBank === 'Tất cả ngân hàng' || card.bankName === selectedBank
@@ -194,13 +606,34 @@ function RecommendationsContent() {
                             Đề xuất dành riêng cho bạn
                         </h1>
                         <p className="text-lg text-slate-500 dark:text-slate-400 max-w-xl">
-                            Chúng tôi tìm thấy <strong className="text-primary-500">{filteredCards.length} thẻ</strong> phù hợp nhất với hồ sơ chi tiêu của bạn.
+                            Top <strong className="text-vp-green">{filteredCards.length} thẻ</strong> hoàn tiền tốt nhất cho bạn.
                         </p>
                     </div>
                 </div>
 
+                {/* Spending Breakdown Summary */}
+                {spendingBreakdown.length > 1 && (
+                    <div className="rounded-2xl bg-white dark:bg-[#18181b] border border-slate-200/50 dark:border-slate-800 p-5 mb-6 shadow-sm">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                            <span className="material-symbols-outlined text-base">receipt_long</span>
+                            Chi tiêu hàng tháng của bạn
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {spendingBreakdown.map((sc, i) => (
+                                <div key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    <span className="text-slate-400">{sc.name}:</span>
+                                    <span className="text-vp-green">{(sc.amount / 1000000).toFixed(1)}tr</span>
+                                </div>
+                            ))}
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-vp-green/10 border border-vp-green/20 text-xs font-black text-vp-green">
+                                Tổng: {(spending / 1000000).toFixed(1)}tr/tháng
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Filters Bar */}
-                <div className="rounded-3xl bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-800 p-5 mb-10 shadow-sm transition-all hover:shadow-md">
+                <div className="rounded-3xl bg-white dark:bg-[#18181b] border border-slate-200/50 dark:border-slate-800 p-5 mb-10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none transition-all hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)]">
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-wider">
                             <span className="material-symbols-outlined text-lg">filter_list</span>
@@ -211,7 +644,7 @@ function RecommendationsContent() {
                                 <select
                                     value={selectedBank}
                                     onChange={(e) => setSelectedBank(e.target.value)}
-                                    className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer transition-all"
+                                    className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200/60 dark:border-slate-700 hover:border-vp-green focus:border-vp-green focus:ring-2 focus:ring-vp-green/20 focus:outline-none cursor-pointer transition-all"
                                 >
                                     <option>Tất cả ngân hàng</option>
                                     {banks.map(bank => (
@@ -224,7 +657,7 @@ function RecommendationsContent() {
                     </div>
                 </div>
 
-                {/* List Layout for Horizontal Cards */}
+                {/* List Layout */}
                 <div className="flex flex-col gap-6 pb-20">
                     {loading ? (
                         <div className="py-20 text-center animate-pulse">
@@ -232,6 +665,12 @@ function RecommendationsContent() {
                         </div>
                     ) : filteredCards.length > 0 ? (
                         <>
+                            {/* Combo Recommendation — shown first if available */}
+                            {comboResult && selectedBank === 'Tất cả ngân hàng' && (
+                                <ComboRecommendation combo={comboResult} bestSingleCashback={bestSingleCashback} />
+                            )}
+
+                            {/* Individual card recommendations */}
                             {filteredCards.slice(0, visibleCount).map((card, idx) => (
                                 (idx === 0 && selectedBank === 'Tất cả ngân hàng') ? (
                                     <GamifiedBestCard key={`best-${card.id}`} card={card} />
@@ -271,7 +710,7 @@ function RecommendationsContent() {
                         <div className="flex items-center -space-x-3">
                             {selectedCards.map((card) => (
                                 <div key={card.id} className="h-10 w-10 rounded-full border-2 border-slate-900 dark:border-white overflow-hidden bg-white">
-                                    <img src={card.image} alt={card.name} className="h-full w-full object-cover" />
+                                    <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" />
                                 </div>
                             ))}
                             {Array.from({ length: Math.max(0, 3 - selectedCards.length) }).map((_, i) => (

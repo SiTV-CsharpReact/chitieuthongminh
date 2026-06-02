@@ -1,23 +1,70 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
-import { UserSettings } from '@/types';
+import { UserSettings, Card } from '@/types';
+import { cardApi } from '@/services/api';
+import { useFavorites } from '@/context/FavoritesContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cleanCardName } from '@/lib/utils';
 
 export default function SettingsPage() {
     const { user, isAuthenticated, logout, openLoginModal } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
-    const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'notifications'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'notifications' | 'history' | 'mycards'>('profile');
+    const { favorites, ownedCards, removeFavorite, removeOwnedCard, clearFavorites, clearOwnedCards } = useFavorites();
     
     const [settings, setSettings] = useState<UserSettings>({
         notifications: { email: true, push: true, promotions: false },
         security: { twoFactor: false },
         preferences: { language: 'vi', currency: 'VND' }
     });
+
+    // Search history state
+    const [searchHistory, setSearchHistory] = useState<{ id: string; date: string; query: string; results: Card[] }[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+    useEffect(() => {
+        if (activeTab === 'history' && user?.id) {
+            setHistoryLoading(true);
+            const saved = localStorage.getItem(`search_history_${user.id}`);
+            if (saved) {
+                try { setSearchHistory(JSON.parse(saved)); } catch { setSearchHistory([]); }
+            } else {
+                setSearchHistory([]);
+            }
+            setHistoryLoading(false);
+        }
+    }, [activeTab, user?.id]);
+
+    const toggleSetting = (category: keyof UserSettings, key: string) => {
+        setSettings(prev => ({
+            ...prev,
+            [category]: {
+                ...prev[category],
+                // @ts-ignore
+                [key]: !prev[category][key]
+            }
+        }));
+    };
+
+    const clearHistory = () => {
+        localStorage.removeItem(`search_history_${user?.id}`);
+        setSearchHistory([]);
+    };
+
+    const menuItems = [
+        { id: 'profile', label: 'Hồ sơ', icon: 'person' },
+        { id: 'mycards', label: 'Thẻ của tôi', icon: 'credit_card' },
+        { id: 'history', label: 'Lịch sử tìm thẻ', icon: 'history' },
+        { id: 'preferences', label: 'Sở thích & Giao diện', icon: 'palette' },
+        { id: 'notifications', label: 'Thông báo', icon: 'notifications' },
+        { id: 'security', label: 'Bảo mật', icon: 'security' },
+    ];
 
     if (!isAuthenticated || !user) {
         return (
@@ -38,24 +85,6 @@ export default function SettingsPage() {
         );
     }
 
-    const toggleSetting = (category: keyof UserSettings, key: string) => {
-        setSettings(prev => ({
-            ...prev,
-            [category]: {
-                ...prev[category],
-                // @ts-ignore
-                [key]: !prev[category][key]
-            }
-        }));
-    };
-
-    const menuItems = [
-        { id: 'profile', label: 'Hồ sơ', icon: 'person' },
-        { id: 'preferences', label: 'Sở thích & Giao diện', icon: 'palette' },
-        { id: 'notifications', label: 'Thông báo', icon: 'notifications' },
-        { id: 'security', label: 'Bảo mật', icon: 'security' },
-    ];
-
     return (
         <main className="flex-grow pt-32 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-16 min-h-screen">
             <div className="mx-auto max-w-6xl">
@@ -65,14 +94,13 @@ export default function SettingsPage() {
                         <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 uppercase">Cài đặt</h1>
                         <p className="mt-2 text-lg text-slate-500 dark:text-slate-400 font-medium">Quản lý tài khoản {user.name}</p>
                     </div>
-                    <Button 
-                        variant="destructive"
+                    <button 
                         onClick={logout}
-                        className="self-start sm:self-auto gap-2 rounded-xl font-bold"
+                        className="self-start sm:self-auto flex items-center gap-2 rounded-xl font-bold px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white border border-red-600 shadow-lg shadow-red-500/20 transition-all text-sm"
                     >
-                        <span className="material-symbols-outlined">logout</span>
+                        <span className="material-symbols-outlined text-lg">logout</span>
                         Đăng xuất
-                    </Button>
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
@@ -265,6 +293,179 @@ export default function SettingsPage() {
                                             Xoá tài khoản & Dữ liệu
                                         </Button>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* History Tab */}
+                            {activeTab === 'history' && (
+                                <div className="animate-fade-in space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Lịch sử tìm thẻ</h3>
+                                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Các lần tìm kiếm thẻ phù hợp gần đây của bạn.</p>
+                                        </div>
+                                        {searchHistory.length > 0 && (
+                                            <button onClick={clearHistory} className="flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-600 transition-colors">
+                                                <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+                                                Xóa lịch sử
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {historyLoading ? (
+                                        <div className="py-16 text-center">
+                                            <div className="animate-spin inline-block w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+                                        </div>
+                                    ) : searchHistory.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {searchHistory.map((entry) => (
+                                                <div key={entry.id} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary-500/30 transition-all group">
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center flex-shrink-0">
+                                                                <span className="material-symbols-outlined text-primary-500">search</span>
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-slate-900 dark:text-white text-sm">{entry.query}</p>
+                                                                <p className="text-xs text-slate-400">{new Date(entry.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-primary-500 bg-primary-50 dark:bg-primary-900/20 px-2.5 py-1 rounded-full">{entry.results.length} thẻ</span>
+                                                    </div>
+                                                    {entry.results.length > 0 && (
+                                                        <div className="flex gap-2 overflow-x-auto pb-1">
+                                                            {entry.results.slice(0, 4).map((card, i) => (
+                                                                <Link key={i} href={`/card/${card.id}`} className="flex-shrink-0 w-20 group/card">
+                                                                    <div className="w-20 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 mb-1">
+                                                                        <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform" />
+                                                                    </div>
+                                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">{cleanCardName(card.name)}</p>
+                                                                </Link>
+                                                            ))}
+                                                            {entry.results.length > 4 && (
+                                                                <div className="flex-shrink-0 w-20 h-12 rounded-lg bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center">
+                                                                    <span className="text-xs font-bold text-slate-400">+{entry.results.length - 4}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="py-16 text-center rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                            <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600">manage_search</span>
+                                            </div>
+                                            <p className="text-slate-500 dark:text-slate-400 font-bold mb-1">Chưa có lịch sử tìm kiếm</p>
+                                            <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">Hãy thử tìm thẻ phù hợp với bạn để lịch sử được lưu tại đây.</p>
+                                            <Link href="/input" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 shadow-lg shadow-primary-500/20 transition-all">
+                                                <span className="material-symbols-outlined text-lg">search</span>
+                                                Tìm thẻ ngay
+                                            </Link>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* My Cards Tab */}
+                            {activeTab === 'mycards' && (
+                                <div className="animate-fade-in space-y-8">
+                                    {/* Favorites Section */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div>
+                                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">❤️ Thẻ yêu thích</h3>
+                                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Những thẻ bạn quan tâm và muốn theo dõi.</p>
+                                            </div>
+                                            {favorites.length > 0 && (
+                                                <button onClick={clearFavorites} className="flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-600 transition-colors">
+                                                    <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+                                                    Xóa tất cả
+                                                </button>
+                                            )}
+                                        </div>
+                                        {favorites.length > 0 ? (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {favorites.map(card => (
+                                                    <div key={card.id} className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary-500/30 transition-all group">
+                                                        <Link href={`/card/${card.id}`} className="flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700">
+                                                            <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                                        </Link>
+                                                        <div className="flex-1 min-w-0">
+                                                            <Link href={`/card/${card.id}`} className="font-bold text-sm text-slate-900 dark:text-white truncate block hover:text-primary-500 transition-colors">{cleanCardName(card.name)}</Link>
+                                                            <p className="text-xs text-slate-400 truncate">{card.bankName}</p>
+                                                        </div>
+                                                        <button onClick={() => removeFavorite(card.id)} className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" title="Bỏ yêu thích">
+                                                            <span className="material-symbols-outlined text-lg">favorite</span>
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="py-10 text-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                <span className="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-600 mb-2">favorite_border</span>
+                                                <p className="text-slate-400 text-sm font-medium">Chưa có thẻ yêu thích nào</p>
+                                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Nhấn ❤️ trên thẻ để thêm vào danh sách yêu thích.</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div className="border-t border-slate-100 dark:border-slate-800"></div>
+
+                                    {/* Owned Cards Section */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div>
+                                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">💳 Thẻ đang sở hữu</h3>
+                                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Quản lý danh sách thẻ bạn hiện đang sử dụng.</p>
+                                            </div>
+                                            {ownedCards.length > 0 && (
+                                                <button onClick={clearOwnedCards} className="flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-600 transition-colors">
+                                                    <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+                                                    Xóa tất cả
+                                                </button>
+                                            )}
+                                        </div>
+                                        {ownedCards.length > 0 ? (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {ownedCards.map(card => (
+                                                    <div key={card.id} className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary-500/30 transition-all group">
+                                                        <Link href={`/card/${card.id}`} className="flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700">
+                                                            <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                                        </Link>
+                                                        <div className="flex-1 min-w-0">
+                                                            <Link href={`/card/${card.id}`} className="font-bold text-sm text-slate-900 dark:text-white truncate block hover:text-primary-500 transition-colors">{cleanCardName(card.name)}</Link>
+                                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                                <p className="text-xs text-slate-400 truncate">{card.bankName}</p>
+                                                                <span className="text-[10px] font-bold text-primary-500 bg-primary-50 dark:bg-primary-900/20 px-1.5 py-0.5 rounded">Đang dùng</span>
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={() => removeOwnedCard(card.id)} className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" title="Xóa khỏi danh sách">
+                                                            <span className="material-symbols-outlined text-lg">close</span>
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="py-10 text-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                <span className="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-600 mb-2">credit_card_off</span>
+                                                <p className="text-slate-400 text-sm font-medium">Chưa thêm thẻ đang sở hữu</p>
+                                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Thêm thẻ bạn đang dùng để quản lý dễ dàng hơn.</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* CTA */}
+                                    {favorites.length === 0 && ownedCards.length === 0 && (
+                                        <div className="text-center pt-4">
+                                            <Link href="/cards" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 shadow-lg shadow-primary-500/20 transition-all">
+                                                <span className="material-symbols-outlined text-lg">explore</span>
+                                                Khám phá thẻ tín dụng
+                                            </Link>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

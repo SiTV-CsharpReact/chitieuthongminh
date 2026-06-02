@@ -70,7 +70,7 @@ const menuBtnInactive =
     "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent";
 
 const menuBtnActive =
-    "!bg-primary-500 !text-white shadow-md shadow-primary-500/30";
+    "!bg-emerald-500 !text-white shadow-md shadow-emerald-500/30";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname();
@@ -85,9 +85,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-2xl">
                             <defs>
                                 <linearGradient id="cardBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor="#4ade80" />
-                                    <stop offset="40%" stopColor="#22c55e" />
-                                    <stop offset="100%" stopColor="#14532d" />
+                                    <stop offset="0%" stopColor="#60a5fa" />
+                                    <stop offset="40%" stopColor="#2563eb" />
+                                    <stop offset="100%" stopColor="#1e3a8a" />
                                 </linearGradient>
                                 <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                                     <stop offset="0%" stopColor="#fef08a" />
@@ -178,11 +178,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                                 className={cn(
                                                                     "flex items-center gap-2 h-8 px-2 rounded-md font-medium transition-all",
                                                                     pathname === subItem.url
-                                                                        ? "text-primary-500"
+                                                                        ? "text-emerald-600"
                                                                         : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                                                 )}
                                                                 style={pathname === subItem.url
-                                                                    ? { backgroundColor: 'rgba(34, 197, 94, 0.12)' }
+                                                                    ? { backgroundColor: 'rgba(16, 185, 129, 0.12)' }
                                                                     : undefined
                                                                 }
                                                             >
@@ -232,8 +232,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {/* Footer / User info */}
             <SidebarFooter className="px-3 py-3 border-t border-sidebar-border bg-sidebar">
                 <div className="rounded-xl p-2.5 flex items-center gap-2.5 bg-sidebar-accent/60 transition-all group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
-                    <div className="w-7 h-7 rounded-full bg-primary-500/15 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[16px] text-primary-500 leading-none">person</span>
+                    <div className="w-7 h-7 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[16px] text-emerald-600 leading-none">person</span>
                     </div>
                     <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                         <p className="text-xs font-bold text-sidebar-foreground truncate">{user?.name || "Administrator"}</p>

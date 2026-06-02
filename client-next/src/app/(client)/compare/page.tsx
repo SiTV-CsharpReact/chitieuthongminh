@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCompare } from '@/context/CompareContext';
 import { Button } from '@/components/ui/button';
+import { cleanCardName } from '@/lib/utils';
 
 export default function ComparePage() {
     const { selectedCards, removeFromCompare } = useCompare();
@@ -63,7 +64,7 @@ export default function ComparePage() {
                                     {/* Card Header */}
                                     <div className="relative rounded-2xl bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-4 flex flex-col items-center text-center h-60 hover:shadow-md transition-shadow">
                                         <button
-                                            onClick={() => removeFromCompare(card.id)}
+                                            onClick={() => removeFromCompare(card.id || '')}
                                             className="absolute top-2 right-2 h-8 w-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-red-500 transition-colors"
                                         >
                                             <span className="material-symbols-outlined text-lg">close</span>
@@ -71,7 +72,7 @@ export default function ComparePage() {
                                         <div className="h-24 w-auto aspect-[1.58/1] mb-4 rounded-lg shadow-md overflow-hidden">
                                             <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" />
                                         </div>
-                                        <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight mb-1">{card.name}</h3>
+                                        <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight mb-1">{cleanCardName(card.name)}</h3>
                                         <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">{card.bankName}</p>
                                     </div>
 

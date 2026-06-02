@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6">
             <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl shadow-slate-200/50 dark:shadow-none ring-1 ring-slate-200 dark:ring-slate-800 p-10 relative overflow-hidden transition-all">
                 {/* Background Accent */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
 
                 <div className="relative z-10">
                     <div className="flex flex-col items-center mb-10">
@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
                                 placeholder="admin@spending.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-primary-500 font-bold"
+                                className="h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-600 font-bold"
                                 required
                             />
                         </div>
@@ -78,12 +78,12 @@ export default function AdminLoginPage() {
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-primary-500 font-bold"
+                                className="h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-600 font-bold"
                                 required
                             />
                         </div>
 
-                        <Button type="submit" className="w-full h-16 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-base font-black shadow-xl hover:shadow-primary-500/20 hover:scale-[1.02] transition-all active:scale-[0.98] uppercase tracking-widest" disabled={isLoading}>
+                        <Button type="submit" className="w-full h-16 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-base font-black shadow-xl hover:shadow-blue-600/20 hover:scale-[1.02] transition-all active:scale-[0.98] uppercase tracking-widest" disabled={isLoading}>
                             {isLoading ? (
                                 <div className="flex items-center gap-3">
                                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>

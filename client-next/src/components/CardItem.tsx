@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Card } from '@/types';
 import { Button } from '@/components/ui/button';
 import { useCompare } from '@/context/CompareContext';
+import { cleanCardName } from '@/lib/utils';
+import { PortraitCardVisual } from '@/components/PortraitCardVisual';
 
 interface CardItemProps {
   card: Card;
@@ -23,19 +25,15 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
   };
 
   return (
-    <div className={`group relative flex flex-col md:flex-row gap-6 rounded-3xl border bg-white dark:bg-[#1e1e1e] p-5 sm:p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isSelected ? 'border-primary-500 ring-1 ring-primary-500' : 'border-slate-200 dark:border-slate-800 hover:border-primary-500/30 dark:hover:border-primary-500/30'}`}>
+    <div className={`group relative flex flex-col md:flex-row gap-6 rounded-3xl border bg-white dark:bg-[#0c1425] p-5 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none transition-all duration-300 hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)] dark:hover:shadow-[0_20px_40px_rgba(0,177,79,0.08)] hover:-translate-y-1 ${isSelected ? 'border-vp-green ring-1 ring-vp-green' : 'border-slate-200/60 dark:border-slate-800 hover:border-vp-green/40 dark:hover:border-vp-green/40'}`}>
 
       {/* Left Side: Image */}
       <div className="w-full md:w-56 flex-shrink-0 flex flex-col items-center justify-start pt-2">
-        <div className="relative w-full aspect-[1.58/1] overflow-hidden rounded-xl shadow-md bg-slate-100 dark:bg-slate-800/50 group-hover:shadow-lg transition-shadow">
-          <img
-            alt={card.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            src={card.imageUrl}
-          />
+        <div className="relative w-full aspect-[1.58/1] rounded-xl overflow-hidden shadow-md group-hover:shadow-lg transition-shadow">
+          <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} />
           {isSelected && (
-            <div className="absolute inset-0 bg-primary-500/20 flex items-center justify-center">
-              <div className="bg-primary-500 text-white rounded-full p-1 shadow-lg">
+            <div className="absolute inset-0 bg-vp-green/20 flex items-center justify-center z-20">
+              <div className="bg-vp-green text-white rounded-full p-1 shadow-lg">
                 <span className="material-symbols-outlined text-xl">check</span>
               </div>
             </div>
@@ -50,10 +48,10 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
         <div>
           <div className="flex flex-wrap items-center gap-3 mb-1">
             <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-              {card.name}
+              {cleanCardName(card.name)}
             </h3>
             {card.isBest && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-primary-500/20">
+              <span className="inline-flex items-center gap-1 rounded-full bg-vp-green px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-vp-green/20">
                 <span className="material-symbols-outlined text-[14px]">workspace_premium</span>
                 Tốt nhất
               </span>
@@ -68,7 +66,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
         {/* Description / Benefits */}
         <div className="space-y-3">
           <div className="flex gap-3 items-start">
-            <span className="material-symbols-outlined text-primary-500 mt-0.5 text-[20px]">format_quote</span>
+            <span className="material-symbols-outlined text-vp-green mt-0.5 text-[20px]">format_quote</span>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
               {card.description}
             </p>
@@ -76,7 +74,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
 
           {card.cashbackRate !== undefined && card.cashbackCategory && (
             <div className="flex gap-3 items-start">
-              <span className="material-symbols-outlined text-primary-500 mt-0.5 text-[20px]">percent</span>
+              <span className="material-symbols-outlined text-vp-green mt-0.5 text-[20px]">percent</span>
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 Nhận hoàn tiền <strong className="text-slate-900 dark:text-white">{card.cashbackRate}%</strong> cho chi tiêu <strong className="text-slate-900 dark:text-white">{card.cashbackCategory}</strong>.
               </p>
@@ -90,7 +88,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
           {/* Highlight Metric */}
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Hoàn tiền ước tính</p>
-            <p className="text-xl sm:text-2xl font-black text-primary-600 dark:text-primary-400 tracking-tight">
+            <p className="text-xl sm:text-2xl font-black text-vp-green tracking-tight">
               {card.cashbackAmount !== undefined ? (
                 <>~{card.cashbackAmount.toLocaleString()} VNĐ<span className="text-sm font-semibold text-slate-500 dark:text-slate-500">/tháng</span></>
               ) : (
@@ -104,7 +102,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
             <Button
               variant="secondary"
               onClick={handleCompareClick}
-              className={`flex-1 sm:flex-none font-bold transition-all ${isSelected ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 ring-1 ring-primary-500/30' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'}`}
+              className={`flex-1 sm:flex-none font-bold transition-all ${isSelected ? 'bg-vp-green/10 text-vp-green ring-1 ring-vp-green/30' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'}`}
             >
               {isSelected ? (
                 <>
@@ -119,7 +117,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
               )}
             </Button>
             <Link href={`/card/${card.id}`} className="flex-1 sm:flex-none">
-              <Button className="w-full font-bold px-6 bg-primary-600 hover:bg-primary-500 text-white shadow-lg shadow-primary-600/20">
+              <Button className="w-full font-bold px-6 bg-vp-green hover:bg-vp-green/90 text-white shadow-lg shadow-vp-green/20">
                 Xem Chi tiết
               </Button>
             </Link>
@@ -131,3 +129,4 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
   );
 };
 export default CardItem;
+

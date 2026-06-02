@@ -92,13 +92,17 @@ export default function AdminUsersPage() {
         }
     ];
 
+    const regularUsers = React.useMemo(() => {
+        return users.filter(u => u.role !== 'Admin');
+    }, [users]);
+
     return (
         <div className="space-y-6 animate-fade-in transition-all">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản Lý Người Dùng</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                        Giám sát và phân quyền hệ thống tài khoản Zenith ({users.length} tài khoản)
+                        Giám sát và phân quyền hệ thống tài khoản Zenith ({regularUsers.length} tài khoản)
                     </p>
                 </div>
                 <AdminButton
@@ -112,7 +116,7 @@ export default function AdminUsersPage() {
 
             <AdminTable
                 columns={columns}
-                data={users}
+                data={regularUsers}
                 isLoading={loading}
                 onDelete={(user) => handleDelete(user.id)}
                 emptyMessage="Không có dữ liệu"

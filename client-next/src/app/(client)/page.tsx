@@ -7,6 +7,8 @@ import { cardApi } from '@/services/api';
 import { CardItem } from '@/components/CardItem';
 import { useCompare } from '@/context/CompareContext';
 import { Logo } from '@/components/Logo';
+import { cleanCardName } from '@/lib/utils';
+import { PortraitCardVisual } from '@/components/PortraitCardVisual';
 
 const personas = [
   { id: 'student', title: 'Sinh viên', desc: 'Bắt đầu hành trình tài chính thông minh', icon: 'school' },
@@ -120,7 +122,7 @@ export default function HomePage() {
               {/* Social Proof */}
               <div className="flex items-center gap-3 justify-center lg:justify-start pt-2">
                 <div className="flex -space-x-2">
-                  {[1,2,3,4].map(i => (
+                  {[1, 2, 3, 4].map(i => (
                     <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-300 to-primary-600 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-[10px] font-bold">
                       {String.fromCharCode(64 + i)}
                     </div>
@@ -158,7 +160,7 @@ export default function HomePage() {
                   <p className="text-xs text-primary-500 font-black">đến 5%</p>
                 </div>
               </div>
-              <div className="absolute top-1/4 -right-4 bg-white dark:bg-slate-800 shadow-lg rounded-2xl px-4 py-3 flex items-center gap-2 z-20" style={{animationDelay: '1s'}}>
+              <div className="absolute top-1/4 -right-4 bg-white dark:bg-slate-800 shadow-lg rounded-2xl px-4 py-3 flex items-center gap-2 z-20" style={{ animationDelay: '1s' }}>
                 <span className="material-symbols-outlined text-blue-500">money_off</span>
                 <div>
                   <p className="text-xs font-bold text-slate-900 dark:text-white">Trả góp</p>
@@ -219,7 +221,7 @@ export default function HomePage() {
                   className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${selectedInterest === tag
                     ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
                     : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-slate-700'
-                  }`}
+                    }`}
                 >
                   {tag}
                 </button>
@@ -235,37 +237,52 @@ export default function HomePage() {
 
               {/* Sidebar Filters */}
               <aside className="lg:w-72 flex-shrink-0">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 sticky top-24 space-y-6">
+                <div className="bg-white dark:bg-[#0c1425] rounded-3xl border border-slate-200/50 dark:border-slate-800 p-6 sticky top-24 space-y-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-lg text-slate-900 dark:text-white">Bộ lọc</h3>
-                    <button onClick={() => { setSelectedBank('Tất cả'); setFeeFilter('Tất cả'); }} className="text-xs text-primary-500 font-bold hover:underline">Xóa bộ lọc</button>
+                    <button onClick={() => { setSelectedBank('Tất cả'); setFeeFilter('Tất cả'); }} className="text-xs text-red-400 font-bold hover:underline">Xóa bộ lọc</button>
                   </div>
 
                   {/* Bank Filter */}
                   <div>
-                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Ngân hàng</h4>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="bank" checked={selectedBank === 'Tất cả'} onChange={() => setSelectedBank('Tất cả')} className="accent-primary-500" />
-                        <span className="text-sm text-slate-600 dark:text-slate-400">Tất cả ngân hàng</span>
-                      </label>
-                      {banks.slice(0, 6).map(bank => (
-                        <label key={bank} className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="bank" checked={selectedBank === bank} onChange={() => setSelectedBank(bank)} className="accent-primary-500" />
-                          <span className="text-sm text-slate-600 dark:text-slate-400">{bank}</span>
-                        </label>
-                      ))}
+                    <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Ngân hàng</h4>
+                    <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
+                      <div onClick={() => setSelectedBank('Tất cả')} className="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === 'Tất cả' ? 'bg-vp-green border-vp-green' : 'border-slate-300 dark:border-slate-600'}`}>
+                          {selectedBank === 'Tất cả' && <span className="material-symbols-outlined text-white text-[14px]">check</span>}
+                        </span>
+                        <span className="material-symbols-outlined text-vp-green text-[18px]">account_balance</span>
+                        <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">Tất cả ngân hàng</span>
+                      </div>
+                      {banks.map(bank => {
+                        const bankLogo = cards.find(c => c.bankName === bank)?.bankLogo;
+                        return (
+                          <div key={bank} onClick={() => setSelectedBank(bank)} className="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                            <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === bank ? 'bg-vp-green border-vp-green' : 'border-slate-300 dark:border-slate-600'}`}>
+                              {selectedBank === bank && <span className="material-symbols-outlined text-white text-[14px]">check</span>}
+                            </span>
+                            {bankLogo ? (
+                              <img src={bankLogo} alt={bank} className="h-5 w-6 object-contain flex-shrink-0 dark:bg-white/90 dark:rounded dark:px-0.5" />
+                            ) : (
+                              <span className="material-symbols-outlined text-slate-400 text-[18px] flex-shrink-0">credit_card</span>
+                            )}
+                            <span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate">{bank}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* Fee Filter */}
                   <div>
-                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Phí thường niên</h4>
-                    <div className="space-y-2">
+                    <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Phí thường niên</h4>
+                    <div className="space-y-1">
                       {['Tất cả', 'Miễn phí', 'Dưới 500.000đ', '500.000đ - 1.000.000đ', 'Trên 1.000.000đ'].map(fee => (
-                        <label key={fee} className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="fee" checked={feeFilter === fee} onChange={() => setFeeFilter(fee)} className="accent-primary-500" />
-                          <span className="text-sm text-slate-600 dark:text-slate-400">{fee}</span>
+                        <label key={fee} className="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${feeFilter === fee ? 'border-vp-green' : 'border-slate-300 dark:border-slate-600'}`}>
+                            {feeFilter === fee && <span className="w-2 h-2 rounded-full bg-vp-green"></span>}
+                          </span>
+                          <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{fee}</span>
                         </label>
                       ))}
                     </div>
@@ -284,7 +301,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-400 font-medium hidden sm:inline">Hiển thị</span>
                       <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}
-                        className="text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                        className="text-sm bg-white dark:bg-[#0c1425] border border-slate-200/50 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-vp-green/50"
                       >
                         {[6, 9, 12, 24].map(n => (
                           <option key={n} value={n}>{n} thẻ</option>
@@ -293,7 +310,7 @@ export default function HomePage() {
                     </div>
                     {/* Sort */}
                     <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                      className="text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                      className="text-sm bg-white dark:bg-[#0c1425] border border-slate-200/50 dark:border-slate-800 rounded-xl px-4 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-vp-green/50"
                     >
                       <option>Phù hợp với bạn</option>
                       <option>Hoàn tiền cao nhất</option>
@@ -305,7 +322,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {loading ? (
                     Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 animate-pulse">
+                      <div key={i} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 animate-pulse">
                         <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded mb-4"></div>
                         <div className="h-32 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4"></div>
                         <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded mb-2"></div>
@@ -316,41 +333,45 @@ export default function HomePage() {
                     paginatedCards.map(card => {
                       const topRule = card.cashbackRules?.reduce((best, r) => r.percentage > (best?.percentage || 0) ? r : best, card.cashbackRules[0]);
                       return (
-                        <div key={card.id} className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-primary-500/40 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 overflow-hidden flex flex-col">
+                        <div key={card.id} className="group bg-white dark:bg-[#0c1425] rounded-2xl border border-slate-200/60 dark:border-slate-800/80 hover:border-vp-green/60 dark:hover:border-vp-green/50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)] dark:hover:shadow-[0_20px_40px_rgba(0,177,79,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                           {/* Header: Bank + Badge */}
                           <div className="flex items-center justify-between px-5 pt-5 pb-3">
                             <div className="flex items-center gap-2">
-                              {card.bankLogo && <img src={card.bankLogo} alt={card.bankName} className="h-5 object-contain" />}
-                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{card.bankName}</span>
+                              {card.bankLogo && <img src={card.bankLogo} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />}
                             </div>
-                            <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 px-2.5 py-1 rounded-full">Phù hợp với bạn</span>
+                            <div className="px-3 py-1.5 rounded-full border border-vp-green/50 text-vp-green text-xs font-medium flex items-center gap-1.5 glow-green bg-vp-green/10 select-none">
+                              <span className="w-1.5 h-1.5 rounded-full bg-vp-green animate-pulse"></span>
+                              Phù hợp với bạn
+                            </div>
                           </div>
 
                           {/* Card Name */}
                           <div className="px-5 pb-3">
-                            <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{card.name}</h3>
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{cleanCardName(card.name)}</h3>
                           </div>
 
                           {/* Card Image */}
                           <div className="px-5 pb-4">
-                            <div className="relative w-full aspect-[1.6/1] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-md group-hover:shadow-lg transition-shadow">
-                              <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="relative w-full aspect-[1.6/1] rounded-xl overflow-hidden border border-slate-100/70 dark:border-slate-800/80 shadow-md group-hover:shadow-lg transition-shadow">
+                              <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} />
                             </div>
                           </div>
 
-                          {/* Stats Row */}
-                          <div className="grid grid-cols-3 gap-1 px-5 pb-4">
+                          {/* Stats Row Container */}
+                          <div className="grid grid-cols-3 gap-1 py-2.5 mx-5 mb-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-100/80 dark:border-slate-800/40">
                             <div className="text-center">
                               <p className="text-[10px] text-slate-400 font-medium mb-0.5">Hoàn tiền ↑</p>
-                              <p className="text-sm font-black text-slate-900 dark:text-white">{topRule ? `${topRule.percentage}%` : 'N/A'}</p>
+                              <p className="text-sm text-vp-green font-black">{topRule ? `${topRule.percentage}%` : 'N/A'}</p>
                             </div>
-                            <div className="text-center border-x border-slate-100 dark:border-slate-800">
-                              <p className="text-[10px] text-slate-400 font-medium mb-0.5">Miễn phí</p>
-                              <p className="text-sm font-black text-slate-900 dark:text-white">{card.annualFee === 0 ? 'Miễn phí' : `${(card.annualFee / 1000).toFixed(0)}K`}</p>
+                            <div className="text-center border-x border-slate-200/50 dark:border-slate-800/50">
+                              <p className="text-[10px] text-slate-400 font-medium mb-0.5">Phí thường niên</p>
+                              <p className="text-[10px] font-black text-slate-900 dark:text-white">{card.annualFee === 0 ? 'Miễn phí năm đầu' : `${(card.annualFee / 1000).toFixed(0)}K`}</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-[10px] text-slate-400 font-medium mb-0.5">Hạn mức ↑</p>
-                              <p className="text-sm font-black text-slate-900 dark:text-white">{card.creditLimit || 'N/A'}</p>
+                              <p className="text-[10px] text-slate-400 font-medium mb-0.5">Hoàn tối đa</p>
+                              <p className="text-sm font-black text-vp-green">
+                                {card.maxCashbackPerMonth ? `${(card.maxCashbackPerMonth / 1000).toLocaleString('vi-VN')}K/th` : 'N/A'}
+                              </p>
                             </div>
                           </div>
 
@@ -358,8 +379,8 @@ export default function HomePage() {
                           <div className="px-5 pb-4 flex-grow">
                             <ul className="space-y-1.5">
                               {(card.benefits || []).slice(0, 2).map((b, i) => (
-                                <li key={i} className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                                  <span className="material-symbols-outlined text-primary-500 text-[14px] mt-0.5 flex-shrink-0">check_circle</span>
+                                <li key={i} className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                  <span className="material-symbols-outlined text-vp-green !text-sm flex-shrink-0">check_circle</span>
                                   <span className="line-clamp-1">{b}</span>
                                 </li>
                               ))}
@@ -368,15 +389,15 @@ export default function HomePage() {
 
                           {/* Action Buttons */}
                           <div className="grid grid-cols-2 gap-2 px-5 pb-5">
-                            <Link href={`/card/${card.id}`} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                            <Link href={`/card/${card.id}`} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/50 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
                               Xem chi tiết
                             </Link>
                             {card.registerUrl ? (
-                              <a href={card.registerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary-500 text-sm font-bold text-white hover:bg-primary-600 shadow-md shadow-primary-500/20 transition-all">
+                              <a href={card.registerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
                                 Đăng ký ngay
                               </a>
                             ) : (
-                              <Link href={`/card/${card.id}`} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary-500 text-sm font-bold text-white hover:bg-primary-600 shadow-md shadow-primary-500/20 transition-all">
+                              <Link href={`/card/${card.id}`} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
                                 Đăng ký ngay
                               </Link>
                             )}
@@ -420,11 +441,10 @@ export default function HomePage() {
                             <button
                               key={p}
                               onClick={() => setCurrentPage(p)}
-                              className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${
-                                p === safePage
-                                  ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
-                                  : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 hover:border-primary-300'
-                              }`}
+                              className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${p === safePage
+                                ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                                : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 hover:border-primary-300'
+                                }`}
                             >
                               {p}
                             </button>
@@ -454,10 +474,9 @@ export default function HomePage() {
                 <p className="text-slate-500 dark:text-slate-400">Chọn từ 2-4 thẻ để so sánh chi tiết các ưu đãi và phí</p>
               </div>
               <div className="flex items-center justify-center gap-4 flex-wrap">
-                {[0,1,2,3].map(i => (
-                  <div key={i} className={`w-20 h-28 rounded-2xl border-2 border-dashed flex items-center justify-center transition-all ${
-                    compareCards[i] ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-slate-200 dark:border-slate-700'
-                  }`}>
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} className={`w-20 h-28 rounded-2xl border-2 border-dashed flex items-center justify-center transition-all ${compareCards[i] ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-slate-200 dark:border-slate-700'
+                    }`}>
                     {compareCards[i] ? (
                       <img src={compareCards[i].imageUrl} alt={compareCards[i].name} className="w-full h-full object-cover rounded-xl" />
                     ) : (

@@ -4,8 +4,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { useFavorites } from '@/context/FavoritesContext';
 import { cardApi } from '@/services/api';
 import { Card } from '@/types';
+import { cleanCardName } from '@/lib/utils';
+import { PortraitCardVisual } from '@/components/PortraitCardVisual';
 
 interface CardDetailPageProps {
   params: Promise<{ id: string }>;
@@ -15,6 +19,8 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isDarkMode } = useTheme();
+  const { user, isAuthenticated, openLoginModal } = useAuth();
+  const { isFavorite, addFavorite, removeFavorite, isOwned, addOwnedCard, removeOwnedCard } = useFavorites();
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [cardId, setCardId] = useState<string | null>(null);
@@ -46,7 +52,10 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
         );
 
         const rate = matchingRule ? matchingRule.percentage : (generalRule ? generalRule.percentage : 0);
-        const cashbackAmount = (spendingAmount * rate) / 100;
+        const ruleCap = matchingRule ? matchingRule.capAmount : (generalRule ? generalRule.capAmount : undefined);
+        let cashbackAmount = (spendingAmount * rate) / 100;
+        if (ruleCap && cashbackAmount > ruleCap) cashbackAmount = ruleCap;
+        if (data.maxCashbackPerMonth && cashbackAmount > data.maxCashbackPerMonth) cashbackAmount = data.maxCashbackPerMonth;
 
         setCard({ ...data, cashbackAmount });
       } catch (e) {
@@ -111,7 +120,9 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
 
   // Pre-calculate chart data based on card rules and spending
   const chartData = card.cashbackRules.map(rule => {
-    const amount = (spendingAmount * rule.percentage) / 100;
+    let amount = (spendingAmount * rule.percentage) / 100;
+    if (rule.capAmount && amount > rule.capAmount) amount = rule.capAmount;
+    if (card.maxCashbackPerMonth && amount > card.maxCashbackPerMonth) amount = card.maxCashbackPerMonth;
     return {
       name: rule.category,
       value: amount,
@@ -157,14 +168,12 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
               <div className="flex flex-col items-center">
                 <div className="relative w-full mb-8 group perspective">
                   <div className="absolute inset-0 bg-primary-500/20 blur-2xl rounded-full transform translate-y-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <img
-                    alt={card.name}
-                    className="relative w-full -rotate-3 transform transition-all duration-500 group-hover:rotate-0 group-hover:scale-105 shadow-xl rounded-xl border border-slate-100 dark:border-slate-800"
-                    src={card.imageUrl}
-                  />
+                  <div className="relative w-full aspect-[1.58/1] rounded-xl overflow-hidden shadow-xl -rotate-3 transform transition-all duration-500 group-hover:rotate-0 group-hover:scale-105">
+                    <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} />
+                  </div>
                 </div>
 
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 text-center">{card.name}</h2>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 text-center">{cleanCardName(card.name)}</h2>
                 <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">{card.bankName}</p>
 
                 <div className="mt-8 w-full space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6">
@@ -195,6 +204,36 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
                   >
                     Mở thẻ ngay
                   </button>
+                  
+                  {/* Favorite & Owned Buttons */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated) { openLoginModal(); return; }
+                        const savedCard = { id: card.id!, name: card.name, imageUrl: card.imageUrl || '', bankName: card.bankName, bankLogo: card.bankLogo || '', annualFee: card.annualFee, savedAt: '' };
+                        isFavorite(card.id!) ? removeFavorite(card.id!) : addFavorite(savedCard);
+                      }}
+                      className={`flex items-center justify-center gap-2 rounded-xl h-11 text-sm font-bold transition-all ${isFavorite(card.id!) 
+                        ? 'bg-red-50 dark:bg-red-900/20 text-red-500 border border-red-200 dark:border-red-800/50' 
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-red-500 hover:border-red-300 dark:hover:border-red-800'}`}
+                    >
+                      <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: isFavorite(card.id!) ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+                      {isFavorite(card.id!) ? 'Đã thích' : 'Yêu thích'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated) { openLoginModal(); return; }
+                        const savedCard = { id: card.id!, name: card.name, imageUrl: card.imageUrl || '', bankName: card.bankName, bankLogo: card.bankLogo || '', annualFee: card.annualFee, savedAt: '' };
+                        isOwned(card.id!) ? removeOwnedCard(card.id!) : addOwnedCard(savedCard);
+                      }}
+                      className={`flex items-center justify-center gap-2 rounded-xl h-11 text-sm font-bold transition-all ${isOwned(card.id!)
+                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800/50'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-primary-500 hover:border-primary-300 dark:hover:border-primary-800'}`}
+                    >
+                      <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: isOwned(card.id!) ? "'FILL' 1" : "'FILL' 0" }}>wallet</span>
+                      {isOwned(card.id!) ? 'Đang sở hữu' : 'Tôi có thẻ này'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -215,7 +254,7 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
                     <Tooltip
                       cursor={{ fill: 'transparent' }}
                       contentStyle={tooltipStyle}
-                      formatter={(value: number) => [value.toLocaleString() + ' VND', 'Ước tính']}
+                      formatter={(value: any) => [Number(value || 0).toLocaleString() + ' VND', 'Ước tính']}
                     />
                     <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={30}>
                       {chartData.map((entry, index) => (
@@ -242,7 +281,15 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
                         <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">Hoàn tiền {rule.percentage}%</span>
                       </div>
                     </div>
-                    <span className={`text-xl font-bold text-primary-600 dark:text-primary-400`}>+ {((spendingAmount * rule.percentage) / 100).toLocaleString()} VND</span>
+                    <span className={`text-xl font-bold text-primary-600 dark:text-primary-400`}>
+                      + {
+                        Math.min(
+                          (spendingAmount * rule.percentage) / 100,
+                          rule.capAmount || Infinity,
+                          card.maxCashbackPerMonth || Infinity
+                        ).toLocaleString()
+                      } VND
+                    </span>
                   </div>
                 ))}
               </div>
@@ -252,6 +299,21 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
                 <span className="text-2xl font-black text-primary-600 dark:text-primary-400">~ {((card.cashbackAmount || 0) * 12).toLocaleString()} VND</span>
               </div>
             </div>
+
+            {card.welcomeOffer && (
+              <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-900/10 p-8 shadow-sm mb-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="flex items-center gap-3 mb-4 relative z-10">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-800 text-emerald-600 dark:text-emerald-400">
+                    <span className="material-symbols-outlined text-xl">redeem</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-emerald-900 dark:text-emerald-50">Quà Chào Mừng Mở Thẻ</h3>
+                </div>
+                <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-wrap relative z-10">
+                  {card.welcomeOffer}
+                </p>
+              </div>
+            )}
 
             {/* Benefits Section */}
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#18181b] p-8 shadow-sm">

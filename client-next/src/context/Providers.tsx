@@ -4,13 +4,16 @@ import React from 'react';
 import { AuthProvider } from './AuthContext';
 import { ThemeProvider } from './ThemeContext';
 import { CompareProvider } from './CompareContext';
+import { FavoritesProvider } from './FavoritesContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <ThemeProvider>
         <CompareProvider>
-          {children}
+          <FavoritesProvider>
+            {children}
+          </FavoritesProvider>
         </CompareProvider>
       </ThemeProvider>
     </AuthProvider>

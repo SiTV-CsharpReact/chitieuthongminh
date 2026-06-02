@@ -289,18 +289,18 @@ export default function AdminCategoriesPage() {
                                 </div>
                             </label>
 
-                            <div className="space-y-1.5 focus-within:ring-2 focus-within:ring-primary-500/20 rounded-xl transition-all p-1">
+                            <div className="space-y-1.5 focus-within:ring-2 focus-within:ring-blue-600/20 rounded-xl transition-all p-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên danh mục</label>
                                 <input
                                     type="text"
                                     required
-                                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:border-primary-500 transition-all outline-none"
+                                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
                                     placeholder="Vd: Ăn uống, Du lịch..."
                                     value={currentCategory.name}
                                     onChange={(e) => setCurrentCategory({ ...currentCategory, name: e.target.value })}
                                 />
                             </div>
-                            <div className="space-y-1.5 focus-within:ring-2 focus-within:ring-primary-500/20 rounded-xl transition-all p-1">
+                            <div className="space-y-1.5 focus-within:ring-2 focus-within:ring-blue-600/20 rounded-xl transition-all p-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Màu sắc hiển thị</label>
                                 <div className="flex gap-2">
                                     <input
@@ -311,13 +311,13 @@ export default function AdminCategoriesPage() {
                                     />
                                     <input
                                         type="text"
-                                        className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-primary-500 transition-all outline-none"
+                                        className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
                                         value={currentCategory.color}
                                         onChange={(e) => setCurrentCategory({ ...currentCategory, color: e.target.value })}
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-1.5 focus-within:ring-2 focus-within:ring-primary-500/20 rounded-xl transition-all p-1">
+                            <div className="space-y-1.5 focus-within:ring-2 focus-within:ring-blue-600/20 rounded-xl transition-all p-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Icon (Material Symbols)</label>
                                 <div className="flex gap-2">
                                     <div className="h-[42px] w-14 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
@@ -325,19 +325,19 @@ export default function AdminCategoriesPage() {
                                     </div>
                                     <input
                                         type="text"
-                                        className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-primary-500 transition-all outline-none"
+                                        className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
                                         value={currentCategory.icon || ''}
                                         onChange={(e) => setCurrentCategory({ ...currentCategory, icon: e.target.value })}
                                         placeholder="Vd: restaurant, flight..."
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-1.5 focus-within:ring-2 focus-within:ring-primary-500/20 rounded-xl transition-all p-1">
+                            <div className="space-y-1.5 focus-within:ring-2 focus-within:ring-blue-600/20 rounded-xl transition-all p-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[14px]">sell</span> Mã MCC (Ngăn cách bởi dấu phẩy)
                                 </label>
                                 <textarea
-                                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-primary-500 transition-all outline-none resize-y min-h-[80px]"
+                                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none resize-y min-h-[80px]"
                                     value={currentCategory.mccCodes ? currentCategory.mccCodes.join(', ') : ''}
                                     onChange={(e) => {
                                         const val = e.target.value;
@@ -351,7 +351,7 @@ export default function AdminCategoriesPage() {
                             <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
                                 <button
                                     type="submit"
-                                    className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 rounded-xl text-sm shadow-lg shadow-primary-500/20 transition-all active:scale-[0.98]"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]"
                                 >
                                     {isEditing ? 'Lưu thay đổi' : 'Tạo ngay'}
                                 </button>

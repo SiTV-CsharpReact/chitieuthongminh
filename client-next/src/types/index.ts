@@ -16,9 +16,15 @@ export interface Card {
   registerUrl?: string;
   annualFee: number;
   minSalary?: number; // Lương tối thiểu (VNĐ). 0 = không yêu cầu
+  requirement?: string; // Yêu cầu mở thẻ
+  welcomeOffer?: string; // Quà chào mừng mở thẻ
+  status?: string; // 'Active' | 'Discontinued'
+  maxCashbackPerMonth?: number; // Số tiền hoàn tối đa mỗi tháng (VNĐ)
   cashbackRules: CashbackRule[];
   description?: string;
   benefits: string[];
+  pros?: string[];
+  cons?: string[];
   cashbackAmount?: number;
   creditLimit?: string;
   interestRate?: string;
@@ -128,3 +134,18 @@ export interface CardPromotion {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface SpendingData {
+  id?: string;
+  userId?: string;
+  amount: number;
+  salary: number;
+  category?: string;
+  date: string;
+  description?: string;
+  incomeLevel?: string;
+  spendingHabit?: string;
+  creditScoreRange?: string;
+  recommendedCardType?: string;
+}
+

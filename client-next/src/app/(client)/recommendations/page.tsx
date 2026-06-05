@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CardItem } from '@/components/CardItem';
-import { Card, CashbackRule } from '@/types';
+import { Card, CashbackRule, ComboResult, CategorySpending } from '@/types';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -12,229 +12,14 @@ import { cardApi } from '@/services/api';
 import { cleanCardName } from '@/lib/utils';
 
 // ═══════════════════════════════════════════════════════════
-// COMBO ENGINE — Tính toán phân bổ chi tiêu tối ưu 2 thẻ
+// COMBO UI COLORS
 // ═══════════════════════════════════════════════════════════
 
-interface SpendingCategory {
-    name: string;
-    amount: number;
-}
-
-interface CardCashbackResult {
-    card: Card;
-    totalCashback: number;
-    breakdown: { category: string; amount: number; cashback: number; rate: number; capped: boolean }[];
-}
-
-interface ComboCard {
-    card: Card;
-    label: string;
-    cashback: number;
-    color: string;
-}
-
-interface ComboResult {
-    cards: ComboCard[];
-    totalCashback: number;
-    savingsVsSingle: number;
-    savingsPercent: number;
-    allocation: {
-        category: string;
-        amount: number;
-        assignedTo: number; // index in cards array
-        cashback: number;
-        rate: number;
-    }[];
-}
-
-function findMatchingRule(rules: CashbackRule[], categoryName: string): CashbackRule | null {
-    // Exact match first
-    const exact = rules.find(r =>
-        r.category.toLowerCase() === categoryName.toLowerCase()
-    );
-    if (exact) return exact;
-
-    // Partial match
-    const partial = rules.find(r =>
-        r.category.toLowerCase().includes(categoryName.toLowerCase()) ||
-        categoryName.toLowerCase().includes(r.category.toLowerCase())
-    );
-    if (partial) return partial;
-
-    // Synonym matching for dining
-    const diningWords = ['ăn uống', 'ẩm thực', 'nhà hàng', 'dining', 'food'];
-    const isDiningCategory = diningWords.some(w => categoryName.toLowerCase().includes(w));
-    if (isDiningCategory) {
-        const diningRule = rules.find(r => diningWords.some(w => r.category.toLowerCase().includes(w)));
-        if (diningRule) return diningRule;
-    }
-
-    // Shopping synonyms
-    const shoppingWords = ['mua sắm', 'shopping', 'thời trang'];
-    const isShoppingCategory = shoppingWords.some(w => categoryName.toLowerCase().includes(w));
-    if (isShoppingCategory) {
-        const shoppingRule = rules.find(r => shoppingWords.some(w => r.category.toLowerCase().includes(w)));
-        if (shoppingRule) return shoppingRule;
-    }
-
-    // General "all" rule as fallback
-    const allRule = rules.find(r =>
-        r.category === 'Tất cả' || r.category === 'All' || r.category === 'Mọi chi tiêu'
-    );
-    return allRule || null;
-}
-
-function calculateCardCashback(card: Card, spendingCategories: SpendingCategory[]): CardCashbackResult {
-    const breakdown: CardCashbackResult['breakdown'] = [];
-    let runningTotal = 0;
-
-    for (const sc of spendingCategories) {
-        const rule = findMatchingRule(card.cashbackRules, sc.name);
-        if (!rule || rule.percentage <= 0) {
-            breakdown.push({ category: sc.name, amount: sc.amount, cashback: 0, rate: 0, capped: false });
-            continue;
-        }
-
-        let cashback = (sc.amount * rule.percentage) / 100;
-        let capped = false;
-
-        // Apply per-rule cap
-        if (rule.capAmount && rule.capAmount > 0 && cashback > rule.capAmount) {
-            cashback = rule.capAmount;
-            capped = true;
-        }
-
-        breakdown.push({ category: sc.name, amount: sc.amount, cashback, rate: rule.percentage, capped });
-        runningTotal += cashback;
-    }
-
-    // Apply monthly cap
-    if (card.maxCashbackPerMonth && card.maxCashbackPerMonth > 0 && runningTotal > card.maxCashbackPerMonth) {
-        const ratio = card.maxCashbackPerMonth / runningTotal;
-        for (const b of breakdown) {
-            b.cashback = Math.round(b.cashback * ratio);
-            if (ratio < 1) b.capped = true;
-        }
-        runningTotal = card.maxCashbackPerMonth;
-    }
-
-    return { card, totalCashback: Math.round(runningTotal), breakdown };
-}
-
-const COMBO_COLORS = ['#10b981', '#06b6d4', '#8b5cf6'];
-const COMBO_LABELS = ['Thẻ chính', 'Thẻ phụ', 'Thẻ bổ sung'];
 const COMBO_TW_COLORS = [
     { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50/50 dark:bg-emerald-950/20', border: 'border-emerald-100/50 dark:border-emerald-900/30', btn: 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' },
     { text: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-50/50 dark:bg-cyan-950/20', border: 'border-cyan-100/50 dark:border-cyan-900/30', btn: 'bg-cyan-500 hover:bg-cyan-600 shadow-cyan-500/20' },
     { text: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50/50 dark:bg-violet-950/20', border: 'border-violet-100/50 dark:border-violet-900/30', btn: 'bg-violet-500 hover:bg-violet-600 shadow-violet-500/20' },
 ];
-
-function evaluateCombo(comboCards: Card[], spendingCategories: SpendingCategory[]): { totalCashback: number; allocation: ComboResult['allocation']; cardCashbacks: number[] } {
-    const cardSpendings: SpendingCategory[][] = comboCards.map(() => []);
-    const allocation: ComboResult['allocation'] = [];
-
-    for (const sc of spendingCategories) {
-        let bestIdx = 0;
-        let bestEffective = 0;
-        let bestRate = 0;
-
-        for (let k = 0; k < comboCards.length; k++) {
-            const rule = findMatchingRule(comboCards[k].cashbackRules, sc.name);
-            if (!rule) continue;
-            const raw = (sc.amount * rule.percentage) / 100;
-            const effective = rule.capAmount ? Math.min(raw, rule.capAmount) : raw;
-            if (effective > bestEffective) {
-                bestEffective = effective;
-                bestIdx = k;
-                bestRate = rule.percentage;
-            }
-        }
-
-        cardSpendings[bestIdx].push(sc);
-        allocation.push({ category: sc.name, amount: sc.amount, assignedTo: bestIdx, cashback: bestEffective, rate: bestRate });
-    }
-
-    const results = comboCards.map((c, i) => calculateCardCashback(c, cardSpendings[i]));
-    const totalCashback = results.reduce((sum, r) => sum + r.totalCashback, 0);
-
-    // Update allocation with capped values
-    const finalAllocation = allocation.map(a => {
-        const entry = results[a.assignedTo].breakdown.find(b => b.category === a.category);
-        return { ...a, cashback: entry?.cashback || a.cashback };
-    });
-
-    return { totalCashback, allocation: finalAllocation, cardCashbacks: results.map(r => r.totalCashback) };
-}
-
-function findBestCombo(cards: Card[], spendingCategories: SpendingCategory[]): ComboResult | null {
-    if (cards.length < 2 || spendingCategories.length < 2) return null;
-
-    const singleResults = cards.map(c => calculateCardCashback(c, spendingCategories));
-    const bestSingle = singleResults.reduce((best, curr) =>
-        curr.totalCashback > best.totalCashback ? curr : best
-    );
-
-    // Only check top 12 cards for performance
-    const topCards = [...singleResults]
-        .sort((a, b) => b.totalCashback - a.totalCashback)
-        .slice(0, 12)
-        .map(r => r.card);
-
-    let bestCombo: ComboResult | null = null;
-
-    // Try 2-card combos
-    for (let i = 0; i < topCards.length; i++) {
-        for (let j = i + 1; j < topCards.length; j++) {
-            if (topCards[i].bankName === topCards[j].bankName) continue;
-            const combo = [topCards[i], topCards[j]];
-            const result = evaluateCombo(combo, spendingCategories);
-            const savings = result.totalCashback - bestSingle.totalCashback;
-            const savingsPercent = bestSingle.totalCashback > 0 ? (savings / bestSingle.totalCashback) * 100 : 0;
-
-            if (savings > 0 && (!bestCombo || result.totalCashback > bestCombo.totalCashback)) {
-                bestCombo = {
-                    cards: combo.map((c, idx) => ({ card: c, label: COMBO_LABELS[idx], cashback: result.cardCashbacks[idx], color: COMBO_COLORS[idx] })),
-                    totalCashback: result.totalCashback,
-                    savingsVsSingle: savings,
-                    savingsPercent,
-                    allocation: result.allocation,
-                };
-            }
-        }
-    }
-
-    // Try 3-card combos (only if we have 3+ categories)
-    if (spendingCategories.length >= 3) {
-        const top8 = topCards.slice(0, 8);
-        for (let i = 0; i < top8.length; i++) {
-            for (let j = i + 1; j < top8.length; j++) {
-                if (top8[i].bankName === top8[j].bankName) continue;
-                for (let k = j + 1; k < top8.length; k++) {
-                    if (top8[k].bankName === top8[i].bankName || top8[k].bankName === top8[j].bankName) continue;
-                    const combo = [top8[i], top8[j], top8[k]];
-                    const result = evaluateCombo(combo, spendingCategories);
-                    const savings = result.totalCashback - bestSingle.totalCashback;
-                    const savingsPercent = bestSingle.totalCashback > 0 ? (savings / bestSingle.totalCashback) * 100 : 0;
-
-                    if (savings > 0 && (!bestCombo || result.totalCashback > bestCombo.totalCashback)) {
-                        bestCombo = {
-                            cards: combo.map((c, idx) => ({ card: c, label: COMBO_LABELS[idx], cashback: result.cardCashbacks[idx], color: COMBO_COLORS[idx] })),
-                            totalCashback: result.totalCashback,
-                            savingsVsSingle: savings,
-                            savingsPercent,
-                            allocation: result.allocation,
-                        };
-                    }
-                }
-            }
-        }
-    }
-
-    if (bestCombo && bestCombo.savingsPercent >= 10) {
-        return bestCombo;
-    }
-    return null;
-}
 
 // ═══════════════════════════════════════════════════════════
 // COMBO RECOMMENDATION UI
@@ -478,75 +263,55 @@ function RecommendationsContent() {
     const topCategory = searchParams.get('topCategory') || 'Ăn uống';
 
     const [cards, setCards] = useState<Card[]>([]);
+    const [comboResult, setComboResult] = useState<ComboResult | null>(null);
     const [visibleCount, setVisibleCount] = useState(3);
     const [loading, setLoading] = useState(true);
     const [selectedBank, setSelectedBank] = useState<string>('Tất cả ngân hàng');
-    const [spendingBreakdown, setSpendingBreakdown] = useState<SpendingCategory[]>([]);
+    const [spendingBreakdown, setSpendingBreakdown] = useState<CategorySpending[]>([]);
 
     // Load spending breakdown from sessionStorage
     useEffect(() => {
         try {
             const stored = sessionStorage.getItem('spendingBreakdown');
             if (stored) {
-                const parsed = JSON.parse(stored) as SpendingCategory[];
+                const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    setSpendingBreakdown(parsed);
+                    // Map local Storage `{ name, amount }` to CategorySpending `{ category, amount }`
+                    const mapped = parsed.map(p => ({ category: p.name || p.category, amount: p.amount }));
+                    setSpendingBreakdown(mapped);
                     return;
                 }
             }
         } catch { /* ignore */ }
         // Fallback: single category from URL
-        setSpendingBreakdown([{ name: topCategory, amount: spending }]);
+        setSpendingBreakdown([{ category: topCategory, amount: spending }]);
     }, [topCategory, spending]);
 
     useEffect(() => {
         const fetchRecommendations = async () => {
             try {
                 setLoading(true);
-                const results = await cardApi.getRecommendation({
-                    amount: spending,
+                const response = await cardApi.getRecommendation({
                     salary: salary,
-                    category: topCategory,
                     incomeLevel: salary >= 30000000 ? 'High' : salary >= 10000000 ? 'Medium' : 'Low',
-                    creditScoreRange: 'Good'
+                    creditScoreRange: 'Good',
+                    spendings: spendingBreakdown
                 });
 
-                const cardsWithCashback = results.map((card: Card, index: number) => {
-                    // Calculate cashback using full breakdown if available
-                    if (spendingBreakdown.length > 1) {
-                        const result = calculateCardCashback(card, spendingBreakdown);
-                        const topRule = result.breakdown.reduce((best, curr) => curr.rate > best.rate ? curr : best, result.breakdown[0]);
-                        return {
-                            ...card,
-                            cashbackAmount: result.totalCashback,
-                            isBest: index === 0,
-                            cashbackCategory: topRule?.category || topCategory,
-                            cashbackRate: topRule?.rate || 0,
-                        };
-                    }
-
-                    // Fallback: single category logic
-                    const matchingRule = card.cashbackRules.find(r =>
-                        topCategory.toLowerCase().includes(r.category.toLowerCase()) ||
-                        r.category.toLowerCase().includes(topCategory.toLowerCase())
-                    );
-                    const generalRule = card.cashbackRules.find(r =>
-                        r.category === 'Tất cả' || r.category === 'All' || r.category === 'Mọi chi tiêu'
-                    );
-                    const appliedRule = matchingRule || generalRule;
-                    const rate = appliedRule ? appliedRule.percentage : 0;
-                    const appliedCategory = appliedRule ? appliedRule.category : topCategory;
-                    const cashbackAmount = (spending * rate) / 100;
-
-                    return { ...card, cashbackAmount, isBest: index === 0, cashbackCategory: appliedCategory, cashbackRate: rate };
+                const cardsWithCashback = response.singleCards.map((res, index) => {
+                    const card = res.card;
+                    const topRule = res.breakdown.reduce((best, curr) => curr.rate > best.rate ? curr : best, res.breakdown[0]);
+                    return {
+                        ...card,
+                        cashbackAmount: res.totalCashback,
+                        isBest: index === 0,
+                        cashbackCategory: topRule?.category || topCategory,
+                        cashbackRate: topRule?.rate || 0,
+                    };
                 });
 
-                // Re-sort by actual cashback amount and keep only top cards with cashback > 0
-                cardsWithCashback.sort((a: Card, b: Card) => (b.cashbackAmount || 0) - (a.cashbackAmount || 0));
-                const topCardsWithCashback = cardsWithCashback.filter((c: Card) => (c.cashbackAmount || 0) > 0).slice(0, 10);
-                if (topCardsWithCashback.length > 0) topCardsWithCashback[0].isBest = true;
-
-                setCards(topCardsWithCashback);
+                setCards(cardsWithCashback);
+                setComboResult(response.bestCombo);
 
                 // Save to search history
                 if (user?.id && cardsWithCashback.length > 0) {
@@ -573,19 +338,10 @@ function RecommendationsContent() {
         fetchRecommendations();
     }, [spending, topCategory, spendingBreakdown]);
 
-    // Calculate combo recommendation
-    const comboResult = useMemo(() => {
-        if (cards.length < 2 || spendingBreakdown.length < 2) return null;
-        return findBestCombo(cards, spendingBreakdown);
-    }, [cards, spendingBreakdown]);
-
     const bestSingleCashback = useMemo(() => {
         if (cards.length === 0) return 0;
-        return Math.max(...cards.map(c => {
-            const result = calculateCardCashback(c, spendingBreakdown);
-            return result.totalCashback;
-        }));
-    }, [cards, spendingBreakdown]);
+        return Math.max(...cards.map(c => c.cashbackAmount || 0));
+    }, [cards]);
 
     const filteredCards = cards.filter(card =>
         selectedBank === 'Tất cả ngân hàng' || card.bankName === selectedBank
@@ -621,7 +377,7 @@ function RecommendationsContent() {
                         <div className="flex flex-wrap gap-2">
                             {spendingBreakdown.map((sc, i) => (
                                 <div key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <span className="text-slate-400">{sc.name}:</span>
+                                    <span className="text-slate-400">{sc.category}:</span>
                                     <span className="text-vp-green">{(sc.amount / 1000000).toFixed(1)}tr</span>
                                 </div>
                             ))}

@@ -278,7 +278,7 @@ export default function HomePage() {
                     <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Phí thường niên</h4>
                     <div className="space-y-1">
                       {['Tất cả', 'Miễn phí', 'Dưới 500.000đ', '500.000đ - 1.000.000đ', 'Trên 1.000.000đ'].map(fee => (
-                        <label key={fee} className="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <label key={fee} onClick={() => setFeeFilter(fee)} className="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                           <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${feeFilter === fee ? 'border-vp-green' : 'border-slate-300 dark:border-slate-600'}`}>
                             {feeFilter === fee && <span className="w-2 h-2 rounded-full bg-vp-green"></span>}
                           </span>

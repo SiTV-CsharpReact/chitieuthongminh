@@ -12,12 +12,11 @@ public class ID3Service
         _creditCardService = creditCardService;
     }
 
-    public async Task<List<CreditCard>> RecommendCardsAsync(SpendingData input)
+    public async Task<RecommendationResponse> RecommendCardsAsync(RecommendationRequest input)
     {
         var allCards = await _creditCardService.GetAsync();
         
         // ID3 Decision Branch 1: Filter by salary requirement
-        // If user provided salary, exclude cards they can't qualify for
         var eligibleCards = allCards;
         if (input.Salary > 0)
         {
@@ -26,82 +25,213 @@ public class ID3Service
                 .ToList();
         }
         
-        // ID3 Decision Branch 2: Score & rank remaining cards
-        return eligibleCards
-            .Select(card => new 
-            { 
-                Card = card, 
-                Score = CalculateMatchScore(card, input) 
-            })
-            .OrderByDescending(x => x.Score)
-            .Select(x => x.Card)
+        // Calculate cashback for all eligible cards
+        var singleResults = eligibleCards
+            .Select(c => CalculateCardCashback(c, input.Spendings))
+            .OrderByDescending(r => r.TotalCashback)
             .ToList();
+
+        // 1. Single Cards List (we return top 12)
+        var topSingleCards = singleResults.Take(12).ToList();
+
+        // 2. Find Best Combo
+        var topCards = topSingleCards.Select(x => x.Card).ToList();
+        var bestCombo = FindBestCombo(topCards, input.Spendings, topSingleCards.FirstOrDefault()?.TotalCashback ?? 0);
+
+        return new RecommendationResponse
+        {
+            SingleCards = topSingleCards,
+            BestCombo = bestCombo
+        };
     }
 
-    private decimal CalculateMatchScore(CreditCard card, SpendingData input)
+    private CardCashbackResult CalculateCardCashback(CreditCard card, List<CategorySpending> spendings)
     {
-        decimal score = 0;
+        decimal runningTotal = 0;
+        var breakdown = new List<CardCashbackBreakdown>();
 
-        // Feature 1: Category matching (highest weight in ID3 tree)
-        foreach (var rule in card.CashbackRules)
+        foreach (var sc in spendings)
         {
-            if (string.IsNullOrEmpty(rule.Category) || string.IsNullOrEmpty(input.Category)) continue;
-
-            // Flexible matching with synonyms
-            string[] synonyms = { "Ăn uống", "Ẩm thực", "Nhà hàng", "Dining", "Food" };
-            bool isDiningMatch = synonyms.Any(s => rule.Category.Contains(s, StringComparison.OrdinalIgnoreCase)) &&
-                                synonyms.Any(s => input.Category.Contains(s, StringComparison.OrdinalIgnoreCase));
-
-            bool isMatch = isDiningMatch || 
-                          rule.Category.Equals(input.Category, StringComparison.OrdinalIgnoreCase) ||
-                          input.Category.Contains(rule.Category, StringComparison.OrdinalIgnoreCase) ||
-                          rule.Category.Contains(input.Category, StringComparison.OrdinalIgnoreCase);
-
-            if (isMatch)
+            var rule = FindMatchingRule(card.CashbackRules, sc.Category);
+            if (rule == null || rule.Percentage <= 0)
             {
-                score += rule.Percentage * 10;
+                breakdown.Add(new CardCashbackBreakdown { Category = sc.Category, Amount = sc.Amount, Cashback = 0, Rate = 0 });
+                continue;
             }
-            else if (rule.Category.Equals("All", StringComparison.OrdinalIgnoreCase) || 
-                     rule.Category.Equals("Tất cả", StringComparison.OrdinalIgnoreCase))
-            {
-                score += rule.Percentage * 2;
-            }
-        }
 
-        // Feature 2: Salary bracket matching (new ID3 branch)
-        if (input.Salary > 0 && card.MinSalary > 0)
-        {
-            decimal salaryRatio = input.Salary / card.MinSalary;
+            decimal cashback = (sc.Amount * rule.Percentage) / 100m;
             
-            if (salaryRatio >= 1.0m && salaryRatio <= 1.5m)
+            // Apply per-rule cap
+            if (rule.CapAmount > 0 && cashback > rule.CapAmount.Value)
             {
-                // Perfect match: user salary is close to requirement
-                score += 40;
+                cashback = rule.CapAmount.Value;
             }
-            else if (salaryRatio > 1.5m && salaryRatio <= 3.0m)
-            {
-                // Over-qualified but still relevant
-                score += 20;
-            }
-            else if (salaryRatio > 3.0m)
-            {
-                // Way over-qualified, card might be too basic
-                score += 5;
-            }
+
+            breakdown.Add(new CardCashbackBreakdown { Category = sc.Category, Amount = sc.Amount, Cashback = cashback, Rate = rule.Percentage });
+            runningTotal += cashback;
         }
-        else if (card.MinSalary == 0)
+
+        // Apply monthly cap
+        if (card.MaxCashbackPerMonth > 0 && runningTotal > card.MaxCashbackPerMonth.Value)
         {
-            // No salary requirement = accessible to all
-            score += 10;
+            decimal ratio = card.MaxCashbackPerMonth.Value / runningTotal;
+            foreach (var b in breakdown)
+            {
+                b.Cashback = Math.Round(b.Cashback * ratio);
+            }
+            runningTotal = card.MaxCashbackPerMonth.Value;
         }
 
-        // Feature 3: Income level vs annual fee (Economic feasibility branch)
-        if (input.IncomeLevel == "High" && card.AnnualFee > 1000000) score += 50;
-        if (input.IncomeLevel == "Low" && card.AnnualFee == 0) score += 30;
+        return new CardCashbackResult
+        {
+            Card = card,
+            TotalCashback = Math.Round(runningTotal),
+            Breakdown = breakdown
+        };
+    }
 
-        // Feature 4: Credit score branch
-        if (input.CreditScoreRange == "Excellent") score += 20;
+    private CashbackRule? FindMatchingRule(List<CashbackRule> rules, string category)
+    {
+        if (rules == null || !rules.Any() || string.IsNullOrEmpty(category)) return null;
 
-        return score;
+        var exactRule = rules.FirstOrDefault(r => string.Equals(r.Category, category, StringComparison.OrdinalIgnoreCase));
+        if (exactRule != null) return exactRule;
+
+        string[] synonyms = { "Ăn uống", "Ẩm thực", "Nhà hàng", "Dining", "Food" };
+        if (synonyms.Any(s => category.Contains(s, StringComparison.OrdinalIgnoreCase)))
+        {
+            var diningRule = rules.FirstOrDefault(r => synonyms.Any(s => r.Category.Contains(s, StringComparison.OrdinalIgnoreCase)));
+            if (diningRule != null) return diningRule;
+        }
+
+        var partialRule = rules.FirstOrDefault(r => 
+            category.Contains(r.Category, StringComparison.OrdinalIgnoreCase) || 
+            r.Category.Contains(category, StringComparison.OrdinalIgnoreCase));
+        if (partialRule != null) return partialRule;
+
+        return rules.FirstOrDefault(r => r.Category.Equals("All", StringComparison.OrdinalIgnoreCase) || r.Category.Equals("Tất cả", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private ComboResult? FindBestCombo(List<CreditCard> topCards, List<CategorySpending> spendings, decimal bestSingleCashback)
+    {
+        if (topCards.Count < 2 || spendings.Count < 2) return null;
+
+        ComboResult? bestCombo = null;
+
+        // Try 2-card combos
+        for (int i = 0; i < topCards.Count; i++)
+        {
+            for (int j = i + 1; j < topCards.Count; j++)
+            {
+                if (topCards[i].BankName == topCards[j].BankName) continue;
+                var combo = new List<CreditCard> { topCards[i], topCards[j] };
+                var result = EvaluateCombo(combo, spendings);
+                var savings = result.TotalCashback - bestSingleCashback;
+                var savingsPercent = bestSingleCashback > 0 ? (savings / bestSingleCashback) * 100 : 0;
+
+                if (savings > 0 && (bestCombo == null || result.TotalCashback > bestCombo.TotalCashback))
+                {
+                    result.SavingsVsSingle = savings;
+                    result.SavingsPercent = savingsPercent;
+                    bestCombo = result;
+                }
+            }
+        }
+
+        // Try 3-card combos
+        if (spendings.Count >= 3)
+        {
+            var top8 = topCards.Take(8).ToList();
+            for (int i = 0; i < top8.Count; i++)
+            {
+                for (int j = i + 1; j < top8.Count; j++)
+                {
+                    if (top8[i].BankName == top8[j].BankName) continue;
+                    for (int k = j + 1; k < top8.Count; k++)
+                    {
+                        if (top8[k].BankName == top8[i].BankName || top8[k].BankName == top8[j].BankName) continue;
+                        
+                        var combo = new List<CreditCard> { top8[i], top8[j], top8[k] };
+                        var result = EvaluateCombo(combo, spendings);
+                        var savings = result.TotalCashback - bestSingleCashback;
+                        var savingsPercent = bestSingleCashback > 0 ? (savings / bestSingleCashback) * 100 : 0;
+
+                        if (savings > 0 && (bestCombo == null || result.TotalCashback > bestCombo.TotalCashback))
+                        {
+                            result.SavingsVsSingle = savings;
+                            result.SavingsPercent = savingsPercent;
+                            bestCombo = result;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (bestCombo != null && bestCombo.SavingsPercent >= 10)
+        {
+            return bestCombo;
+        }
+
+        return null;
+    }
+
+    private ComboResult EvaluateCombo(List<CreditCard> comboCards, List<CategorySpending> spendings)
+    {
+        var cardSpendings = comboCards.Select(_ => new List<CategorySpending>()).ToList();
+        var allocation = new List<CategoryAllocation>();
+
+        foreach (var sc in spendings)
+        {
+            int bestIdx = 0;
+            decimal bestEffective = 0;
+            decimal bestRate = 0;
+
+            for (int k = 0; k < comboCards.Count; k++)
+            {
+                var rule = FindMatchingRule(comboCards[k].CashbackRules, sc.Category);
+                if (rule == null) continue;
+
+                decimal raw = (sc.Amount * rule.Percentage) / 100m;
+                decimal effective = rule.CapAmount > 0 ? Math.Min(raw, rule.CapAmount.Value) : raw;
+
+                if (effective > bestEffective)
+                {
+                    bestEffective = effective;
+                    bestIdx = k;
+                    bestRate = rule.Percentage;
+                }
+            }
+
+            cardSpendings[bestIdx].Add(sc);
+            allocation.Add(new CategoryAllocation { Category = sc.Category, Amount = sc.Amount, AssignedTo = bestIdx, Cashback = bestEffective, Rate = bestRate });
+        }
+
+        var results = comboCards.Select((c, i) => CalculateCardCashback(c, cardSpendings[i])).ToList();
+        decimal totalCashback = results.Sum(r => r.TotalCashback);
+
+        var finalAllocation = allocation.Select(a => 
+        {
+            var entry = results[a.AssignedTo].Breakdown.FirstOrDefault(b => b.Category == a.Category);
+            a.Cashback = entry?.Cashback ?? a.Cashback;
+            return a;
+        }).ToList();
+
+        string[] COMBO_LABELS = { "Thẻ chính", "Thẻ phụ", "Thẻ bổ sung" };
+        string[] COMBO_COLORS = { "#10b981", "#06b6d4", "#8b5cf6" };
+
+        var comboResult = new ComboResult
+        {
+            Cards = comboCards.Select((c, idx) => new ComboCardItem 
+            { 
+                Card = c, 
+                Label = COMBO_LABELS[idx], 
+                Cashback = results[idx].TotalCashback, 
+                Color = COMBO_COLORS[idx] 
+            }).ToList(),
+            TotalCashback = totalCashback,
+            Allocation = finalAllocation
+        };
+
+        return comboResult;
     }
 }

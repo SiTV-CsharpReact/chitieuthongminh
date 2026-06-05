@@ -1,4 +1,4 @@
-import { Card, Category, Article, ArticleCategory, CardPromotion, User, SpendingData } from '@/types';
+import { Card, Category, Article, ArticleCategory, CardPromotion, User, SpendingData, RecommendationRequest, RecommendationResponse } from '@/types';
 
 const API_BASE_URL = '/api';
 
@@ -41,7 +41,7 @@ export const cardApi = {
         if (!response.ok) throw new Error('Failed to delete card');
     },
 
-    async getRecommendation(input: any): Promise<Card[]> {
+    async getRecommendation(input: RecommendationRequest): Promise<RecommendationResponse> {
         const response = await fetch(`${API_BASE_URL}/Recommendation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

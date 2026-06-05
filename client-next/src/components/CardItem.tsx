@@ -61,6 +61,15 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
             Phát hành bởi <span className="text-slate-700 dark:text-slate-200">{card.bankName}</span>
             {card.bankLogo && <img src={card.bankLogo} alt={card.bankName} className="h-4 ml-1 opacity-70 grayscale group-hover:grayscale-0 transition-all" />}
           </p>
+          {card.tags && card.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
+              {card.tags.map((tag, idx) => (
+                <span key={idx} className="inline-flex items-center rounded-md bg-violet-50 dark:bg-violet-900/20 px-2 py-1 text-[10px] font-bold text-violet-700 dark:text-violet-300 border border-violet-100 dark:border-violet-800">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Description / Benefits */}

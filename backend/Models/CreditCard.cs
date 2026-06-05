@@ -32,6 +32,7 @@ public class CreditCard
     public List<string> Benefits { get; set; } = new();
     public List<string> Pros { get; set; } = new();
     public List<string> Cons { get; set; } = new();
+    public List<string> Tags { get; set; } = new();
     public string? CreditLimit { get; set; }
     public string? InterestRate { get; set; }
     public string? TermsPdfUrl { get; set; }

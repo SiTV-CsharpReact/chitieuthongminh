@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ExpenseCategory, Category } from '@/types';
@@ -42,7 +42,7 @@ const analysisSteps = [
     "Đang tạo đề xuất cá nhân hóa..."
 ];
 
-export default function InputExpensesPage() {
+function InputExpensesContent() {
     const searchParams = useSearchParams();
     const profileKey = searchParams.get('profile') || 'worker';
     const profile = profiles[profileKey] || profiles['worker'];
@@ -645,5 +645,17 @@ export default function InputExpensesPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function InputExpensesPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-[#0f0f0f]">
+                <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        }>
+            <InputExpensesContent />
+        </Suspense>
     );
 }

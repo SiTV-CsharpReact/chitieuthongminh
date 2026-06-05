@@ -33,6 +33,7 @@ export default function AdminCardsPage() {
     const [benefits, setBenefits] = useState<string[]>([]);
     const [pros, setPros] = useState<string[]>([]);
     const [cons, setCons] = useState<string[]>([]);
+    const [tags, setTags] = useState<string[]>([]);
     const [link, setLink] = useState('');
     const [registerUrl, setRegisterUrl] = useState('');
 
@@ -153,7 +154,8 @@ export default function AdminCardsPage() {
             description,
             benefits: benefits.filter(s => s.trim() !== '').length > 0 ? benefits.filter(s => s.trim() !== '') : ["Thanh toán tiện lợi", "Bảo mật cao"],
             pros: pros.filter(s => s.trim() !== ''),
-            cons: cons.filter(s => s.trim() !== '')
+            cons: cons.filter(s => s.trim() !== ''),
+            tags: tags.filter(s => s.trim() !== '')
         } as CreditCard;
 
         try {
@@ -232,6 +234,7 @@ export default function AdminCardsPage() {
         setBenefits(card.benefits || []);
         setPros(card.pros || []);
         setCons(card.cons || []);
+        setTags(card.tags || []);
         setLink(card.link || '');
         setRegisterUrl(card.registerUrl || '');
         setShowModal(true);
@@ -254,6 +257,7 @@ export default function AdminCardsPage() {
         setBenefits([]);
         setPros([]);
         setCons([]);
+        setTags([]);
         setLink('');
         setRegisterUrl('');
         setShowModal(true);
@@ -901,6 +905,27 @@ export default function AdminCardsPage() {
                                         placeholder="Ví dụ: Phí thường niên cao&#10;Chỉ áp dụng vài danh mục"
                                         rows={3}
                                     />
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-xl border border-violet-200 dark:border-violet-900/50 bg-violet-50/50 dark:bg-violet-900/10 space-y-2 mt-2">
+                                <div className="text-xs font-black uppercase tracking-widest text-violet-700 dark:text-violet-400 flex items-center gap-1.5 mb-2">
+                                    <span className="material-symbols-outlined text-[16px]">label</span> Phân loại đối tượng
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {['Sinh viên', 'Người đi làm', 'Gia đình', 'Doanh nghiệp'].map(audience => {
+                                        const isSelected = tags.includes(audience);
+                                        return (
+                                            <button
+                                                key={audience}
+                                                type="button"
+                                                onClick={() => setTags(prev => isSelected ? prev.filter(t => t !== audience) : [...prev, audience])}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${isSelected ? 'bg-violet-500 text-white border-violet-600 shadow-md shadow-violet-500/30' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400'}`}
+                                            >
+                                                {audience}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 

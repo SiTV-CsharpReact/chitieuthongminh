@@ -16,7 +16,7 @@ public class RecommendationController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<List<CreditCard>>> GetRecommendation(SpendingData input)
+    public async Task<ActionResult<RecommendationResponse>> GetRecommendation(RecommendationRequest input)
     {
         var result = await _id3Service.RecommendCardsAsync(input);
         return Ok(result);

@@ -25,6 +25,7 @@ export interface Card {
   benefits: string[];
   pros?: string[];
   cons?: string[];
+  tags?: string[];
   cashbackAmount?: number;
   creditLimit?: string;
   interestRate?: string;
@@ -149,3 +150,55 @@ export interface SpendingData {
   recommendedCardType?: string;
 }
 
+export interface CategorySpending {
+  category: string;
+  amount: number;
+}
+
+export interface RecommendationRequest {
+  salary: number;
+  incomeLevel?: string;
+  creditScoreRange?: string;
+  spendings: CategorySpending[];
+}
+
+export interface CardCashbackBreakdown {
+  category: string;
+  amount: number;
+  cashback: number;
+  rate: number;
+}
+
+export interface CardCashbackResult {
+  card: Card;
+  totalCashback: number;
+  breakdown: CardCashbackBreakdown[];
+}
+
+export interface ComboCardItem {
+  card: Card;
+  label: string;
+  cashback: number;
+  color: string;
+}
+
+export interface CategoryAllocation {
+  category: string;
+  amount: number;
+  assignedTo: number;
+  cashback: number;
+  rate: number;
+}
+
+export interface ComboResult {
+  cards: ComboCardItem[];
+  totalCashback: number;
+  savingsVsSingle: number;
+  savingsPercent: number;
+  allocation: CategoryAllocation[];
+}
+
+export interface RecommendationResponse {
+  singleCards: CardCashbackResult[];
+  bestCombo: ComboResult | null;
+}

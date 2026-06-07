@@ -2,12 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { CardItem } from '@/components/CardItem';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCategoryContext } from '@/context/CategoryContext';
 import { Card, Category } from '@/types';
 import { cardApi, categoryApi } from '@/services/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PortraitCardVisual } from '@/components/PortraitCardVisual';
-import { cleanCardName } from '@/lib/utils';
+import { cleanCardName, generateSlug } from '@/lib/utils';
 import Link from 'next/link';
+import { useCompare } from '@/context/CompareContext';
 
 export default function AllCardsPage() {
     const [cards, setCards] = useState<Card[]>([]);
@@ -22,6 +25,7 @@ export default function AllCardsPage() {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(6);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const { isInCompare, addToCompare, removeFromCompare } = useCompare();
 
     const [expandedSections, setExpandedSections] = useState({
         bank: true,
@@ -33,6 +37,8 @@ export default function AllCardsPage() {
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
+    
+    const { getCategoryColor } = useCategoryContext();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -101,7 +107,7 @@ export default function AllCardsPage() {
 
     const banks = Array.from(new Set(cards.map(c => c.bankName)));
     const audiences = ['Tất cả', 'Sinh viên', 'Người đi làm', 'Gia đình', 'Doanh nghiệp'];
-    const filterCategories = ['Tất cả', ...Array.from(new Set(cards.flatMap(c => c.cashbackRules?.map(r => r.category) || []))).filter(Boolean)];
+    const filterCategories = ['Tất cả', ...Array.from(new Set(cards.flatMap(c => c.cashbackRules?.map(r => r.category) || []))).filter(Boolean).filter(c => c !== 'Tất cả')];
     const fees = ['Tất cả', 'Miễn phí', 'Dưới 500.000đ', '500.000đ - 1.000.000đ', 'Trên 1.000.000đ'];
 
     return (
@@ -111,31 +117,27 @@ export default function AllCardsPage() {
             <main className="flex-grow pt-10 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-15">
                 <div className="mx-auto max-w-7xl">
 
-                    <div className="text-center mb-10">
-                        <h1 className="text-2xl sm:text-2xl font-black mb-4 tracking-tight leading-tight uppercase">
-                            Danh sách Thẻ Tín Dụng
-                        </h1>
-                        <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
-                            Khám phá danh sách đầy đủ các sản phẩm thẻ từ các ngân hàng hàng đầu Việt Nam với những ưu đãi đặc quyền nhất.
-                        </p>
-                    </div>
+
 
                     <div className="flex flex-col lg:flex-row gap-8">
                         {/* Sidebar Filters */}
                         <aside className="lg:w-72 flex-shrink-0">
-                            <div className="sticky top-24">
+                            <div className="sticky top-10">
                                 <div className="bg-white dark:bg-[#0c1425] rounded-3xl border border-slate-200/50 dark:border-slate-800 p-6 pt-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none">
                                     {/* Header */}
-                                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                                            <span className="material-symbols-outlined !text-2xl">filter_alt</span>
+                                    <div className="flex items-center justify-between pb-4 pt-3 border-b border-slate-100 dark:border-slate-800/80 mb-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-vp-green/15 flex items-center justify-center text-vp-green">
+                                                <span className="material-symbols-outlined !text-[20px]">filter_alt</span>
+                                            </div>
+                                            <h3 className="font-bold text-[17px] text-slate-900 dark:text-white tracking-wide">Bộ lọc</h3>
                                         </div>
-                                        <button onClick={() => { setSelectedBank('Tất cả'); setFeeFilter('Tất cả'); setSelectedAudience('Tất cả'); setSelectedCategories([]); setSearchTerm(''); }} className="text-[13px] text-red-500 hover:text-red-600 flex items-center gap-1 font-medium transition-colors">
+                                        <button onClick={() => { setSelectedBank('Tất cả'); setFeeFilter('Tất cả'); setSelectedAudience('Tất cả'); setSelectedCategories([]); setSearchTerm(''); }} className="text-[13px] text-vp-green hover:text-vp-green/80 flex items-center gap-1.5 font-semibold transition-colors">
                                             Xóa bộ lọc <span className="material-symbols-outlined !text-[16px]">refresh</span>
                                         </button>
                                     </div>
 
-                                    <div className="pt-2 space-y-6">
+                                    <div className="pt-4 space-y-6">
                                         {/* Bank Filter */}
                                         <div>
                                             <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('bank')}>
@@ -145,8 +147,8 @@ export default function AllCardsPage() {
                                             <div className={`space-y-1 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar ${expandedSections.bank ? 'block' : 'hidden'}`}>
                                                 <div onClick={() => setSelectedBank('Tất cả')} className="flex items-center justify-between cursor-pointer py-1.5 group">
                                                     <div className="flex items-center gap-3">
-                                                        <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === 'Tất cả' ? 'bg-vp-green border-vp-green text-white' : 'border-[1.5px] border-slate-300 dark:border-slate-600 group-hover:border-vp-green/50'}`}>
-                                                            {selectedBank === 'Tất cả' && <span className="material-symbols-outlined text-[14px] font-bold">check</span>}
+                                                        <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === 'Tất cả' ? 'bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-950 shadow-sm' : 'border-2 border-slate-300 dark:border-slate-600 group-hover:border-green-400/50'}`}>
+                                                            {selectedBank === 'Tất cả' && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 800" }}>check</span>}
                                                         </span>
                                                         <span className="material-symbols-outlined text-vp-green text-[20px]">account_balance</span>
                                                         <span className="text-[15px] text-slate-700 dark:text-slate-300">Tất cả ngân hàng</span>
@@ -159,8 +161,8 @@ export default function AllCardsPage() {
                                                     return (
                                                         <div key={bank} onClick={() => setSelectedBank(bank)} className="flex items-center justify-between cursor-pointer py-1.5 group">
                                                             <div className="flex items-center gap-3">
-                                                                <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === bank ? 'bg-vp-green border-vp-green text-white' : 'border-[1.5px] border-slate-300 dark:border-slate-600 group-hover:border-vp-green/50'}`}>
-                                                                    {selectedBank === bank && <span className="material-symbols-outlined text-[14px] font-bold">check</span>}
+                                                                <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === bank ? 'bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-950 shadow-sm' : 'border-2 border-slate-300 dark:border-slate-600 group-hover:border-green-400/50'}`}>
+                                                                    {selectedBank === bank && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 800" }}>check</span>}
                                                                 </span>
                                                                 {bankLogo ? (
                                                                     <img src={bankLogo} alt={bank} className="h-5 w-6 object-contain flex-shrink-0 dark:bg-white/90 dark:rounded dark:px-0.5" />
@@ -264,6 +266,15 @@ export default function AllCardsPage() {
 
                         {/* Main Content Area */}
                         <div className="flex-1">
+                            {/* Header inside right column */}
+                            <div className="text-center mb-5">
+                                <h1 className="text-3xl font-bold mb-2 tracking-tight text-slate-900 dark:text-white">
+                                    Danh sách thẻ tín dụng
+                                </h1>
+                                <p className="text-[15px] text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
+                                    So sánh ưu đãi và chọn thẻ mang lại giá trị tốt nhất cho bạn.
+                                </p>
+                            </div>
                             <div className="flex flex-wrap items-center justify-between gap-3 mb-5 px-1">
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
                                     Tìm thấy <strong className="text-slate-900 dark:text-white">{filteredCards.length} thẻ</strong>
@@ -346,7 +357,11 @@ export default function AllCardsPage() {
 
                                         const topRule = card.cashbackRules?.reduce((best, r) => r.percentage > (best?.percentage || 0) ? r : best, card.cashbackRules[0]);
                                         return (
-                                            <div key={card.id} className="group bg-white dark:bg-[#0c1425] rounded-2xl border border-slate-200/60 dark:border-slate-800/80 hover:border-vp-green/60 dark:hover:border-vp-green/50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)] dark:hover:shadow-[0_20px_40px_rgba(0,177,79,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                                            <div key={card.id} className={`group bg-white dark:bg-[#0c1425] rounded-2xl border shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)] dark:hover:shadow-[0_20px_40px_rgba(0,177,79,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col ${
+                                              card.id && isInCompare(card.id)
+                                                ? 'border-vp-green ring-1 ring-vp-green'
+                                                : 'border-slate-200/60 dark:border-slate-800/80 hover:border-vp-green/60 dark:hover:border-vp-green/50'
+                                            }`}>
                                                 <div className="flex items-center justify-between px-5 pt-5 pb-3">
                                                     <div className="flex items-center gap-2">
                                                         {card.bankLogo && <img src={card.bankLogo} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />}
@@ -384,6 +399,13 @@ export default function AllCardsPage() {
                                                     </div>
                                                 </div>
 
+                                                {card.minSpendForCashback ? (
+                                                    <div className="mx-5 mb-4 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800/50 flex items-center justify-center gap-1.5 text-sky-700 dark:text-sky-300">
+                                                        <span className="material-symbols-outlined text-[14px]">shopping_bag</span>
+                                                        <span className="text-[11px] font-bold">Chi tiêu tối thiểu: {(card.minSpendForCashback / 1000000).toLocaleString('vi-VN')} Tr/tháng</span>
+                                                    </div>
+                                                ) : null}
+
                                                 {/* Category Tags */}
                                                 {(() => {
                                                     const cardCategories = Array.from(new Set(card.cashbackRules?.map(r => r.category)))
@@ -396,45 +418,108 @@ export default function AllCardsPage() {
                                                     if (cardCategories.length > 0) {
                                                         return (
                                                             <div className="px-5 pb-3 relative">
-                                                                <TooltipProvider>
-                                                                    <Tooltip delayDuration={300}>
-                                                                        <TooltipTrigger asChild>
-                                                                            <div className="flex flex-wrap gap-1.5 max-h-[32px] overflow-hidden cursor-help items-center">
-                                                                                {cardCategories.map((cat, idx) => {
-                                                                                    const categoryColor = categories.find(c => c.name === cat.name)?.color || '#6366f1';
-                                                                                    return (
-                                                                                        <span key={idx} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold border" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor, borderColor: `${categoryColor}30` }}>
-                                                                                            <span className="flex items-center gap-1">
-                                                                                                <span className="w-1.5 h-1.5 shrink-0 rounded-full" style={{ backgroundColor: categoryColor }}></span>
-                                                                                                {cat.name}
-                                                                                            </span>
-                                                                                            <span className="px-1 py-0.5 rounded text-[9px] bg-white dark:bg-black/20" style={{ color: categoryColor }}>
-                                                                                                {cat.percentage}%
-                                                                                            </span>
-                                                                                        </span>
-                                                                                    );
-                                                                                })}
-                                                                            </div>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent side="top" className="max-w-[250px] bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 shadow-xl font-medium text-xs">
-                                                                            <div className="flex flex-col gap-1.5">
-                                                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Danh mục hoàn tiền</p>
-                                                                                {cardCategories.map((cat, idx) => {
-                                                                                    const categoryColor = categories.find(c => c.name === cat.name)?.color || '#6366f1';
-                                                                                    return (
-                                                                                        <div key={idx} className="flex items-center justify-between gap-4">
-                                                                                            <div className="flex items-center gap-2">
-                                                                                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: categoryColor }}></span>
-                                                                                                <span>{cat.name}</span>
-                                                                                            </div>
-                                                                                            <span className="font-bold" style={{ color: categoryColor }}>{cat.percentage}%</span>
-                                                                                        </div>
-                                                                                    );
-                                                                                })}
-                                                                            </div>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
+                                                                            {(() => {
+                                                                                const cardCategoriesWithPercentage = cardCategories; // Already calculated above
+                                                                                // Removed hardcoded tagColors array as we are using backend colors now
+
+                                                                                const allTags = [
+                                                                                    ...cardCategoriesWithPercentage.map((cat, idx) => ({ type: 'category' as const, data: cat, idx })),
+                                                                                    ...(card.tags || []).map((tag, idx) => ({ type: 'tag' as const, data: tag, idx }))
+                                                                                ];
+
+                                                                                if (allTags.length === 0) return null;
+
+                                                                                let currentLength = 0;
+                                                                                let MAX_TAGS = 0;
+                                                                                for (let i = 0; i < allTags.length; i++) {
+                                                                                    const textLength = allTags[i].type === 'category' ? (allTags[i].data as {name: string}).name.length : (allTags[i].data as string).length;
+                                                                                    if (currentLength + textLength > 25 && MAX_TAGS > 0) {
+                                                                                        break;
+                                                                                    }
+                                                                                    currentLength += textLength + 5;
+                                                                                    MAX_TAGS++;
+                                                                                    if (MAX_TAGS >= 2) break;
+                                                                                }
+                                                                                if (allTags.length > 0 && MAX_TAGS === 0) MAX_TAGS = 1;
+
+                                                                                const visibleTags = allTags.slice(0, MAX_TAGS);
+                                                                                const hiddenTags = allTags.slice(MAX_TAGS);
+
+                                                                                return (
+                                                                                    <div className="flex flex-nowrap items-center gap-2 overflow-hidden max-w-full">
+                                                                                        {visibleTags.map((item) => {
+                                                                                            if (item.type === 'category') {
+                                                                                                const cat = item.data as { name: string; percentage: number };
+                                                                                                const hexColor = getCategoryColor(cat.name);
+                                                                                                return (
+                                                                                                    <div key={`cat-${item.idx}`} className="inline-flex items-center rounded-full border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/40 overflow-hidden shrink-0 max-w-full shadow-sm">
+                                                                                                        <div className="flex items-center pl-2 pr-1.5 py-1 min-w-0">
+                                                                                                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-1.5" style={{ backgroundColor: hexColor }}></span>
+                                                                                                            <span className="text-[10.5px] font-bold truncate" style={{ color: hexColor }}>
+                                                                                                                {cat.name}
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                        <div className="pl-1.5 pr-2 py-1 border-l border-slate-200/80 dark:border-slate-800/80 flex-shrink-0 flex items-center justify-center bg-white/50 dark:bg-black/20">
+                                                                                                            <span className="text-[10.5px] font-black leading-none mb-[1px]" style={{ color: hexColor }}>
+                                                                                                                {cat.percentage}%
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                );
+                                                                                            } else {
+                                                                                                const tag = item.data;
+                                                                                                return (
+                                                                                                    <div key={`tag-${item.idx}`} className="inline-flex items-center px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 shrink-0 max-w-full min-w-0">
+                                                                                                        <span className="text-[10px] text-slate-400 flex-shrink-0 mr-1">●</span>
+                                                                                                        <span className="text-[10px] font-medium truncate">{tag}</span>
+                                                                                                    </div>
+                                                                                                );
+                                                                                            }
+                                                                                        })}
+
+                                                                                        {hiddenTags.length > 0 && (
+                                                                                            <TooltipProvider delay={100}>
+                                                                                                <Tooltip>
+                                                                                                    <TooltipTrigger className="flex items-center justify-center px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0">
+                                                                                                        <span className="text-[12px] font-medium">+{hiddenTags.length}</span>
+                                                                                                    </TooltipTrigger>
+                                                                                                    <TooltipContent side="top" className="flex flex-col gap-2 p-2 bg-white dark:bg-[#0c1425] border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl z-50">
+                                                                                                        {hiddenTags.map((item) => {
+                                                                                                            if (item.type === 'category') {
+                                                                                                                const cat = item.data as { name: string; percentage: number };
+                                                                                                                const hexColor = getCategoryColor(cat.name);
+                                                                                                                return (
+                                                                                                                    <div key={`hidden-cat-${item.idx}`} className={`inline-flex items-center justify-between rounded-full border overflow-hidden shrink-0 w-full`} style={{ borderColor: `${hexColor}60`, backgroundColor: `${hexColor}15` }}>
+                                                                                                                        <div className="flex items-center px-2 py-1 min-w-0">
+                                                                                                                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mr-1.5`} style={{ backgroundColor: hexColor }}></span>
+                                                                                                                            <span className={`text-[11px] font-bold truncate`} style={{ color: hexColor }}>
+                                                                                                                                {cat.name}
+                                                                                                                            </span>
+                                                                                                                        </div>
+                                                                                                                        <div className={`px-2 py-1 bg-white/60 dark:bg-black/20 backdrop-blur-sm border-l flex-shrink-0`} style={{ borderColor: `${hexColor}60` }}>
+                                                                                                                            <span className={`text-[11px] font-black`} style={{ color: hexColor }}>
+                                                                                                                                {cat.percentage}%
+                                                                                                                            </span>
+                                                                                                                        </div>
+                                                                                                                    </div>
+                                                                                                                );
+                                                                                                            } else {
+                                                                                                                const tag = item.data;
+                                                                                                                return (
+                                                                                                                    <div key={`hidden-tag-${item.idx}`} className="inline-flex items-center px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 w-full">
+                                                                                                                        <span className="text-[11px] text-slate-400 flex-shrink-0 mr-1.5">●</span>
+                                                                                                                        <span className="text-[11px] font-medium truncate">{tag}</span>
+                                                                                                                    </div>
+                                                                                                                );
+                                                                                                            }
+                                                                                                        })}
+                                                                                                    </TooltipContent>
+                                                                                                </Tooltip>
+                                                                                            </TooltipProvider>
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            })()}
                                                             </div>
                                                         );
                                                     }
@@ -453,17 +538,39 @@ export default function AllCardsPage() {
                                                     </ul>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-2 px-5 pb-5 mt-auto">
-                                                    <Link href={`/card/${card.id}`} className="flex items-center justify-center py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/50 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                                                        Xem chi tiết
+                                                <div className="flex items-center gap-2 px-5 pb-5 mt-auto">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            if (!card.id) return;
+                                                            if (isInCompare(card.id)) {
+                                                              removeFromCompare(card.id);
+                                                            } else {
+                                                              addToCompare(card);
+                                                            }
+                                                        }}
+                                                        className={`flex items-center justify-center w-11 h-11 rounded-xl border flex-shrink-0 transition-colors ${
+                                                            card.id && isInCompare(card.id)
+                                                            ? 'bg-vp-green/10 border-vp-green text-vp-green'
+                                                            : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border-slate-200/60 dark:border-slate-700/50 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                                        }`}
+                                                        title={card.id && isInCompare(card.id) ? "Bỏ chọn" : "So sánh thẻ"}
+                                                    >
+                                                        <span className="material-symbols-outlined text-[20px]">
+                                                            {card.id && isInCompare(card.id) ? 'check_box' : 'compare_arrows'}
+                                                        </span>
+                                                    </button>
+                                                    <Link href={`/card/${generateSlug(card.name)}`} className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/50 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
+                                                        Chi tiết
                                                     </Link>
                                                     {card.registerUrl ? (
-                                                        <a href={card.registerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
-                                                            Đăng ký ngay
+                                                        <a href={card.registerUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
+                                                            Đăng ký
                                                         </a>
                                                     ) : (
-                                                        <Link href={`/card/${card.id}`} className="flex items-center justify-center py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
-                                                            Đăng ký ngay
+                                                        <Link href={`/card/${generateSlug(card.name)}`} className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
+                                                            Đăng ký
                                                         </Link>
                                                     )}
                                                 </div>

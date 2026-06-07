@@ -159,7 +159,7 @@ export default function AdminArticleCategoriesPage() {
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Chuyên Mục Tin Tức</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                        Quản lý hệ thống phân loại và sắp xếp các bài viết trên Zenith News ({categories.length} chuyên mục)
+                        Quản lý hệ thống phân loại và sắp xếp các bài viết trên CredBack News ({categories.length} chuyên mục)
                     </p>
                 </div>
                 <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CardItem } from '@/components/CardItem';
@@ -9,7 +9,7 @@ import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cardApi } from '@/services/api';
-import { cleanCardName } from '@/lib/utils';
+import { cleanCardName, generateSlug } from '@/lib/utils';
 
 // ═══════════════════════════════════════════════════════════
 // COMBO UI COLORS
@@ -85,9 +85,21 @@ function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult
                                     ))}
                                 </div>
 
-                                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subtotal</span>
-                                    <span className={`text-lg font-black ${tw.text}`}>{cc.cashback.toLocaleString('vi-VN')}đ</span>
+                                <div className="flex flex-col gap-1 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng hoàn</span>
+                                        <span className={`text-lg font-black ${tw.text}`}>{cc.cashback.toLocaleString('vi-VN')}đ</span>
+                                    </div>
+                                    {cc.card.minSpendForCashback ? (
+                                        <div className="flex items-center justify-between pt-1 border-t border-slate-100/50 dark:border-slate-800/50 mt-1">
+                                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px]">info</span> Chi tiêu tối thiểu
+                                            </span>
+                                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                                                {(cc.card.minSpendForCashback / 1000000).toLocaleString('vi-VN')}Tr/th
+                                            </span>
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 {cc.card.registerUrl ? (
@@ -97,7 +109,7 @@ function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult
                                         <span className="material-symbols-outlined text-base">arrow_forward</span>
                                     </a>
                                 ) : (
-                                    <Link href={`/card/${cc.card.id}`}
+                                    <Link href={`/card/${generateSlug(cc.card.name)}`}
                                         className={`mt-4 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all ${tw.btn}`}>
                                         Xem chi tiết
                                         <span className="material-symbols-outlined text-base">arrow_forward</span>
@@ -235,7 +247,7 @@ function GamifiedBestCard({ card }: { card: Card }) {
                                     </>
                                 )}
                             </Button>
-                            <Link href={`/card/${card.id}`} className="flex-1 sm:flex-none">
+                            <Link href={`/card/${generateSlug(card.name)}`} className="flex-1 sm:flex-none">
                                 <Button className="w-full font-black px-8 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-900 shadow-xl shadow-amber-500/30 hover:scale-105 transition-transform border-none">
                                     ĐĂNG KÝ NGAY
                                 </Button>
@@ -268,6 +280,12 @@ function RecommendationsContent() {
     const [loading, setLoading] = useState(true);
     const [selectedBank, setSelectedBank] = useState<string>('Tất cả ngân hàng');
     const [spendingBreakdown, setSpendingBreakdown] = useState<CategorySpending[]>([]);
+    const historySavedRef = useRef(false);
+
+    // Reset history saved flag when search params change
+    useEffect(() => {
+        historySavedRef.current = false;
+    }, [spending, salary, topCategory]);
 
     // Load spending breakdown from sessionStorage
     useEffect(() => {
@@ -288,6 +306,9 @@ function RecommendationsContent() {
     }, [topCategory, spending]);
 
     useEffect(() => {
+        // Wait until spendingBreakdown has loaded from sessionStorage
+        if (spendingBreakdown.length === 0) return;
+
         const fetchRecommendations = async () => {
             try {
                 setLoading(true);
@@ -313,15 +334,21 @@ function RecommendationsContent() {
                 setCards(cardsWithCashback);
                 setComboResult(response.bestCombo);
 
-                // Save to search history
-                if (user?.id && cardsWithCashback.length > 0) {
+                // Save to search history (only once per search)
+                if (user?.id && cardsWithCashback.length > 0 && !historySavedRef.current) {
+                    historySavedRef.current = true;
                     try {
                         const historyKey = `search_history_${user.id}`;
                         const existing = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                        const bestCashback = cardsWithCashback.length > 0 ? (cardsWithCashback[0].cashbackAmount || 0) : 0;
                         const newEntry = {
                             id: Date.now().toString(),
                             date: new Date().toISOString(),
                             query: `Chi tiêu ${(spending / 1000000).toFixed(0)}tr - ${topCategory}`,
+                            salary: salary,
+                            totalSpending: spending,
+                            spendingCategories: spendingBreakdown.map(s => ({ category: s.category, amount: s.amount })),
+                            bestCashback: bestCashback,
                             results: cardsWithCashback.slice(0, 6).map((c: Card) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, bankName: c.bankName })),
                         };
                         const updated = [newEntry, ...existing].slice(0, 20);

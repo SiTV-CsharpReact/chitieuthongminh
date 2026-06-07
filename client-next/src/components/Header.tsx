@@ -12,7 +12,7 @@ const NAV_ITEMS = [
     { label: 'Trang chủ', path: '/' },
     { label: 'Giới thiệu', path: '/about', icon: 'info' },
     // { label: 'Công nghệ', path: '/technologies', icon: 'memory' },
-    { label: 'Tất cả thẻ', path: '/cards', icon: 'credit_card' },
+    { label: 'Danh sách thẻ', path: '/cards', icon: 'credit_card' },
     { label: 'Tin tức', path: '/news', icon: 'newspaper' },
     { label: 'Cài đặt', path: '/settings', icon: 'settings' },
 ];
@@ -21,7 +21,7 @@ export const Header: React.FC = () => {
     const pathname = usePathname();
     const { isAuthenticated, user, openLoginModal } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
-    const { selectedCards } = useCompare();
+    const { selectedCards, clearCompare } = useCompare();
 
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -120,7 +120,7 @@ export const Header: React.FC = () => {
                     })}
 
                     {/* Admin portal shortcut for admin users */}
-                    {isAuthenticated && user?.email === 'admin@zenith.com' && (
+                    {isAuthenticated && user?.email === 'admin@credback.com' && (
                         <Link
                             href="/admin"
                             className="flex items-center gap-2 h-9 px-5 rounded-full text-xs font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95"
@@ -134,17 +134,27 @@ export const Header: React.FC = () => {
                 {/* Right Side Actions */}
                 <div className="flex items-center gap-3 z-10">
                     {/* Comparison Badge */}
-                    {selectedCards.length > 0 && (
-                        <Link
-                            href="/compare"
-                            className="flex items-center gap-2 h-10 px-4 rounded-full bg-primary-500 text-white text-xs font-black shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">compare_arrows</span>
-                            <span className="hidden sm:inline">So sánh</span>
-                            <span className="h-5 w-5 flex items-center justify-center bg-white text-primary-600 rounded-full text-[10px]">
-                                {selectedCards.length}
-                            </span>
-                        </Link>
+                    {selectedCards.length > 0 && pathname !== '/compare' && (
+                        <div className="flex items-center h-10 rounded-full bg-primary-500 text-white shadow-lg shadow-primary-500/20 transition-all hover:shadow-xl">
+                            <Link
+                                href="/compare"
+                                className="flex items-center gap-2 h-full pl-4 pr-2 rounded-l-full hover:bg-white/10 transition-colors text-xs font-black"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">compare_arrows</span>
+                                <span className="hidden sm:inline">So sánh</span>
+                                <span className="h-5 w-5 flex items-center justify-center bg-white text-primary-600 rounded-full text-[10px]">
+                                    {selectedCards.length}
+                                </span>
+                            </Link>
+                            <div className="w-[1px] h-5 bg-white/20"></div>
+                            <button
+                                onClick={clearCompare}
+                                className="flex items-center justify-center h-full pr-3 pl-2 rounded-r-full hover:bg-white/10 transition-colors text-white/80 hover:text-white"
+                                title="Xóa tất cả thẻ đang so sánh"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">close</span>
+                            </button>
+                        </div>
                     )}
 
                     <button
@@ -223,7 +233,7 @@ export const Header: React.FC = () => {
                                 );
                             })}
 
-                            {isAuthenticated && user?.email === 'admin@zenith.com' && (
+                            {isAuthenticated && user?.email === 'admin@credback.com' && (
                                 <Link
                                     href="/admin"
                                     onClick={() => setMobileMenuOpen(false)}

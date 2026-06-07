@@ -7,6 +7,7 @@ import { Card as CreditCard, CashbackRule, Category } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AdminButton from '@/components/Admin/AdminButton';
 import { cleanCardName } from '@/lib/utils';
+import { PortraitCardVisual } from '@/components/PortraitCardVisual';
 
 export default function AdminCardsPage() {
     const [cards, setCards] = useState<CreditCard[]>([]);
@@ -26,6 +27,7 @@ export default function AdminCardsPage() {
     const [minSalary, setMinSalary] = useState<number | ''>('');
     const [requirement, setRequirement] = useState('');
     const [maxCashbackPerMonth, setMaxCashbackPerMonth] = useState<number | ''>('');
+    const [minSpendForCashback, setMinSpendForCashback] = useState<number | ''>('');
     const [cashbackRules, setCashbackRules] = useState<CashbackRule[]>([]);
     const [welcomeOffer, setWelcomeOffer] = useState('');
     const [status, setStatus] = useState('Active');
@@ -150,6 +152,7 @@ export default function AdminCardsPage() {
             welcomeOffer,
             status,
             maxCashbackPerMonth: maxCashbackPerMonth === '' ? undefined : Number(maxCashbackPerMonth),
+            minSpendForCashback: minSpendForCashback === '' ? undefined : Number(minSpendForCashback),
             cashbackRules,
             description,
             benefits: benefits.filter(s => s.trim() !== '').length > 0 ? benefits.filter(s => s.trim() !== '') : ["Thanh toán tiện lợi", "Bảo mật cao"],
@@ -229,6 +232,7 @@ export default function AdminCardsPage() {
         setWelcomeOffer(card.welcomeOffer || '');
         setStatus(card.status || 'Active');
         setMaxCashbackPerMonth(card.maxCashbackPerMonth ?? '');
+        setMinSpendForCashback(card.minSpendForCashback ?? '');
         setCashbackRules(card.cashbackRules || []);
         setDescription(card.description || '');
         setBenefits(card.benefits || []);
@@ -252,6 +256,7 @@ export default function AdminCardsPage() {
         setWelcomeOffer('');
         setStatus('Active');
         setMaxCashbackPerMonth('');
+        setMinSpendForCashback('');
         setCashbackRules([{ category: 'Tất cả', percentage: 1 }]);
         setDescription('');
         setBenefits([]);
@@ -419,16 +424,12 @@ export default function AdminCardsPage() {
                                     </td>
                                     <td className="px-5 py-2.5">
                                         <div className="flex items-center gap-5">
-                                            <div className="w-16 h-10 flex items-center justify-center">
+                                            <div className="w-16 h-10 relative rounded shadow-sm overflow-hidden flex items-center justify-center">
                                                 {card.imageUrl ? (
-                                                    <img
-                                                        src={card.imageUrl}
-                                                        alt={card.name}
-                                                        className="max-h-full max-w-full object-contain rounded shadow-sm border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
-                                                    />
+                                                    <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} roundedClass="rounded" />
                                                 ) : (
-                                                    <div className="w-full h-full rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
-                                                        <span className="material-symbols-outlined text-slate-300 text-xl">credit_card</span>
+                                                    <div className="w-full h-full rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                                                        <span className="material-symbols-outlined text-slate-300 text-lg">credit_card</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -639,18 +640,7 @@ export default function AdminCardsPage() {
                                             placeholder="HSBC, Techcombank..."
                                         />
                                     </div>
-
                                     <div className="md:col-span-4 space-y-2">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Logo Ngân hàng (URL)</label>
-                                        <input
-                                            type="url"
-                                            value={bankLogo}
-                                            onChange={e => setBankLogo(e.target.value)}
-                                            className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
-                                            placeholder="https://..."
-                                        />
-                                    </div>
-                                    <div className="md:col-span-3 space-y-2">
                                         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Trạng thái</label>
                                         <select
                                             value={status}
@@ -688,6 +678,22 @@ export default function AdminCardsPage() {
                                                 }}
                                                 placeholder="Vd: 500000"
                                                 className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-lg px-3 py-2 pl-9 text-xs font-bold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-orange-500 transition-all outline-none"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">₫</span>
+                                        </div>
+                                    </div>
+                                    <div className="md:col-span-3 space-y-2">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Chi tiêu tối thiểu / tháng</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={minSpendForCashback !== '' ? minSpendForCashback.toLocaleString('vi-VN') : ''}
+                                                onChange={e => {
+                                                    const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                                                    setMinSpendForCashback(numericValue ? Number(numericValue) : '');
+                                                }}
+                                                placeholder="Vd: 5000000"
+                                                className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-lg px-3 py-2 pl-9 text-xs font-bold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                                             />
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">₫</span>
                                         </div>
@@ -754,12 +760,10 @@ export default function AdminCardsPage() {
                                             </div>
                                         ) : imageUrl ? (
                                             <>
-                                                <img
-                                                    src={imageUrl}
-                                                    alt="Card preview"
-                                                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <div className="absolute inset-0 w-full h-full pointer-events-none transition-transform duration-500 group-hover:scale-105">
+                                                    <PortraitCardVisual imageUrl={imageUrl} name={name || 'Card Preview'} roundedClass="rounded-xl" />
+                                                </div>
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
                                                     <div className="bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 transform translate-y-1 group-hover:translate-y-0 transition-transform">
                                                         Đổi ảnh
                                                     </div>

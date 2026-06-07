@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="admin@spending.com"
+                                placeholder="admin@credback.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-600 font-bold"

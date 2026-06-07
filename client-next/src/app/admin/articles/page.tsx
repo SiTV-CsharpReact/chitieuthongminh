@@ -193,7 +193,7 @@ export default function AdminArticlesPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản lý bài viết</h1>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Hệ thống Zenith News CMS Professional</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Hệ thống CredBack News CMS Professional</p>
                 </div>
                 <AdminButton
                     onClick={() => { resetForm(); setIsModalOpen(true); }}
@@ -221,7 +221,7 @@ export default function AdminArticlesPage() {
                             <DialogTitle className="text-lg font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-tight">
                                 {currentArticle.id ? 'Hiệu chỉnh bài viết' : 'Tạo bài viết mới'}
                             </DialogTitle>
-                            <p className="text-slate-400 dark:text-slate-500 text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5">Zenith CMS Pro v3.0 - Optimized Interface</p>
+                            <p className="text-slate-400 dark:text-slate-500 text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5">CredBack CMS Pro v3.0 - Optimized Interface</p>
                         </div>
                     </DialogHeader>
 

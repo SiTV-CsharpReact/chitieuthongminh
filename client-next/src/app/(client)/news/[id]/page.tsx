@@ -96,7 +96,7 @@ export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
                         </div>
                         <div>
                             <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">{article.author || 'Admin'}</p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Zenith Finance Analyst</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">CredBack Finance Analyst</p>
                         </div>
                     </div>
 

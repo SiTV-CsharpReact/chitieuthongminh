@@ -27,6 +27,7 @@ public class CreditCard
     public string? Status { get; set; } = "Active"; // Trạng thái thẻ (Active / Discontinued)
     
     public decimal? MaxCashbackPerMonth { get; set; } // Số tiền hoàn tối đa mỗi tháng (VNĐ)
+    public decimal MinSpendForCashback { get; set; } // Chi tiêu tối thiểu để được hoàn (VNĐ)
     
     public string? Description { get; set; }
     public List<string> Benefits { get; set; } = new();

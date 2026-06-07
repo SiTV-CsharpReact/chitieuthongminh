@@ -22,10 +22,22 @@ public class CreditCardsController : ControllerBase
     public async Task<List<CreditCard>> Get() =>
         await _creditCardService.GetAsync();
 
-    [HttpGet("{id:length(24)}")]
-    public async Task<ActionResult<CreditCard>> Get(string id)
+    [HttpGet("{idOrSlug}")]
+    public async Task<ActionResult<CreditCard>> Get(string idOrSlug)
     {
-        var card = await _creditCardService.GetAsync(id);
+        CreditCard? card = null;
+
+        // Try by ID first if it's a valid 24-character hex string
+        if (idOrSlug.Length == 24 && Regex.IsMatch(idOrSlug, @"\A\b[0-9a-fA-F]+\b\Z"))
+        {
+            card = await _creditCardService.GetAsync(idOrSlug);
+        }
+
+        // If not found or not a valid ID format, try by Slug
+        if (card is null)
+        {
+            card = await _creditCardService.GetBySlugAsync(idOrSlug);
+        }
 
         if (card is null)
         {

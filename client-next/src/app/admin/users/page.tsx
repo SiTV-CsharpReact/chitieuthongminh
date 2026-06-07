@@ -102,7 +102,7 @@ export default function AdminUsersPage() {
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản Lý Người Dùng</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                        Giám sát và phân quyền hệ thống tài khoản Zenith ({regularUsers.length} tài khoản)
+                        Giám sát và phân quyền hệ thống tài khoản CredBack ({regularUsers.length} tài khoản)
                     </p>
                 </div>
                 <AdminButton

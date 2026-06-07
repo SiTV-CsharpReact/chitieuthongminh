@@ -10,7 +10,7 @@ import { useFavorites } from '@/context/FavoritesContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cleanCardName } from '@/lib/utils';
+import { cleanCardName, generateSlug } from '@/lib/utils';
 
 export default function SettingsPage() {
     const { user, isAuthenticated, logout, openLoginModal } = useAuth();
@@ -25,8 +25,10 @@ export default function SettingsPage() {
     });
 
     // Search history state
-    const [searchHistory, setSearchHistory] = useState<{ id: string; date: string; query: string; results: Card[] }[]>([]);
+    const [searchHistory, setSearchHistory] = useState<{ id: string; date: string; query: string; salary?: number; totalSpending?: number; spendingCategories?: { category: string; amount: number }[]; bestCashback?: number; results: Card[] }[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyPage, setHistoryPage] = useState(1);
+    const HISTORY_ITEMS_PER_PAGE = 5;
 
     useEffect(() => {
         if (activeTab === 'history' && user?.id) {
@@ -111,7 +113,7 @@ export default function SettingsPage() {
                             {menuItems.map((item) => (
                                 <button
                                     key={item.id}
-                                    onClick={() => setActiveTab(item.id as any)}
+                                    onClick={() => setActiveTab(item.id as 'profile' | 'preferences' | 'security' | 'notifications' | 'history' | 'mycards')}
                                     className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-200
                                         ${activeTab === item.id 
                                             ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' 
@@ -135,10 +137,10 @@ export default function SettingsPage() {
                                 <div className="animate-fade-in space-y-8">
                                     <div className="flex items-center gap-6 pb-8 border-b border-slate-100 dark:border-slate-800">
                                         <div className="relative group">
-                                            <div className="h-24 w-24 rounded-full overflow-hidden ring-4 ring-slate-100 dark:ring-slate-800 transition-all group-hover:ring-primary-500/30">
+                                            <div className="h-24 w-24 rounded-full overflow-hidden ring-4 ring-slate-100 dark:ring-slate-800 transition-all group-hover:ring-primary-500/30 opacity-80">
                                                 <img src={user.avatar} alt="Avatar" className="h-full w-full object-cover" />
                                             </div>
-                                            <Button size="icon" className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-lg bg-primary-500 hover:bg-primary-600">
+                                            <Button disabled size="icon" className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-lg bg-slate-400 cursor-not-allowed">
                                                 <span className="material-symbols-outlined text-sm">edit</span>
                                             </Button>
                                         </div>
@@ -148,25 +150,32 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-6 max-w-2xl">
-                                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                    <div className="space-y-6 max-w-2xl relative">
+                                        <div className="absolute inset-0 z-10 bg-white/40 dark:bg-slate-900/40 rounded-2xl flex items-center justify-center backdrop-blur-[1px]">
+                                            <div className="bg-slate-900 dark:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xl flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-[16px] text-yellow-400">construction</span>
+                                                Tính năng cập nhật hồ sơ đang được bảo trì
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 opacity-60 pointer-events-none">
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Họ và tên</Label>
-                                                <Input type="text" defaultValue={user.name} className="rounded-xl border-slate-200 dark:border-slate-800" />
+                                                <Input disabled type="text" defaultValue={user.name} className="rounded-xl border-slate-200 dark:border-slate-800" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Số điện thoại</Label>
-                                                <Input type="tel" placeholder="+84" className="rounded-xl border-slate-200 dark:border-slate-800" />
+                                                <Input disabled type="tel" placeholder="+84" className="rounded-xl border-slate-200 dark:border-slate-800" />
                                             </div>
                                         </div>
-                                        <div className="space-y-1.5">
+                                        <div className="space-y-1.5 opacity-60 pointer-events-none">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bio</Label>
                                             <textarea 
-                                                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-primary-500 min-h-[100px]" 
+                                                disabled
+                                                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 min-h-[100px]" 
                                                 defaultValue="Chuyên gia tài chính cá nhân."
                                             ></textarea>
                                         </div>
-                                        <Button className="rounded-xl font-bold px-8">
+                                        <Button disabled className="rounded-xl font-bold px-8 opacity-50 cursor-not-allowed">
                                             Lưu thay đổi
                                         </Button>
                                     </div>
@@ -318,7 +327,7 @@ export default function SettingsPage() {
                                         </div>
                                     ) : searchHistory.length > 0 ? (
                                         <div className="space-y-3">
-                                            {searchHistory.map((entry) => (
+                                            {searchHistory.slice((historyPage - 1) * HISTORY_ITEMS_PER_PAGE, historyPage * HISTORY_ITEMS_PER_PAGE).map((entry) => (
                                                 <div key={entry.id} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary-500/30 transition-all group">
                                                     <div className="flex items-start justify-between mb-3">
                                                         <div className="flex items-center gap-3">
@@ -330,27 +339,91 @@ export default function SettingsPage() {
                                                                 <p className="text-xs text-slate-400">{new Date(entry.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                                             </div>
                                                         </div>
-                                                        <span className="text-xs font-bold text-primary-500 bg-primary-50 dark:bg-primary-900/20 px-2.5 py-1 rounded-full">{entry.results.length} thẻ</span>
-                                                    </div>
-                                                    {entry.results.length > 0 && (
-                                                        <div className="flex gap-2 overflow-x-auto pb-1">
-                                                            {entry.results.slice(0, 4).map((card, i) => (
-                                                                <Link key={i} href={`/card/${card.id}`} className="flex-shrink-0 w-20 group/card">
-                                                                    <div className="w-20 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 mb-1">
-                                                                        <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform" />
-                                                                    </div>
-                                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">{cleanCardName(card.name)}</p>
-                                                                </Link>
-                                                            ))}
-                                                            {entry.results.length > 4 && (
-                                                                <div className="flex-shrink-0 w-20 h-12 rounded-lg bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center">
-                                                                    <span className="text-xs font-bold text-slate-400">+{entry.results.length - 4}</span>
-                                                                </div>
+                                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                                            {entry.bestCashback != null && entry.bestCashback > 0 && (
+                                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 px-2.5 py-1 rounded-full flex items-center gap-1">
+                                                                    <span className="material-symbols-outlined text-[14px]">savings</span>
+                                                                    {entry.bestCashback.toLocaleString('vi-VN')}đ
+                                                                </span>
                                                             )}
+                                                            <span className="text-xs font-bold text-primary-500 bg-primary-50 dark:bg-primary-900/20 px-2.5 py-1 rounded-full">{entry.results.length} thẻ</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Spending details */}
+                                                    {(entry.salary || entry.spendingCategories) && (
+                                                        <div className="mb-4 flex flex-wrap gap-2">
+                                                            {entry.salary != null && entry.salary > 0 && (
+                                                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1.5 rounded-lg flex items-center gap-1 border border-slate-200/50 dark:border-slate-700">
+                                                                    <span className="material-symbols-outlined text-[12px]">payments</span>
+                                                                    Lương: {(entry.salary / 1000000).toFixed(0)}tr
+                                                                </span>
+                                                            )}
+                                                            {entry.totalSpending != null && entry.totalSpending > 0 && (
+                                                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1.5 rounded-lg flex items-center gap-1 border border-slate-200/50 dark:border-slate-700">
+                                                                    <span className="material-symbols-outlined text-[12px]">shopping_cart</span>
+                                                                    Tổng: {(entry.totalSpending / 1000000).toFixed(0)}tr
+                                                                </span>
+                                                            )}
+                                                            {entry.spendingCategories && entry.spendingCategories.map((sc, idx) => (
+                                                                <span key={idx} className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-500/20">
+                                                                    {sc.category}: {(sc.amount / 1000000).toFixed(sc.amount % 1000000 === 0 ? 0 : 1)}tr
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {entry.results.length > 0 && (
+                                                        <div className="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-3 shadow-sm">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Thẻ gợi ý</p>
+                                                            </div>
+                                                            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+                                                                {entry.results.slice(0, 4).map((card, i) => (
+                                                                    <Link key={i} href={`/card/${generateSlug(card.name)}`} className="flex-shrink-0 w-[72px] group/card">
+                                                                        <div className="w-[72px] h-[46px] rounded-lg overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-100 dark:bg-slate-800 group-hover/card:ring-emerald-500 transition-all shadow-sm">
+                                                                            <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-300" />
+                                                                        </div>
+                                                                        <p className="text-[9px] text-slate-600 dark:text-slate-400 font-bold truncate mt-1.5 text-center">{cleanCardName(card.name)}</p>
+                                                                    </Link>
+                                                                ))}
+                                                                {entry.results.length > 4 && (
+                                                                    <div className="flex-shrink-0 w-[72px] h-[46px] rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                                                                        <span className="text-xs font-bold text-slate-400">+{entry.results.length - 4}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
                                             ))}
+                                            {Math.ceil(searchHistory.length / HISTORY_ITEMS_PER_PAGE) > 1 && (
+                                                <div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                                                        disabled={historyPage === 1}
+                                                        className="rounded-xl"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm mr-1">chevron_left</span>
+                                                        Trước
+                                                    </Button>
+                                                    <span className="text-sm font-bold text-slate-500">
+                                                        Trang {historyPage} / {Math.ceil(searchHistory.length / HISTORY_ITEMS_PER_PAGE)}
+                                                    </span>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        onClick={() => setHistoryPage(p => Math.min(Math.ceil(searchHistory.length / HISTORY_ITEMS_PER_PAGE), p + 1))}
+                                                        disabled={historyPage === Math.ceil(searchHistory.length / HISTORY_ITEMS_PER_PAGE)}
+                                                        className="rounded-xl"
+                                                    >
+                                                        Sau
+                                                        <span className="material-symbols-outlined text-sm ml-1">chevron_right</span>
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="py-16 text-center rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
@@ -389,11 +462,11 @@ export default function SettingsPage() {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {favorites.map(card => (
                                                     <div key={card.id} className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary-500/30 transition-all group">
-                                                        <Link href={`/card/${card.id}`} className="flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700">
+                                                        <Link href={`/card/${generateSlug(card.name)}`} className="flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700">
                                                             <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                                                         </Link>
                                                         <div className="flex-1 min-w-0">
-                                                            <Link href={`/card/${card.id}`} className="font-bold text-sm text-slate-900 dark:text-white truncate block hover:text-primary-500 transition-colors">{cleanCardName(card.name)}</Link>
+                                                            <Link href={`/card/${generateSlug(card.name)}`} className="font-bold text-sm text-slate-900 dark:text-white truncate block hover:text-primary-500 transition-colors">{cleanCardName(card.name)}</Link>
                                                             <p className="text-xs text-slate-400 truncate">{card.bankName}</p>
                                                         </div>
                                                         <button onClick={() => removeFavorite(card.id)} className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" title="Bỏ yêu thích">
@@ -432,11 +505,11 @@ export default function SettingsPage() {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {ownedCards.map(card => (
                                                     <div key={card.id} className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary-500/30 transition-all group">
-                                                        <Link href={`/card/${card.id}`} className="flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700">
+                                                        <Link href={`/card/${generateSlug(card.name)}`} className="flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700">
                                                             <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                                                         </Link>
                                                         <div className="flex-1 min-w-0">
-                                                            <Link href={`/card/${card.id}`} className="font-bold text-sm text-slate-900 dark:text-white truncate block hover:text-primary-500 transition-colors">{cleanCardName(card.name)}</Link>
+                                                            <Link href={`/card/${generateSlug(card.name)}`} className="font-bold text-sm text-slate-900 dark:text-white truncate block hover:text-primary-500 transition-colors">{cleanCardName(card.name)}</Link>
                                                             <div className="flex items-center gap-1.5 mt-0.5">
                                                                 <p className="text-xs text-slate-400 truncate">{card.bankName}</p>
                                                                 <span className="text-[10px] font-bold text-primary-500 bg-primary-50 dark:bg-primary-900/20 px-1.5 py-0.5 rounded">Đang dùng</span>

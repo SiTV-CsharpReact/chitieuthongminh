@@ -20,6 +20,7 @@ export interface Card {
   welcomeOffer?: string; // Quà chào mừng mở thẻ
   status?: string; // 'Active' | 'Discontinued'
   maxCashbackPerMonth?: number; // Số tiền hoàn tối đa mỗi tháng (VNĐ)
+  minSpendForCashback?: number; // Chi tiêu tối thiểu để được hoàn (VNĐ)
   cashbackRules: CashbackRule[];
   description?: string;
   benefits: string[];

@@ -6,9 +6,13 @@ import { Card } from '@/types';
 import { cardApi } from '@/services/api';
 import { CardItem } from '@/components/CardItem';
 import { useCompare } from '@/context/CompareContext';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CardCashbackBreakdown, CategorySpending } from '@/types';
+import { useCategoryContext } from '@/context/CategoryContext';
 import { Logo } from '@/components/Logo';
-import { cleanCardName } from '@/lib/utils';
+import { cleanCardName, generateSlug } from '@/lib/utils';
 import { PortraitCardVisual } from '@/components/PortraitCardVisual';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const personas = [
   { id: 'student', title: 'Sinh viên', desc: 'Bắt đầu hành trình tài chính thông minh', icon: 'school' },
@@ -17,7 +21,7 @@ const personas = [
   { id: 'business', title: 'Doanh nghiệp', desc: 'Giải pháp tài chính linh hoạt cho doanh nghiệp', icon: 'business' },
 ];
 
-const interestTags = ['Hoàn tiền', 'Du lịch', 'Trả góp 0%', 'Hạn mức cao', 'Tiêu dùng hàng ngày', 'Không phí', 'Khác'];
+const interestTags = ['Tất cả', 'Siêu thị', 'Mua sắm', 'Du lịch', 'Ẩm thực', 'Bảo hiểm', 'Giáo dục', 'Online', 'Miễn phí thường niên'];
 
 const whyUs = [
   { icon: 'language', title: '100% Online', desc: 'Đăng ký hoàn toàn online, nhận thẻ tại nhà' },
@@ -30,14 +34,29 @@ export default function HomePage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBank, setSelectedBank] = useState('Tất cả');
-  const [selectedInterest, setSelectedInterest] = useState('Hoàn tiền');
+  const [selectedInterest, setSelectedInterest] = useState('Tất cả');
   const [sortBy, setSortBy] = useState('Phù hợp với bạn');
   const [cashbackRange, setCashbackRange] = useState([0, 16]);
   const [feeFilter, setFeeFilter] = useState('Tất cả');
+  const [selectedAudience, setSelectedAudience] = useState<string>('Tất cả');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedSections, setExpandedSections] = useState({
+      bank: true,
+      audience: true,
+      category: true,
+      fee: true,
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+      setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   const [creditLimit, setCreditLimit] = useState([0, 2000]);
   const [pageSize, setPageSize] = useState(6);
   const [currentPage, setCurrentPage] = useState(1);
-  const { selectedCards: compareCards } = useCompare();
+  const { selectedCards: compareCards, isInCompare, addToCompare, removeFromCompare } = useCompare();
+  const { getCategoryColor } = useCategoryContext();
 
   useEffect(() => {
     const fetchCards = async () => {
@@ -55,14 +74,47 @@ export default function HomePage() {
   }, []);
 
   const banks = Array.from(new Set(cards.map(c => c.bankName)));
+  const audiences = ['Tất cả', 'Sinh viên', 'Người đi làm', 'Gia đình', 'Doanh nghiệp'];
+  const filterCategories = ['Tất cả', ...Array.from(new Set(cards.flatMap(c => c.cashbackRules?.map(r => r.category) || []))).filter(Boolean).filter(c => c !== 'Tất cả')];
+  const fees = ['Tất cả', 'Miễn phí', 'Dưới 500.000đ', '500.000đ - 1.000.000đ', 'Trên 1.000.000đ'];
 
   const filteredCards = cards.filter(card => {
-    if (selectedBank !== 'Tất cả' && card.bankName !== selectedBank) return false;
-    if (feeFilter === 'Miễn phí' && card.annualFee > 0) return false;
-    if (feeFilter === 'Dưới 500.000đ' && card.annualFee >= 500000) return false;
-    if (feeFilter === '500.000đ - 1.000.000đ' && (card.annualFee < 500000 || card.annualFee > 1000000)) return false;
-    if (feeFilter === 'Trên 1.000.000đ' && card.annualFee <= 1000000) return false;
-    return true;
+      // Bank Filter
+      const matchBank = selectedBank === 'Tất cả' || card.bankName === selectedBank;
+
+      // Audience Filter
+      const matchAudience = selectedAudience === 'Tất cả' || (card.tags && card.tags.includes(selectedAudience));
+
+      // Fee Filter
+      let matchFee = true;
+      if (feeFilter === 'Miễn phí') {
+          matchFee = card.annualFee === 0;
+      } else if (feeFilter === 'Dưới 500.000đ') {
+          matchFee = card.annualFee > 0 && card.annualFee < 500000;
+      } else if (feeFilter === '500.000đ - 1.000.000đ') {
+          matchFee = card.annualFee >= 500000 && card.annualFee <= 1000000;
+      } else if (feeFilter === 'Trên 1.000.000đ') {
+          matchFee = card.annualFee > 1000000;
+      }
+
+      // Category Filter
+      const matchCategory = selectedCategories.length === 0 || (card.cashbackRules && card.cashbackRules.some(r => selectedCategories.includes(r.category)));
+
+      // Search Filter
+      const matchSearch = searchTerm === '' || card.name.toLowerCase().includes(searchTerm.toLowerCase()) || (card.bankName && card.bankName.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      // Interest Filter
+      let matchInterest = true;
+      if (selectedInterest !== 'Tất cả') {
+          const s = selectedInterest.toLowerCase();
+          matchInterest = (card.tags && card.tags.some(t => t.toLowerCase().includes(s))) || 
+                          (card.description && card.description.toLowerCase().includes(s)) ||
+                          (card.benefits && card.benefits.some(b => b.toLowerCase().includes(s))) ||
+                          (card.cashbackRules && card.cashbackRules.some(r => r.category.toLowerCase().includes(s))) ||
+                          (card.name.toLowerCase().includes(s));
+      }
+
+      return matchBank && matchAudience && matchFee && matchCategory && matchSearch && matchInterest;
   });
 
   // Pagination
@@ -71,7 +123,7 @@ export default function HomePage() {
   const paginatedCards = filteredCards.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   // Reset page when filters change
-  useEffect(() => { setCurrentPage(1); }, [selectedBank, feeFilter, selectedInterest, pageSize]);
+  useEffect(() => { setCurrentPage(1); }, [selectedBank, feeFilter, selectedAudience, selectedCategories, searchTerm, pageSize, selectedInterest]);
 
   const scrollToCards = () => {
     document.getElementById('cards-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -217,7 +269,10 @@ export default function HomePage() {
             </div>
             <div className="flex flex-wrap gap-3 justify-center">
               {interestTags.map((tag) => (
-                <button key={tag} onClick={() => setSelectedInterest(tag)}
+                <button key={tag} onClick={() => {
+                  setSelectedInterest(tag);
+                  scrollToCards();
+                }}
                   className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${selectedInterest === tag
                     ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
                     : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-slate-700'
@@ -237,57 +292,146 @@ export default function HomePage() {
 
               {/* Sidebar Filters */}
               <aside className="lg:w-72 flex-shrink-0">
-                <div className="bg-white dark:bg-[#0c1425] rounded-3xl border border-slate-200/50 dark:border-slate-800 p-6 sticky top-24 space-y-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">Bộ lọc</h3>
-                    <button onClick={() => { setSelectedBank('Tất cả'); setFeeFilter('Tất cả'); }} className="text-xs text-red-400 font-bold hover:underline">Xóa bộ lọc</button>
-                  </div>
-
-                  {/* Bank Filter */}
-                  <div>
-                    <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Ngân hàng</h4>
-                    <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
-                      <div onClick={() => setSelectedBank('Tất cả')} className="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === 'Tất cả' ? 'bg-vp-green border-vp-green' : 'border-slate-300 dark:border-slate-600'}`}>
-                          {selectedBank === 'Tất cả' && <span className="material-symbols-outlined text-white text-[14px]">check</span>}
-                        </span>
-                        <span className="material-symbols-outlined text-vp-green text-[18px]">account_balance</span>
-                        <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">Tất cả ngân hàng</span>
-                      </div>
-                      {banks.map(bank => {
-                        const bankLogo = cards.find(c => c.bankName === bank)?.bankLogo;
-                        return (
-                          <div key={bank} onClick={() => setSelectedBank(bank)} className="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                            <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === bank ? 'bg-vp-green border-vp-green' : 'border-slate-300 dark:border-slate-600'}`}>
-                              {selectedBank === bank && <span className="material-symbols-outlined text-white text-[14px]">check</span>}
-                            </span>
-                            {bankLogo ? (
-                              <img src={bankLogo} alt={bank} className="h-5 w-6 object-contain flex-shrink-0 dark:bg-white/90 dark:rounded dark:px-0.5" />
-                            ) : (
-                              <span className="material-symbols-outlined text-slate-400 text-[18px] flex-shrink-0">credit_card</span>
-                            )}
-                            <span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate">{bank}</span>
+                  <div className="sticky top-24">
+                      <div className="bg-white dark:bg-[#0c1425] rounded-3xl border border-slate-200/50 dark:border-slate-800 p-6 pt-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none">
+                          {/* Header */}
+                          <div className="flex items-center justify-between pb-4 pt-3 border-b border-slate-100 dark:border-slate-800/80 mb-2">
+                              <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-xl bg-vp-green/15 flex items-center justify-center text-vp-green">
+                                      <span className="material-symbols-outlined !text-[20px]">filter_alt</span>
+                                  </div>
+                                  <h3 className="font-bold text-[17px] text-slate-900 dark:text-white tracking-wide">Bộ lọc</h3>
+                              </div>
+                              <button onClick={() => { setSelectedBank('Tất cả'); setFeeFilter('Tất cả'); setSelectedAudience('Tất cả'); setSelectedCategories([]); setSearchTerm(''); }} className="text-[13px] text-vp-green hover:text-vp-green/80 flex items-center gap-1.5 font-semibold transition-colors">
+                                  Xóa bộ lọc <span className="material-symbols-outlined !text-[16px]">refresh</span>
+                              </button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
 
-                  {/* Fee Filter */}
-                  <div>
-                    <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Phí thường niên</h4>
-                    <div className="space-y-1">
-                      {['Tất cả', 'Miễn phí', 'Dưới 500.000đ', '500.000đ - 1.000.000đ', 'Trên 1.000.000đ'].map(fee => (
-                        <label key={fee} onClick={() => setFeeFilter(fee)} className="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${feeFilter === fee ? 'border-vp-green' : 'border-slate-300 dark:border-slate-600'}`}>
-                            {feeFilter === fee && <span className="w-2 h-2 rounded-full bg-vp-green"></span>}
-                          </span>
-                          <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{fee}</span>
-                        </label>
-                      ))}
-                    </div>
+                          <div className="pt-4 space-y-6">
+                              {/* Bank Filter */}
+                              <div>
+                                  <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('bank')}>
+                                      <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Ngân hàng</h4>
+                                      <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.bank ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
+                                  </div>
+                                  <div className={`space-y-1 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar ${expandedSections.bank ? 'block' : 'hidden'}`}>
+                                      <div onClick={() => setSelectedBank('Tất cả')} className="flex items-center justify-between cursor-pointer py-1.5 group">
+                                          <div className="flex items-center gap-3">
+                                              <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === 'Tất cả' ? 'bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-950 shadow-sm' : 'border-2 border-slate-300 dark:border-slate-600 group-hover:border-green-400/50'}`}>
+                                                  {selectedBank === 'Tất cả' && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 800" }}>check</span>}
+                                              </span>
+                                              <span className="material-symbols-outlined text-vp-green text-[20px]">account_balance</span>
+                                              <span className="text-[15px] text-slate-700 dark:text-slate-300">Tất cả ngân hàng</span>
+                                          </div>
+                                          <span className={`text-[13px] ${selectedBank === 'Tất cả' ? 'text-vp-green font-semibold' : 'text-slate-400'}`}>{cards.length}</span>
+                                      </div>
+                                      {banks.map(bank => {
+                                          const bankLogo = cards.find(c => c.bankName === bank)?.bankLogo;
+                                          const count = cards.filter(c => c.bankName === bank).length;
+                                          return (
+                                              <div key={bank} onClick={() => setSelectedBank(bank)} className="flex items-center justify-between cursor-pointer py-1.5 group">
+                                                  <div className="flex items-center gap-3">
+                                                      <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === bank ? 'bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-950 shadow-sm' : 'border-2 border-slate-300 dark:border-slate-600 group-hover:border-green-400/50'}`}>
+                                                          {selectedBank === bank && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 800" }}>check</span>}
+                                                      </span>
+                                                      {bankLogo ? (
+                                                          <img src={bankLogo} alt={bank} className="h-5 w-6 object-contain flex-shrink-0 dark:bg-white/90 dark:rounded dark:px-0.5" />
+                                                      ) : (
+                                                          <span className="material-symbols-outlined text-slate-400 text-[20px] flex-shrink-0">credit_card</span>
+                                                      )}
+                                                      <span className="text-[15px] text-slate-700 dark:text-slate-300 truncate">{bank}</span>
+                                                  </div>
+                                                  <span className={`text-[13px] ${selectedBank === bank ? 'text-vp-green font-semibold' : 'text-slate-400'}`}>{count}</span>
+                                              </div>
+                                          );
+                                      })}
+                                  </div>
+                              </div>
+
+                              <hr className="border-slate-100 dark:border-slate-800" />
+
+                              {/* Target Audience Filter */}
+                              <div>
+                                  <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('audience')}>
+                                      <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Phân loại đối tượng</h4>
+                                      <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.audience ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
+                                  </div>
+                                  <div className={`${expandedSections.audience ? 'flex' : 'hidden'} flex-wrap gap-1.5`}>
+                                      {audiences.map(aud => (
+                                          <button
+                                              key={aud}
+                                              onClick={() => setSelectedAudience(aud)}
+                                              className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${selectedAudience === aud
+                                                  ? 'bg-vp-green/10 text-vp-green border-vp-green'
+                                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
+                                                  }`}
+                                          >
+                                              {aud}
+                                          </button>
+                                      ))}
+                                  </div>
+                              </div>
+
+                              <hr className="border-slate-100 dark:border-slate-800" />
+
+                              {/* Category Filter */}
+                              <div>
+                                  <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('category')}>
+                                      <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Danh mục hoàn tiền</h4>
+                                      <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.category ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
+                                  </div>
+                                  <div className={`${expandedSections.category ? 'flex' : 'hidden'} flex-wrap gap-1.5 max-h-[185px] overflow-y-auto pr-1 custom-scrollbar`}>
+                                      {filterCategories.map(cat => {
+                                          const isSelected = cat === 'Tất cả' ? selectedCategories.length === 0 : selectedCategories.includes(cat);
+                                          return (
+                                              <button
+                                                  key={cat}
+                                                  onClick={() => {
+                                                      if (cat === 'Tất cả') {
+                                                          setSelectedCategories([]);
+                                                      } else {
+                                                          setSelectedCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+                                                      }
+                                                  }}
+                                                  className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${isSelected
+                                                      ? 'bg-vp-green/10 text-vp-green border-vp-green'
+                                                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
+                                                      }`}
+                                              >
+                                                  {cat}
+                                              </button>
+                                          );
+                                      })}
+                                  </div>
+                              </div>
+
+                              <hr className="border-slate-100 dark:border-slate-800" />
+
+                              {/* Fee Filter */}
+                              <div>
+                                  <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('fee')}>
+                                      <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Phí thường niên</h4>
+                                      <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.fee ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
+                                  </div>
+                                  <div className={`${expandedSections.fee ? 'flex' : 'hidden'} flex-wrap gap-1.5`}>
+                                      {fees.map(fee => (
+                                          <button
+                                              key={fee}
+                                              onClick={() => setFeeFilter(fee)}
+                                              className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${feeFilter === fee
+                                                  ? 'bg-vp-green/10 text-vp-green border-vp-green'
+                                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
+                                                  }`}
+                                          >
+                                              {fee}
+                                          </button>
+                                      ))}
+                                  </div>
+                              </div>
+
+                          </div>
+                      </div>
                   </div>
-                </div>
               </aside>
 
               {/* Card Results */}
@@ -333,7 +477,11 @@ export default function HomePage() {
                     paginatedCards.map(card => {
                       const topRule = card.cashbackRules?.reduce((best, r) => r.percentage > (best?.percentage || 0) ? r : best, card.cashbackRules[0]);
                       return (
-                        <div key={card.id} className="group bg-white dark:bg-[#0c1425] rounded-2xl border border-slate-200/60 dark:border-slate-800/80 hover:border-vp-green/60 dark:hover:border-vp-green/50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)] dark:hover:shadow-[0_20px_40px_rgba(0,177,79,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                        <div key={card.id} className={`group bg-white dark:bg-[#0c1425] rounded-2xl border shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)] dark:hover:shadow-[0_20px_40px_rgba(0,177,79,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col ${
+                          card.id && isInCompare(card.id)
+                            ? 'border-vp-green ring-1 ring-vp-green'
+                            : 'border-slate-200/60 dark:border-slate-800/80 hover:border-vp-green/60 dark:hover:border-vp-green/50'
+                        }`}>
                           {/* Header: Bank + Badge */}
                           <div className="flex items-center justify-between px-5 pt-5 pb-3">
                             <div className="flex items-center gap-2">
@@ -346,10 +494,11 @@ export default function HomePage() {
                           </div>
 
                           {/* Card Name */}
-                          <div className="px-5 pb-3">
+                          <div className="px-5 pb-4">
                             <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{cleanCardName(card.name)}</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 truncate">{card.bankName}</p>
                           </div>
-
+                          
                           {/* Card Image */}
                           <div className="px-5 pb-4">
                             <div className="relative w-full aspect-[1.6/1] rounded-xl overflow-hidden border border-slate-100/70 dark:border-slate-800/80 shadow-md group-hover:shadow-lg transition-shadow">
@@ -375,6 +524,119 @@ export default function HomePage() {
                             </div>
                           </div>
 
+                          {/* Category Tags */}
+                          <div className="px-5 pb-3">
+                            {(() => {
+                              const cardCategoriesWithPercentage = Array.from(new Set(card.cashbackRules?.map(r => r.category)))
+                                .filter(Boolean)
+                                .map(catName => {
+                                  const rulesForCat = card.cashbackRules?.filter(r => r.category === catName) || [];
+                                  const maxPercentage = Math.max(...rulesForCat.map(r => r.percentage));
+                                  return { name: catName, percentage: maxPercentage };
+                                });
+
+                              // Removed hardcoded tagColors array as we are using backend colors now
+
+                              const allTags = [
+                                ...cardCategoriesWithPercentage.map((cat, idx) => ({ type: 'category' as const, data: cat, idx })),
+                                ...(card.tags || []).map((tag, idx) => ({ type: 'tag' as const, data: tag, idx }))
+                              ];
+
+                              if (allTags.length === 0) return null;
+
+                              let currentLength = 0;
+                              let MAX_TAGS = 0;
+                              for (let i = 0; i < allTags.length; i++) {
+                                const textLength = allTags[i].type === 'category' ? (allTags[i].data as {name: string}).name.length : (allTags[i].data as string).length;
+                                if (currentLength + textLength > 25 && MAX_TAGS > 0) {
+                                  break;
+                                }
+                                currentLength += textLength + 5;
+                                MAX_TAGS++;
+                                if (MAX_TAGS >= 2) break;
+                              }
+                              if (allTags.length > 0 && MAX_TAGS === 0) MAX_TAGS = 1;
+
+                              const visibleTags = allTags.slice(0, MAX_TAGS);
+                              const hiddenTags = allTags.slice(MAX_TAGS);
+
+                              return (
+                                <div className="flex flex-nowrap items-center gap-2 overflow-hidden max-w-full">
+                                  {visibleTags.map((item) => {
+                                    if (item.type === 'category') {
+                                      const cat = item.data as { name: string; percentage: number };
+                                      const hexColor = getCategoryColor(cat.name);
+                                      return (
+                                        <div key={`cat-${item.idx}`} className="inline-flex items-center rounded-full border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/40 overflow-hidden shrink-0 max-w-full shadow-sm">
+                                          <div className="flex items-center pl-2 pr-1.5 py-1 min-w-0">
+                                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-1.5" style={{ backgroundColor: hexColor }}></span>
+                                            <span className="text-[10.5px] font-bold truncate" style={{ color: hexColor }}>
+                                              {cat.name}
+                                            </span>
+                                          </div>
+                                          <div className="pl-1.5 pr-2 py-1 border-l border-slate-200/80 dark:border-slate-800/80 flex-shrink-0 flex items-center justify-center bg-white/50 dark:bg-black/20">
+                                            <span className="text-[10.5px] font-black leading-none mb-[1px]" style={{ color: hexColor }}>
+                                              {cat.percentage}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    } else {
+                                      const tag = item.data;
+                                      return (
+                                        <div key={`tag-${item.idx}`} className="inline-flex items-center px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 shrink-0 max-w-full min-w-0">
+                                          <span className="text-[10px] text-slate-400 flex-shrink-0 mr-1">●</span>
+                                          <span className="text-[10px] font-medium truncate">{tag}</span>
+                                        </div>
+                                      );
+                                    }
+                                  })}
+
+                                  {hiddenTags.length > 0 && (
+                                    <TooltipProvider delay={100}>
+                                      <Tooltip>
+                                        <TooltipTrigger className="flex items-center justify-center px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0">
+                                          <span className="text-[12px] font-medium">+{hiddenTags.length}</span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="flex flex-col gap-2 p-2 bg-white dark:bg-[#0c1425] border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl z-50">
+                                          {hiddenTags.map((item) => {
+                                            if (item.type === 'category') {
+                                              const cat = item.data as { name: string; percentage: number };
+                                              const hexColor = getCategoryColor(cat.name);
+                                              return (
+                                                <div key={`hidden-cat-${item.idx}`} className={`inline-flex items-center justify-between rounded-full border overflow-hidden shrink-0 w-full`} style={{ borderColor: `${hexColor}60`, backgroundColor: `${hexColor}15` }}>
+                                                  <div className="flex items-center px-2 py-1 min-w-0">
+                                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mr-1.5`} style={{ backgroundColor: hexColor }}></span>
+                                                    <span className={`text-[11px] font-bold truncate`} style={{ color: hexColor }}>
+                                                      {cat.name}
+                                                    </span>
+                                                  </div>
+                                                  <div className={`px-2 py-1 bg-white/60 dark:bg-black/20 backdrop-blur-sm border-l flex-shrink-0`} style={{ borderColor: `${hexColor}60` }}>
+                                                    <span className={`text-[11px] font-black`} style={{ color: hexColor }}>
+                                                      {cat.percentage}%
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              );
+                                            } else {
+                                              const tag = item.data;
+                                              return (
+                                                <div key={`hidden-tag-${item.idx}`} className="inline-flex items-center px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 w-full">
+                                                  <span className="text-[11px] text-slate-400 flex-shrink-0 mr-1.5">●</span>
+                                                  <span className="text-[11px] font-medium truncate">{tag}</span>
+                                                </div>
+                                              );
+                                            }
+                                          })}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
+
                           {/* Benefits preview */}
                           <div className="px-5 pb-4 flex-grow">
                             <ul className="space-y-1.5">
@@ -387,18 +649,39 @@ export default function HomePage() {
                             </ul>
                           </div>
 
-                          {/* Action Buttons */}
-                          <div className="grid grid-cols-2 gap-2 px-5 pb-5">
-                            <Link href={`/card/${card.id}`} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/50 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                              Xem chi tiết
+                          <div className="flex items-center gap-2 px-5 pb-5 mt-auto">
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!card.id) return;
+                                    if (isInCompare(card.id)) {
+                                      removeFromCompare(card.id);
+                                    } else {
+                                      addToCompare(card);
+                                    }
+                                }}
+                                className={`flex items-center justify-center w-11 h-11 rounded-xl border flex-shrink-0 transition-colors ${
+                                    card.id && isInCompare(card.id)
+                                    ? 'bg-vp-green/10 border-vp-green text-vp-green'
+                                    : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border-slate-200/60 dark:border-slate-700/50 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                }`}
+                                title={card.id && isInCompare(card.id) ? "Bỏ chọn" : "So sánh thẻ"}
+                            >
+                                <span className="material-symbols-outlined text-[20px]">
+                                    {card.id && isInCompare(card.id) ? 'check_box' : 'compare_arrows'}
+                                </span>
+                            </button>
+                            <Link href={`/card/${generateSlug(card.name)}`} className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/50 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
+                              Chi tiết
                             </Link>
                             {card.registerUrl ? (
-                              <a href={card.registerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
-                                Đăng ký ngay
+                              <a href={card.registerUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
+                                Đăng ký
                               </a>
                             ) : (
-                              <Link href={`/card/${card.id}`} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
-                                Đăng ký ngay
+                              <Link href={`/card/${generateSlug(card.name)}`} className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-vp-green hover:bg-vp-green/90 text-sm font-bold text-white shadow-md shadow-vp-green/10 hover:shadow-vp-green/20 active:scale-95 transition-all">
+                                Đăng ký
                               </Link>
                             )}
                           </div>
@@ -471,14 +754,16 @@ export default function HomePage() {
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 md:p-12">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">So sánh các thẻ bạn thích</h2>
-                <p className="text-slate-500 dark:text-slate-400">Chọn từ 2-4 thẻ để so sánh chi tiết các ưu đãi và phí</p>
+                <p className="text-slate-500 dark:text-slate-400">Chọn từ 2-3 thẻ để so sánh chi tiết các ưu đãi và phí</p>
               </div>
               <div className="flex items-center justify-center gap-4 flex-wrap">
-                {[0, 1, 2, 3].map(i => (
-                  <div key={i} className={`w-20 h-28 rounded-2xl border-2 border-dashed flex items-center justify-center transition-all ${compareCards[i] ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-slate-200 dark:border-slate-700'
+                {[0, 1, 2].map(i => (
+                  <div key={i} className={`relative w-20 h-28 rounded-2xl flex items-center justify-center transition-all overflow-hidden ${compareCards[i] ? 'ring-2 ring-primary-500 bg-[#080d1a] shadow-[0_0_15px_rgba(0,177,79,0.2)]' : 'border-2 border-dashed border-slate-200 dark:border-slate-700'
                     }`}>
                     {compareCards[i] ? (
-                      <img src={compareCards[i].imageUrl} alt={compareCards[i].name} className="w-full h-full object-cover rounded-xl" />
+                      <div className="w-full h-full flex items-center justify-center">
+                        <PortraitCardVisual imageUrl={compareCards[i].imageUrl} name={compareCards[i].name} roundedClass="rounded-[6px]" />
+                      </div>
                     ) : (
                       <span className="material-symbols-outlined text-slate-300 dark:text-slate-600">add</span>
                     )}

@@ -12,7 +12,7 @@ import { cleanCardName } from '@/lib/utils';
 import { PortraitCardVisual } from '@/components/PortraitCardVisual';
 
 interface CardDetailPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export default function CardDetailPage({ params }: CardDetailPageProps) {
@@ -31,7 +31,7 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
   const topCategory = searchParams.get('topCategory') || 'Ăn uống';
 
   useEffect(() => {
-    params.then(p => setCardId(p.id));
+    params.then(p => setCardId(p.slug));
   }, [params]);
 
   useEffect(() => {

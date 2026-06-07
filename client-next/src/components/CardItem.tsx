@@ -29,15 +29,17 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
 
       {/* Left Side: Image */}
       <div className="w-full md:w-56 flex-shrink-0 flex flex-col items-center justify-start pt-2">
-        <div className="relative w-full aspect-[1.58/1] rounded-xl overflow-hidden shadow-md group-hover:shadow-lg transition-shadow">
-          <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} />
-          {isSelected && (
-            <div className="absolute inset-0 bg-vp-green/20 flex items-center justify-center z-20">
-              <div className="bg-vp-green text-white rounded-full p-1 shadow-lg">
-                <span className="material-symbols-outlined text-xl">check</span>
+        <div className="relative w-full aspect-[1.58/1] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/40 p-2 sm:p-2.5 flex items-center justify-center">
+          <div className="relative w-full h-full rounded-xl overflow-hidden shadow-md group-hover:scale-[1.03] transition-transform duration-300">
+            <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} />
+            {isSelected && (
+              <div className="absolute inset-0 bg-vp-green/20 flex items-center justify-center z-20">
+                <div className="bg-vp-green text-white rounded-full p-1 shadow-lg">
+                  <span className="material-symbols-outlined text-xl">check</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -61,15 +63,6 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
             Phát hành bởi <span className="text-slate-700 dark:text-slate-200">{card.bankName}</span>
             {card.bankLogo && <img src={card.bankLogo} alt={card.bankName} className="h-4 ml-1 opacity-70 grayscale group-hover:grayscale-0 transition-all" />}
           </p>
-          {card.tags && card.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2.5">
-              {card.tags.map((tag, idx) => (
-                <span key={idx} className="inline-flex items-center rounded-md bg-violet-50 dark:bg-violet-900/20 px-2 py-1 text-[10px] font-bold text-violet-700 dark:text-violet-300 border border-violet-100 dark:border-violet-800">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Description / Benefits */}

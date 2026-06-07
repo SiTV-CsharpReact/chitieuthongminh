@@ -92,9 +92,9 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         // HARDCODED ADMIN (Fix Cứng)
-        if (request.Email == "admin@zenith.com" && request.Password == "admin123")
+        if (request.Email == "admin@credback.com" && request.Password == "admin123")
         {
-            var token = GenerateJwtToken("admin_fixed_id", "Admin Zenith", request.Email, "Admin", "https://i.pravatar.cc/150?u=admin");
+            var token = GenerateJwtToken("admin_fixed_id", "Admin CredBack", request.Email, "Admin", "https://ui-avatars.com/api/?name=Admin+CredBack&background=00b14f&color=fff&rounded=true&bold=true");
             return Ok(new { token });
         }
 

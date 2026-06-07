@@ -167,9 +167,10 @@ function InputExpensesContent() {
 
     const totalAmount = categories.reduce((sum, cat) => sum + cat.amount, 0);
 
-    // Submit validation
+    // Submit validation — students don't need salary
+    const isStudent = profileKey === 'student';
     const hasSpending = categories.some(c => c.amount > 0);
-    const canSubmit = salary > 0 && hasSpending;
+    const canSubmit = isStudent ? hasSpending : (salary > 0 && hasSpending);
 
     // Quick Paste: parse spending text
     const parseSpendingText = (text: string) => {
@@ -408,13 +409,16 @@ function InputExpensesContent() {
 
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none ring-1 ring-slate-100 dark:ring-slate-800">
                         <div className="mb-6 pb-6 border-b-2 border-dashed border-slate-100 dark:border-slate-800">
-                            <label className="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Lương hàng tháng</label>
+                            <label className="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                                Lương hàng tháng
+                                {isStudent && <span className="text-[10px] font-bold text-emerald-500 ml-2 normal-case tracking-normal">(Không bắt buộc)</span>}
+                            </label>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20 text-green-500">
                                         <span className="material-symbols-outlined text-xl">payments</span>
                                     </div>
-                                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Lương của bạn</span>
+                                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{isStudent ? 'Thu nhập (nếu có)' : 'Lương của bạn'}</span>
                                 </div>
                                 {isEditingSalary ? (
                                     <div className="relative w-40 sm:w-56 group">
@@ -536,7 +540,7 @@ function InputExpensesContent() {
                             {/* Tooltip when disabled */}
                             {!canSubmit && (
                                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-slate-900 dark:bg-slate-700 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover/submit:opacity-100 pointer-events-none transition-opacity duration-200 shadow-lg z-10">
-                                    {salary <= 0 && !hasSpending ? 'Vui lòng nhập lương và ít nhất 1 danh mục chi tiêu' : salary <= 0 ? 'Vui lòng nhập lương hàng tháng' : 'Vui lòng nhập ít nhất 1 danh mục chi tiêu'}
+                                    {salary <= 0 && !hasSpending && !isStudent ? 'Vui lòng nhập lương và ít nhất 1 danh mục chi tiêu' : salary <= 0 && !isStudent ? 'Vui lòng nhập lương hàng tháng' : 'Vui lòng nhập ít nhất 1 danh mục chi tiêu'}
                                     <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900 dark:border-t-slate-700"></div>
                                 </div>
                             )}
@@ -544,7 +548,7 @@ function InputExpensesContent() {
                         {!canSubmit && (
                             <p className="text-xs text-slate-400 flex items-center gap-1">
                                 <span className="material-symbols-outlined text-sm">info</span>
-                                {salary <= 0 && !hasSpending ? 'Nhập lương và ít nhất 1 khoản chi tiêu để tiếp tục' : salary <= 0 ? 'Nhập lương hàng tháng để tiếp tục' : 'Nhập ít nhất 1 khoản chi tiêu để tiếp tục'}
+                                {salary <= 0 && !hasSpending && !isStudent ? 'Nhập lương và ít nhất 1 khoản chi tiêu để tiếp tục' : salary <= 0 && !isStudent ? 'Nhập lương hàng tháng để tiếp tục' : 'Nhập ít nhất 1 khoản chi tiêu để tiếp tục'}
                             </p>
                         )}
                     </div>

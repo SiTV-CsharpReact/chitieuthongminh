@@ -31,4 +31,30 @@ public class CreditCardService
 
     public async Task RemoveAllAsync() =>
         await _cardsCollection.DeleteManyAsync(_ => true);
+
+    public async Task<CreditCard?> GetBySlugAsync(string slug)
+    {
+        var allCards = await GetAsync();
+        return allCards.FirstOrDefault(c => GenerateSlug(c.Name) == slug);
+    }
+
+    private string GenerateSlug(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "";
+        
+        var cleanName = System.Text.RegularExpressions.Regex.Replace(name, @"^(thẻ tín dụng|Thẻ tín dụng)\s+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+        
+        string str = cleanName.ToLower();
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"[áàảạãăắằẳẵặâấầẩẫậ]", "a");
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"[éèẻẽẹêếềểễệ]", "e");
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"[iíìỉĩị]", "i");
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"[óòỏõọôốồổỗộơớờởỡợ]", "o");
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"[úùủũụưứừửữự]", "u");
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"[ýỳỷỹỵ]", "y");
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"đ", "d");
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"[^a-z0-9\-]", "-");
+        str = System.Text.RegularExpressions.Regex.Replace(str, @"\-+", "-");
+        str = str.Trim('-');
+        return str;
+    }
 }

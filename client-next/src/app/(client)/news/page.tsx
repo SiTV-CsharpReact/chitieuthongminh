@@ -46,7 +46,7 @@ export default function NewsPage() {
   useEffect(() => {
     if (featuredArticles.length <= 1) return;
     const timer = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % featuredArticles.length);
+      setCurrentSlide((prev) => (prev + 1) % featuredArticles.length);
     }, 5000);
     return () => clearInterval(timer);
   }, [featuredArticles.length]);
@@ -65,66 +65,66 @@ export default function NewsPage() {
             {/* Full-width Immersive Slider Section */}
             {featuredArticles.length > 0 && (
               <section className="relative h-[85vh] min-h-[600px] w-full overflow-hidden flex items-center group">
-                
+
                 {featuredArticles.map((article, idx) => (
-                    <div 
-                        key={article.id} 
-                        className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
-                    >
-                        <img
-                          src={article.coverImage || 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80&w=2000'}
-                          alt={article.title}
-                          className="w-full h-full object-cover scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
-                        
-                        <div className="absolute inset-0 z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-20 flex items-center">
-                          <div className={`max-w-2xl transition-all duration-1000 transform ${idx === currentSlide ? 'translate-y-0 opacity-100 delay-300' : 'translate-y-8 opacity-0'}`}>
-                              <div className="flex items-center gap-3 mb-6">
-                                <span className="px-3 py-1 rounded-full bg-primary-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-500/20">
-                                  {article.category}
-                                </span>
-                                <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                  <span className="material-symbols-outlined text-[14px]">schedule</span>
-                                  {article.createdAt ? new Date(article.createdAt).toLocaleDateString('vi-VN') : 'Mới đây'}
-                                </span>
-                              </div>
-                              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] mb-6 tracking-tight line-clamp-3">
-                                {article.title}
-                              </h1>
-                              <p className="text-lg text-slate-300 mb-8 leading-relaxed font-medium line-clamp-3">
-                                {article.excerpt}
-                              </p>
-                              <div className="flex flex-wrap gap-4">
-                                <button
-                                  onClick={() => router.push(`/news/${article.id}`)}
-                                  className="bg-primary-500 hover:bg-primary-600 text-white px-8 py-4 rounded-2xl font-black text-sm transition-all shadow-xl shadow-primary-500/25 hover:scale-105 active:scale-95 group flex items-center gap-2"
-                                >
-                                  ĐỌC BÀI VIẾT
-                                  <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span>
-                                </button>
-                              </div>
-                          </div>
+                  <div
+                    key={article.id}
+                    className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                  >
+                    <img
+                      src={article.coverImage || 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80&w=2000'}
+                      alt={article.title}
+                      className="w-full h-full object-cover scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+
+                    <div className="absolute inset-0 z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-20 flex items-center">
+                      <div className={`max-w-2xl transition-all duration-1000 transform ${idx === currentSlide ? 'translate-y-0 opacity-100 delay-300' : 'translate-y-8 opacity-0'}`}>
+                        <div className="flex items-center gap-3 mb-6">
+                          <span className="px-3 py-1 rounded-full bg-primary-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-500/20">
+                            {article.category}
+                          </span>
+                          <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[14px]">schedule</span>
+                            {article.createdAt ? new Date(article.createdAt).toLocaleDateString('vi-VN') : 'Mới đây'}
+                          </span>
                         </div>
+                        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] mb-6 tracking-tight line-clamp-3">
+                          {article.title}
+                        </h1>
+                        <p className="text-lg text-slate-300 mb-8 leading-relaxed font-medium line-clamp-3">
+                          {article.excerpt}
+                        </p>
+                        <div className="flex flex-wrap gap-4">
+                          <button
+                            onClick={() => router.push(`/news/${article.id}`)}
+                            className="bg-primary-500 hover:bg-primary-600 text-white px-8 py-4 rounded-2xl font-black text-sm transition-all shadow-xl shadow-primary-500/25 hover:scale-105 active:scale-95 group flex items-center gap-2"
+                          >
+                            ĐỌC BÀI VIẾT
+                            <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  </div>
                 ))}
-                
+
                 {/* Navigation Arrows */}
                 <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 z-20 flex justify-between px-4 sm:px-10 lg:px-16 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                     <button onClick={() => setCurrentSlide(p => p === 0 ? featuredArticles.length - 1 : p - 1)} className="pointer-events-auto w-12 h-12 rounded-full backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95">
-                        <span className="material-symbols-outlined">chevron_left</span>
-                     </button>
-                     <button onClick={() => setCurrentSlide(p => (p + 1) % featuredArticles.length)} className="pointer-events-auto w-12 h-12 rounded-full backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95">
-                        <span className="material-symbols-outlined">chevron_right</span>
-                     </button>
+                  <button onClick={() => setCurrentSlide(p => p === 0 ? featuredArticles.length - 1 : p - 1)} className="pointer-events-auto w-12 h-12 rounded-full backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95">
+                    <span className="material-symbols-outlined">chevron_left</span>
+                  </button>
+                  <button onClick={() => setCurrentSlide(p => (p + 1) % featuredArticles.length)} className="pointer-events-auto w-12 h-12 rounded-full backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95">
+                    <span className="material-symbols-outlined">chevron_right</span>
+                  </button>
                 </div>
-                
+
                 {/* Dots Navigation */}
                 <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-                    {featuredArticles.map((_, idx) => (
-                        <button key={idx} onClick={() => setCurrentSlide(idx)} className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentSlide ? 'w-8 bg-primary-500' : 'w-2 bg-white/30 hover:bg-white/50'}`} />
-                    ))}
+                  {featuredArticles.map((_, idx) => (
+                    <button key={idx} onClick={() => setCurrentSlide(idx)} className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentSlide ? 'w-8 bg-primary-500' : 'w-2 bg-white/30 hover:bg-white/50'}`} />
+                  ))}
                 </div>
 
                 <div className="absolute bottom-16 right-16 z-20 hidden xl:flex flex-col items-end gap-3 translate-y-0 hover:-translate-y-2 transition-transform duration-700">
@@ -209,7 +209,7 @@ export default function NewsPage() {
                 <aside className="w-full lg:w-80 space-y-8">
                   <div className="bg-slate-900 dark:bg-white p-8 rounded-[2.5rem] text-white dark:text-slate-900 shadow-2xl relative overflow-hidden group">
                     <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary-500 rounded-full opacity-20 transition-transform duration-700 group-hover:scale-150"></div>
-                    <h3 className="text-xl font-black mb-4 relative z-10 leading-tight">Đăng ký nhận <br /> Ưu đãi VIP</h3>
+                    <h3 className="text-xl font-black mb-4 relative z-10 leading-tight">Đăng ký nhận <br /> thông báo mới nhất</h3>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mb-6 font-medium relative z-10">Nhận thông báo sớm nhất về các đợt hoàn tiền khủng và thẻ mới ra mắt.</p>
                     <div className="space-y-3 relative z-10">
                       <input type="email" placeholder="Email của bạn..." className="w-full bg-slate-800 dark:bg-slate-100 border-none rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-primary-500 outline-none" />

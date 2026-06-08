@@ -5,14 +5,15 @@ import Link from 'next/link';
 import { Card } from '@/types';
 import { Button } from '@/components/ui/button';
 import { useCompare } from '@/context/CompareContext';
-import { cleanCardName } from '@/lib/utils';
+import { cleanCardName, getFallbackBankLogo } from '@/lib/utils';
 import { PortraitCardVisual } from '@/components/PortraitCardVisual';
 
 interface CardItemProps {
   card: Card;
+  onSaveCard?: (card: Card) => void;
 }
 
-export const CardItem: React.FC<CardItemProps> = ({ card }) => {
+export const CardItem: React.FC<CardItemProps> = ({ card, onSaveCard }) => {
   const { isInCompare, addToCompare, removeFromCompare } = useCompare();
   const isSelected = isInCompare(card.id || '');
 
@@ -61,7 +62,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
           </div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
             Phát hành bởi <span className="text-slate-700 dark:text-slate-200">{card.bankName}</span>
-            {card.bankLogo && <img src={card.bankLogo} alt={card.bankName} className="h-4 ml-1 opacity-70 grayscale group-hover:grayscale-0 transition-all" />}
+            {(card.bankLogo || getFallbackBankLogo(card.bankName)) && <img src={card.bankLogo || getFallbackBankLogo(card.bankName)!} alt={card.bankName} className="h-4 ml-1 opacity-70 grayscale group-hover:grayscale-0 transition-all" />}
           </p>
         </div>
 
@@ -118,6 +119,16 @@ export const CardItem: React.FC<CardItemProps> = ({ card }) => {
                 </>
               )}
             </Button>
+            {onSaveCard && (
+              <Button 
+                variant="outline" 
+                onClick={(e) => { e.preventDefault(); onSaveCard(card); }}
+                className="flex-1 sm:flex-none font-bold transition-all border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-500 text-slate-700 dark:text-slate-300"
+              >
+                <span className="material-symbols-outlined text-lg mr-1">mail</span>
+                Lưu thẻ
+              </Button>
+            )}
             <Link href={`/card/${card.id}`} className="flex-1 sm:flex-none">
               <Button className="w-full font-bold px-6 bg-vp-green hover:bg-vp-green/90 text-white shadow-lg shadow-vp-green/20">
                 Xem Chi tiết

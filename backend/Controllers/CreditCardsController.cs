@@ -11,11 +11,13 @@ public class CreditCardsController : ControllerBase
 {
     private readonly CreditCardService _creditCardService;
     private readonly ScraperController _scraperController;
+    private readonly EmailService _emailService;
 
-    public CreditCardsController(CreditCardService creditCardService, ScraperController scraperController)
+    public CreditCardsController(CreditCardService creditCardService, ScraperController scraperController, EmailService emailService)
     {
         _creditCardService = creditCardService;
         _scraperController = scraperController;
+        _emailService = emailService;
     }
 
     [HttpGet]
@@ -164,4 +166,37 @@ public class CreditCardsController : ControllerBase
             Console.WriteLine($"Failed to save scraped card name: {ex.Message}");
         }
     }
+
+    [HttpPost("{idOrSlug}/send-email")]
+    public async Task<IActionResult> SendEmail(string idOrSlug, [FromBody] SendEmailRequest request)
+    {
+        CreditCard? card = null;
+        if (idOrSlug.Length == 24 && Regex.IsMatch(idOrSlug, @"\A\b[0-9a-fA-F]+\b\Z"))
+        {
+            card = await _creditCardService.GetAsync(idOrSlug);
+        }
+        if (card is null)
+        {
+            card = await _creditCardService.GetBySlugAsync(idOrSlug);
+        }
+        if (card is null)
+        {
+            return NotFound(new { message = "Không tìm thấy thẻ." });
+        }
+
+        try
+        {
+            await _emailService.SendCardInfoAsync(request.Email, card);
+            return Ok(new { message = "Email đã được gửi thành công!" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi khi gửi email", error = ex.Message });
+        }
+    }
+}
+
+public class SendEmailRequest
+{
+    public string Email { get; set; } = null!;
 }

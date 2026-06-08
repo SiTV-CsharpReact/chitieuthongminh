@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { cardApi } from '@/services/api';
 import { Card } from '@/types';
-import { cleanCardName } from '@/lib/utils';
+import { cleanCardName, getFallbackBankLogo } from '@/lib/utils';
 import { PortraitCardVisual } from '@/components/PortraitCardVisual';
 
 interface CardDetailPageProps {
@@ -119,18 +119,61 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
   }
 
   // Pre-calculate chart data based on card rules and spending
-  const chartData = card.cashbackRules.map(rule => {
-    let amount = (spendingAmount * rule.percentage) / 100;
-    if (rule.capAmount && amount > rule.capAmount) amount = rule.capAmount;
-    if (card.maxCashbackPerMonth && amount > card.maxCashbackPerMonth) amount = card.maxCashbackPerMonth;
+  const rawChartData = card.cashbackRules.map(rule => {
+    let rawAmount = (spendingAmount * rule.percentage) / 100;
+    let isCategoryCapped = false;
+    if (rule.capAmount && rawAmount >= rule.capAmount) {
+      rawAmount = rule.capAmount;
+      isCategoryCapped = true;
+    }
     return {
       name: rule.category,
-      value: amount,
-      percentage: rule.percentage
+      value: rawAmount,
+      percentage: rule.percentage,
+      capAmount: rule.capAmount,
+      isCategoryCapped
     };
-  }).slice(0, 5); // Limit to top 5 rules for chart
+  }).slice(0, 5);
 
-  const COLORS = ['#22c55e', '#3b82f6', '#a855f7', '#f59e0b', '#ef4444'];
+  const totalValue = rawChartData.reduce((sum, item) => sum + item.value, 0);
+  const monthlyEstimate = card.maxCashbackPerMonth ? Math.min(totalValue, card.maxCashbackPerMonth) : totalValue;
+
+  const chartData = rawChartData.map(item => ({
+    ...item,
+    proportion: totalValue > 0 ? Math.round((item.value / totalValue) * 100) : 0
+  }));
+
+  const getCategoryStyle = (categoryName: string) => {
+    const lower = categoryName.toLowerCase();
+    if (lower.includes('ăn uống') || lower.includes('nhà hàng') || lower.includes('ẩm thực') || lower.includes('dining')) {
+      return { icon: 'restaurant', color: '#f59e0b' }; // Orange
+    }
+    if (lower.includes('mua sắm') || lower.includes('thời trang') || lower.includes('siêu thị')) {
+      return { icon: 'shopping_cart', color: '#a855f7' }; // Purple
+    }
+    if (lower.includes('online') || lower.includes('sàn thương mại') || lower.includes('thương mại điện tử')) {
+      return { icon: 'language', color: '#3b82f6' }; // Blue
+    }
+    if (lower.includes('du lịch') || lower.includes('đặt vé') || lower.includes('khách sạn') || lower.includes('lưu trú') || lower.includes('vé máy bay')) {
+      return { icon: 'flight', color: '#0ea5e9' }; // Sky
+    }
+    if (lower.includes('di chuyển') || lower.includes('grab') || lower.includes('taxi') || lower.includes('phương tiện')) {
+      return { icon: 'local_taxi', color: '#eab308' }; // Yellow
+    }
+    if (lower.includes('y tế') || lower.includes('sức khỏe') || lower.includes('bảo hiểm')) {
+      return { icon: 'medical_services', color: '#ef4444' }; // Red
+    }
+    if (lower.includes('giáo dục') || lower.includes('học phí') || lower.includes('trường học')) {
+      return { icon: 'school', color: '#8b5cf6' }; // Violet
+    }
+    if (lower.includes('tất cả') || lower.includes('all')) {
+      return { icon: 'public', color: '#22c55e' }; // Green
+    }
+    if (lower.includes('giải trí') || lower.includes('xem phim')) {
+      return { icon: 'movie', color: '#ec4899' }; // Pink
+    }
+    return { icon: 'payments', color: '#64748b' }; // Slate
+  };
 
   const tooltipStyle = {
     borderRadius: '12px',
@@ -174,7 +217,12 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
                 </div>
 
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 text-center">{cleanCardName(card.name)}</h2>
-                <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">{card.bankName}</p>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  {(card.bankLogo || getFallbackBankLogo(card.bankName)) && (
+                    <img src={card.bankLogo || getFallbackBankLogo(card.bankName)!} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />
+                  )}
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">{card.bankName}</p>
+                </div>
 
                 <div className="mt-8 w-full space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6">
                   <div className="flex justify-between items-center">
@@ -204,17 +252,17 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
                   >
                     Mở thẻ ngay
                   </button>
-                  
+
                   {/* Favorite & Owned Buttons */}
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => {
                         if (!isAuthenticated) { openLoginModal(); return; }
-                        const savedCard = { id: card.id!, name: card.name, imageUrl: card.imageUrl || '', bankName: card.bankName, bankLogo: card.bankLogo || '', annualFee: card.annualFee, savedAt: '' };
+                        const savedCard = { id: card.id!, name: card.name, imageUrl: card.imageUrl || '', bankName: card.bankName, bankLogo: card.bankLogo || getFallbackBankLogo(card.bankName) || '', annualFee: card.annualFee, savedAt: '' };
                         isFavorite(card.id!) ? removeFavorite(card.id!) : addFavorite(savedCard);
                       }}
-                      className={`flex items-center justify-center gap-2 rounded-xl h-11 text-sm font-bold transition-all ${isFavorite(card.id!) 
-                        ? 'bg-red-50 dark:bg-red-900/20 text-red-500 border border-red-200 dark:border-red-800/50' 
+                      className={`flex items-center justify-center gap-2 rounded-xl h-11 text-sm font-bold transition-all ${isFavorite(card.id!)
+                        ? 'bg-red-50 dark:bg-red-900/20 text-red-500 border border-red-200 dark:border-red-800/50'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-red-500 hover:border-red-300 dark:hover:border-red-800'}`}
                     >
                       <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: isFavorite(card.id!) ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
@@ -223,7 +271,7 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
                     <button
                       onClick={() => {
                         if (!isAuthenticated) { openLoginModal(); return; }
-                        const savedCard = { id: card.id!, name: card.name, imageUrl: card.imageUrl || '', bankName: card.bankName, bankLogo: card.bankLogo || '', annualFee: card.annualFee, savedAt: '' };
+                        const savedCard = { id: card.id!, name: card.name, imageUrl: card.imageUrl || '', bankName: card.bankName, bankLogo: card.bankLogo || getFallbackBankLogo(card.bankName) || '', annualFee: card.annualFee, savedAt: '' };
                         isOwned(card.id!) ? removeOwnedCard(card.id!) : addOwnedCard(savedCard);
                       }}
                       className={`flex items-center justify-center gap-2 rounded-xl h-11 text-sm font-bold transition-all ${isOwned(card.id!)
@@ -245,58 +293,63 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">Hoàn Tiền Theo Danh Mục Chi Tiêu</h3>
               <p className="text-slate-500 dark:text-slate-400 mt-1">Dựa trên chi tiêu {spendingAmount?.toLocaleString()}đ hàng tháng.</p>
 
-              <div className="mt-8 h-[300px] w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={isDarkMode ? "#334155" : "#e2e8f0"} />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12, fontWeight: 700, fill: isDarkMode ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      cursor={{ fill: 'transparent' }}
-                      contentStyle={tooltipStyle}
-                      formatter={(value: any) => [Number(value || 0).toLocaleString() + ' VND', 'Ước tính']}
-                    />
-                    <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={30}>
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <div className="mt-8 flex flex-col md:flex-row items-center md:items-start gap-8">
+                {/* Left side: Chart */}
+                <div className="w-full md:w-5/12 h-[320px] bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center overflow-hidden">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={isDarkMode ? "#334155" : "#e2e8f0"} />
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 700, fill: isDarkMode ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        cursor={{ fill: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                        contentStyle={tooltipStyle}
+                        itemStyle={{ color: isDarkMode ? '#cbd5e1' : '#475569', fontWeight: 500 }}
+                        labelStyle={{ color: isDarkMode ? '#f8fafc' : '#0f172a', fontWeight: 'bold', marginBottom: '4px' }}
+                        formatter={(value: any) => [Number(value || 0).toLocaleString() + ' VND', 'Tối đa']}
+                      />
+                      <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24}>
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={getCategoryStyle(entry.name).color} />
+                        ))}
+                        <LabelList dataKey="proportion" position="right" formatter={(val: any) => `${val}%`} fill={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={12} fontWeight="bold" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
 
-              <div className="mt-8 space-y-4">
-                {card.cashbackRules.map((rule, idx) => (
-                  <div key={idx} className={`flex items-center justify-between rounded-xl p-5 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 transition-transform hover:scale-[1.01]`}>
-                    <div className="flex items-center gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-primary-500 shadow-sm shadow-primary-500/10`}>
-                        <span className="material-symbols-outlined text-2xl">
-                          {rule.category === 'Ăn uống' ? 'restaurant' :
-                            rule.category === 'Online' ? 'shopping_cart' :
-                              rule.category === 'Du lịch' ? 'flight' : 'payments'}
-                        </span>
+                {/* Right side: Categories */}
+                <div className="w-full md:w-7/12 flex flex-col gap-3">
+                  {chartData.map((item, idx) => {
+                    const style = getCategoryStyle(item.name);
+                    return (
+                    <div key={idx} className={`flex items-center justify-between rounded-xl p-4 border border-slate-100 dark:border-slate-800 bg-white dark:bg-[#18181b] shadow-sm transition-transform hover:scale-[1.02] hover:border-primary-200 dark:hover:border-primary-900/50`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-full shadow-sm`} style={{ backgroundColor: `${style.color}20`, color: style.color }}>
+                          <span className="material-symbols-outlined text-xl">
+                            {style.icon}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-900 dark:text-slate-50 text-base">{item.name}</span>
+                          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                            Hoàn {item.percentage}%
+                            {/* {item.isCategoryCapped && <span className="text-orange-500 ml-1">(Chạm mốc tối đa danh mục)</span>} */}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 dark:text-slate-50 text-lg">{rule.category}</span>
-                        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">Hoàn tiền {rule.percentage}%</span>
-                      </div>
+                      <span className={`text-lg font-bold text-slate-900 dark:text-slate-100`}>
+                        + {Math.floor(item.value).toLocaleString()} <span className="text-sm font-medium text-slate-500">đ</span>
+                      </span>
                     </div>
-                    <span className={`text-xl font-bold text-primary-600 dark:text-primary-400`}>
-                      + {
-                        Math.min(
-                          (spendingAmount * rule.percentage) / 100,
-                          rule.capAmount || Infinity,
-                          card.maxCashbackPerMonth || Infinity
-                        ).toLocaleString()
-                      } VND
-                    </span>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-6 flex justify-between items-center text-right">
                 <span className="text-lg font-bold text-slate-900 dark:text-white">Tổng tiền tích lũy một năm:</span>
-                <span className="text-2xl font-black text-primary-600 dark:text-primary-400">~ {((card.cashbackAmount || 0) * 12).toLocaleString()} VND</span>
+                <span className="text-2xl font-black text-primary-600 dark:text-primary-400">~ {(monthlyEstimate * 12).toLocaleString()} VND</span>
               </div>
             </div>
 

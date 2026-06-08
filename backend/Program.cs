@@ -32,6 +32,7 @@ builder.Services.AddSingleton<backend.Services.ArticleService>();
 builder.Services.AddSingleton<backend.Services.ArticleCategoryService>();
 builder.Services.AddSingleton<backend.Services.PromotionService>();
 builder.Services.AddSingleton<backend.Services.ChatService>();
+builder.Services.AddSingleton<backend.Services.EmailService>();
 builder.Services.AddTransient<backend.Controllers.ScraperController>();
 builder.Services.AddSingleton<IMongoClient>(new MongoClient(builder.Configuration.GetConnectionString("MongoDB")));
 

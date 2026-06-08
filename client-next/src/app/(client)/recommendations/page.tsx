@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cardApi } from '@/services/api';
 import { cleanCardName, generateSlug } from '@/lib/utils';
+import SaveCardModal from '@/components/SaveCardModal';
 
 // ═══════════════════════════════════════════════════════════
 // COMBO UI COLORS
@@ -47,9 +48,15 @@ function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult
                                 <p className="text-sm text-slate-500 dark:text-slate-400">Chia chi tiêu giữa {cardCount} ngân hàng để tối ưu hoàn tiền</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/30 w-fit">
-                            <span className="material-symbols-outlined text-lg">trending_up</span>
-                            <span className="text-sm font-black">+{combo.savingsVsSingle.toLocaleString('vi-VN')}đ/tháng</span>
+                        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 w-fit">
+                                <span className="material-symbols-outlined text-[16px]">savings</span>
+                                <span className="text-sm font-black">Tiết kiệm thêm {combo.savingsPercent.toFixed(0)}%</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/30 w-fit">
+                                <span className="material-symbols-outlined text-lg">trending_up</span>
+                                <span className="text-sm font-black">+{combo.savingsVsSingle.toLocaleString('vi-VN')}đ/tháng</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -134,9 +141,11 @@ function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult
                                 <p className="text-xl font-black text-slate-400 line-through">{bestSingleCashback.toLocaleString('vi-VN')}đ<span className="text-xs font-semibold">/tháng</span></p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                            <span className="material-symbols-outlined text-lg">savings</span>
-                            <span className="text-sm font-black">Tiết kiệm thêm {combo.savingsPercent.toFixed(0)}%</span>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                                <span className="material-symbols-outlined text-lg">monitoring</span>
+                                <span className="text-sm font-black">Hoàn tiền: {((combo.totalCashback / combo.allocation.reduce((sum, a) => sum + a.amount, 1)) * 100).toFixed(1)}%</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -149,24 +158,24 @@ function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult
 // GAMIFIED BEST CARD (unchanged from original)
 // ═══════════════════════════════════════════════════════════
 
-function GamifiedBestCard({ card }: { card: Card }) {
+function GamifiedBestCard({ card, onSaveCard }: { card: Card, onSaveCard: (c: Card) => void }) {
     const { isInCompare, addToCompare, removeFromCompare } = useCompare();
     const isSelected = isInCompare(card.id || '');
-    
+
     return (
         <div className="relative mb-8 animate-[scaleUp_0.8s_ease-out]">
             {/* Glowing background */}
             <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 opacity-70 blur-xl animate-[pulse_3s_infinite]"></div>
-            
+
             {/* Main Card Container */}
             <div className="relative flex flex-col md:flex-row gap-6 rounded-3xl bg-white dark:bg-slate-900 border-2 border-amber-400/50 p-6 sm:p-8 shadow-2xl overflow-hidden">
                 {/* Shine effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-100/50 dark:from-white/10 to-transparent pointer-events-none"></div>
-                
+
                 {/* Crown Badge */}
-                <div className="absolute top-0 right-0 bg-amber-500 text-white font-black text-xs px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest shadow-lg flex items-center gap-1 z-10">
-                    <span className="material-symbols-outlined text-sm">workspace_premium</span>
-                    Lựa chọn số 1
+                <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-black text-[11px] sm:text-xs px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest shadow-lg flex items-center gap-1.5 z-10">
+                    <span className="material-symbols-outlined text-[14px] animate-pulse">auto_awesome</span>
+                    Đề xuất bởi CredBack
                 </div>
 
                 {/* Left Side: Image */}
@@ -247,6 +256,14 @@ function GamifiedBestCard({ card }: { card: Card }) {
                                     </>
                                 )}
                             </Button>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => onSaveCard(card)}
+                                className="flex-1 sm:flex-none font-bold border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400 hover:text-blue-500 transition-all"
+                            >
+                                <span className="material-symbols-outlined text-lg mr-1">mail</span>
+                                Lưu thẻ
+                            </Button>
                             <Link href={`/card/${generateSlug(card.name)}`} className="flex-1 sm:flex-none">
                                 <Button className="w-full font-black px-8 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-900 shadow-xl shadow-amber-500/30 hover:scale-105 transition-transform border-none">
                                     ĐĂNG KÝ NGAY
@@ -280,6 +297,8 @@ function RecommendationsContent() {
     const [loading, setLoading] = useState(true);
     const [selectedBank, setSelectedBank] = useState<string>('Tất cả ngân hàng');
     const [spendingBreakdown, setSpendingBreakdown] = useState<CategorySpending[]>([]);
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [cardToEmail, setCardToEmail] = useState<Card | null>(null);
     const historySavedRef = useRef(false);
 
     // Reset history saved flag when search params change
@@ -409,7 +428,7 @@ function RecommendationsContent() {
                                 </div>
                             ))}
                             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-vp-green/10 border border-vp-green/20 text-xs font-black text-vp-green">
-                                Tổng: {(spending / 1000000).toFixed(1)}tr/tháng
+                                Tổng: {(spendingBreakdown.reduce((sum, item) => sum + item.amount, 0) / 1000000).toFixed(1)}tr/tháng
                             </div>
                         </div>
                     </div>
@@ -456,9 +475,9 @@ function RecommendationsContent() {
                             {/* Individual card recommendations */}
                             {filteredCards.slice(0, visibleCount).map((card, idx) => (
                                 (idx === 0 && selectedBank === 'Tất cả ngân hàng') ? (
-                                    <GamifiedBestCard key={`best-${card.id}`} card={card} />
+                                    <GamifiedBestCard key={`best-${card.id}`} card={card} onSaveCard={(c) => { setCardToEmail(c); setIsEmailModalOpen(true); }} />
                                 ) : (
-                                    <CardItem key={card.id} card={card} />
+                                    <CardItem key={card.id} card={card} onSaveCard={(c) => { setCardToEmail(c); setIsEmailModalOpen(true); }} />
                                 )
                             ))}
                         </>
@@ -515,6 +534,12 @@ function RecommendationsContent() {
                     </Button>
                 </div>
             </div>
+
+            <SaveCardModal 
+                isOpen={isEmailModalOpen} 
+                onClose={() => setIsEmailModalOpen(false)} 
+                card={cardToEmail} 
+            />
         </main>
     );
 }

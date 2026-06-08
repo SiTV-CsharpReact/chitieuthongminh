@@ -59,7 +59,7 @@ export default function ComparePage() {
                     </div>
                     <TooltipProvider>
                         <Tooltip>
-                            <TooltipTrigger asChild>
+                            <TooltipTrigger>
                                 <div className="inline-block">
                                     <button
                                         onClick={() => router.push('/cards')}

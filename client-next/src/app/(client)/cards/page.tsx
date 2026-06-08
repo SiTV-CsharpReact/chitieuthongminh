@@ -8,7 +8,7 @@ import { Card, Category } from '@/types';
 import { cardApi, categoryApi } from '@/services/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PortraitCardVisual } from '@/components/PortraitCardVisual';
-import { cleanCardName, generateSlug } from '@/lib/utils';
+import { cleanCardName, generateSlug, getFallbackBankLogo } from '@/lib/utils';
 import Link from 'next/link';
 import { useCompare } from '@/context/CompareContext';
 
@@ -60,9 +60,32 @@ export default function AllCardsPage() {
         fetchData();
     }, []);
 
+    const normalizeBankName = (name: string | undefined | null) => {
+        if (!name) return '';
+        const lower = name.trim().toLowerCase();
+        if (lower === 'vpbank') return 'VPBank';
+        if (lower === 'vib') return 'VIB';
+        if (lower === 'tpbank') return 'TPBank';
+        if (lower === 'techcombank') return 'Techcombank';
+        if (lower === 'sacombank') return 'Sacombank';
+        if (lower === 'vietcombank') return 'Vietcombank';
+        if (lower === 'mbbank' || lower === 'mb') return 'MBBank';
+        if (lower === 'hsbc') return 'HSBC';
+        if (lower === 'bidv') return 'BIDV';
+        if (lower === 'msb') return 'MSB';
+        if (lower === 'acb') return 'ACB';
+        if (lower === 'ocb') return 'OCB';
+        if (lower === 'shb') return 'SHB';
+        if (lower === 'uob') return 'UOB';
+        if (lower === 'hdbank') return 'HDBank';
+        if (lower === 'standard chartered') return 'Standard Chartered';
+        if (lower === 'shinhan' || lower === 'shinhan bank') return 'Shinhan Bank';
+        return lower.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    };
+
     const filteredCards = cards.filter(card => {
         // Bank Filter
-        const matchBank = selectedBank === 'Tất cả' || card.bankName === selectedBank;
+        const matchBank = selectedBank === 'Tất cả' || normalizeBankName(card.bankName) === selectedBank;
 
         // Audience Filter
         const matchAudience = selectedAudience === 'Tất cả' || (card.tags && card.tags.includes(selectedAudience));
@@ -105,7 +128,7 @@ export default function AllCardsPage() {
     const totalPages = Math.ceil(sortedCards.length / pageSize);
     const paginatedCards = sortedCards.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-    const banks = Array.from(new Set(cards.map(c => c.bankName)));
+    const banks = Array.from(new Set(cards.map(c => normalizeBankName(c.bankName)))).filter(Boolean).sort();
     const audiences = ['Tất cả', 'Sinh viên', 'Người đi làm', 'Gia đình', 'Doanh nghiệp'];
     const filterCategories = ['Tất cả', ...Array.from(new Set(cards.flatMap(c => c.cashbackRules?.map(r => r.category) || []))).filter(Boolean).filter(c => c !== 'Tất cả')];
     const fees = ['Tất cả', 'Miễn phí', 'Dưới 500.000đ', '500.000đ - 1.000.000đ', 'Trên 1.000.000đ'];
@@ -156,8 +179,9 @@ export default function AllCardsPage() {
                                                     <span className={`text-[13px] ${selectedBank === 'Tất cả' ? 'text-vp-green font-semibold' : 'text-slate-400'}`}>{cards.length}</span>
                                                 </div>
                                                 {banks.map(bank => {
-                                                    const bankLogo = cards.find(c => c.bankName === bank)?.bankLogo;
-                                                    const count = cards.filter(c => c.bankName === bank).length;
+                                                    const matchingCard = cards.find(c => normalizeBankName(c.bankName) === bank);
+                                                    const bankLogo = matchingCard?.bankLogo || getFallbackBankLogo(bank);
+                                                    const count = cards.filter(c => normalizeBankName(c.bankName) === bank).length;
                                                     return (
                                                         <div key={bank} onClick={() => setSelectedBank(bank)} className="flex items-center justify-between cursor-pointer py-1.5 group">
                                                             <div className="flex items-center gap-3">
@@ -364,7 +388,7 @@ export default function AllCardsPage() {
                                             }`}>
                                                 <div className="flex items-center justify-between px-5 pt-5 pb-3">
                                                     <div className="flex items-center gap-2">
-                                                        {card.bankLogo && <img src={card.bankLogo} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />}
+                                                        {(card.bankLogo || getFallbackBankLogo(card.bankName)) && <img src={card.bankLogo || getFallbackBankLogo(card.bankName)!} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />}
                                                     </div>
                                                     <div className="px-3 py-1.5 rounded-full border border-vp-green/50 text-vp-green text-[11px] font-medium flex items-center gap-1.5 glow-green bg-vp-green/10 select-none">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-vp-green animate-pulse"></span>
@@ -389,7 +413,7 @@ export default function AllCardsPage() {
                                                     </div>
                                                     <div className="text-center border-x border-slate-200/50 dark:border-slate-800/50">
                                                         <p className="text-[10px] text-slate-400 font-medium mb-0.5">Phí thường niên</p>
-                                                        <p className="text-[10px] font-black text-slate-900 dark:text-white">{card.annualFee === 0 ? 'Miễn phí' : `${(card.annualFee / 1000).toFixed(0)}K`}</p>
+                                                        <p className="text-[10px] font-black text-slate-900 dark:text-white">{card.annualFee === 0 ? 'Miễn phí năm đầu' : `${(card.annualFee / 1000).toFixed(0)}K`}</p>
                                                     </div>
                                                     <div className="text-center">
                                                         <p className="text-[10px] text-slate-400 font-medium mb-0.5">Hoàn tối đa</p>

@@ -1,4 +1,5 @@
 using backend.Models;
+using backend.ML;
 using System.Data;
 
 namespace backend.Services;
@@ -25,18 +26,69 @@ public class ID3Service
                 .ToList();
         }
         
+        // Filter by minimum spend requirement
+        decimal totalSpend = input.Spendings?.Sum(s => s.Amount) ?? 0;
+        eligibleCards = eligibleCards
+            .Where(c => c.MinSpendForCashback <= 0 || totalSpend >= c.MinSpendForCashback)
+            .ToList();
+        
         // Calculate cashback for all eligible cards
         var singleResults = eligibleCards
             .Select(c => CalculateCardCashback(c, input.Spendings))
             .OrderByDescending(r => r.TotalCashback)
             .ToList();
 
-        // 1. Single Cards List (we return top 12)
+        // -------------------------------------------------------------
+        // ML ID3 Algorithm Integration for Single Card Prediction
+        // -------------------------------------------------------------
+        // 1. Generate Training Data based on card rules
+        var mlDataset = TrainingDataGenerator.GenerateTrainingData(allCards);
+        
+        // 2. Build Decision Tree
+        var id3Engine = new ID3Engine();
+        var availableAttributes = new List<string> { "IncomeLevel", "TopCategory" };
+        var decisionTree = id3Engine.BuildTree(mlDataset, availableAttributes);
+
+        // 3. Prepare user input for prediction
+        string incomeLevel = input.Salary >= 30000000 ? "High" : input.Salary >= 10000000 ? "Medium" : "Low";
+        string topCategoryStr = input.Spendings.OrderByDescending(s => s.Amount).FirstOrDefault()?.Category ?? "Tất cả";
+        
+        var predictionInput = new Dictionary<string, string>
+        {
+            { "IncomeLevel", incomeLevel },
+            { "TopCategory", topCategoryStr }
+        };
+
+        // 4. Predict the best card using the ML Tree
+        string predictedCardName = id3Engine.Predict(decisionTree, predictionInput);
+
+        // 5. Single Cards List (we return top 12)
         var topSingleCards = singleResults.Take(12).ToList();
+
+        // Save the true mathematical best cashback before reordering
+        decimal mathematicalBestCashback = topSingleCards.FirstOrDefault()?.TotalCashback ?? 0;
+
+        // Boost the ID3 Predicted Card to the top if it exists in the results
+        var predictedResult = topSingleCards.FirstOrDefault(r => r.Card.Name == predictedCardName);
+        if (predictedResult != null)
+        {
+            topSingleCards.Remove(predictedResult);
+            topSingleCards.Insert(0, predictedResult);
+        }
+        else
+        {
+            // If it wasn't in top 12 but in the eligible list, pull it up
+            var fallbackPredicted = singleResults.FirstOrDefault(r => r.Card.Name == predictedCardName);
+            if (fallbackPredicted != null)
+            {
+                topSingleCards.Insert(0, fallbackPredicted);
+                if (topSingleCards.Count > 12) topSingleCards.RemoveAt(topSingleCards.Count - 1);
+            }
+        }
 
         // 2. Find Best Combo
         var topCards = topSingleCards.Select(x => x.Card).ToList();
-        var bestCombo = FindBestCombo(topCards, input.Spendings, topSingleCards.FirstOrDefault()?.TotalCashback ?? 0);
+        var bestCombo = FindBestCombo(topCards, input.Spendings, mathematicalBestCashback);
 
         return new RecommendationResponse
         {

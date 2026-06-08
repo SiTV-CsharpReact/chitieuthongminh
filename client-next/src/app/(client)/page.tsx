@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CardCashbackBreakdown, CategorySpending } from '@/types';
 import { useCategoryContext } from '@/context/CategoryContext';
 import { Logo } from '@/components/Logo';
-import { cleanCardName, generateSlug } from '@/lib/utils';
+import { cleanCardName, generateSlug, getFallbackBankLogo } from '@/lib/utils';
 import { PortraitCardVisual } from '@/components/PortraitCardVisual';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -42,14 +42,14 @@ export default function HomePage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSections, setExpandedSections] = useState({
-      bank: true,
-      audience: true,
-      category: true,
-      fee: true,
+    bank: true,
+    audience: true,
+    category: true,
+    fee: true,
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
-      setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
   const [creditLimit, setCreditLimit] = useState([0, 2000]);
@@ -73,48 +73,71 @@ export default function HomePage() {
     fetchCards();
   }, []);
 
-  const banks = Array.from(new Set(cards.map(c => c.bankName)));
+  const normalizeBankName = (name: string | undefined | null) => {
+    if (!name) return '';
+    const lower = name.trim().toLowerCase();
+    if (lower === 'vpbank') return 'VPBank';
+    if (lower === 'vib') return 'VIB';
+    if (lower === 'tpbank') return 'TPBank';
+    if (lower === 'techcombank') return 'Techcombank';
+    if (lower === 'sacombank') return 'Sacombank';
+    if (lower === 'vietcombank') return 'Vietcombank';
+    if (lower === 'mbbank' || lower === 'mb') return 'MBBank';
+    if (lower === 'hsbc') return 'HSBC';
+    if (lower === 'bidv') return 'BIDV';
+    if (lower === 'msb') return 'MSB';
+    if (lower === 'acb') return 'ACB';
+    if (lower === 'ocb') return 'OCB';
+    if (lower === 'shb') return 'SHB';
+    if (lower === 'uob') return 'UOB';
+    if (lower === 'hdbank') return 'HDBank';
+    if (lower === 'standard chartered') return 'Standard Chartered';
+    if (lower === 'shinhan' || lower === 'shinhan bank') return 'Shinhan Bank';
+    return lower.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const banks = Array.from(new Set(cards.map(c => normalizeBankName(c.bankName)))).filter(Boolean).sort();
   const audiences = ['Tất cả', 'Sinh viên', 'Người đi làm', 'Gia đình', 'Doanh nghiệp'];
   const filterCategories = ['Tất cả', ...Array.from(new Set(cards.flatMap(c => c.cashbackRules?.map(r => r.category) || []))).filter(Boolean).filter(c => c !== 'Tất cả')];
   const fees = ['Tất cả', 'Miễn phí', 'Dưới 500.000đ', '500.000đ - 1.000.000đ', 'Trên 1.000.000đ'];
 
   const filteredCards = cards.filter(card => {
-      // Bank Filter
-      const matchBank = selectedBank === 'Tất cả' || card.bankName === selectedBank;
+    // Bank Filter
+    const matchBank = selectedBank === 'Tất cả' || normalizeBankName(card.bankName) === selectedBank;
 
-      // Audience Filter
-      const matchAudience = selectedAudience === 'Tất cả' || (card.tags && card.tags.includes(selectedAudience));
+    // Audience Filter
+    const matchAudience = selectedAudience === 'Tất cả' || (card.tags && card.tags.includes(selectedAudience));
 
-      // Fee Filter
-      let matchFee = true;
-      if (feeFilter === 'Miễn phí') {
-          matchFee = card.annualFee === 0;
-      } else if (feeFilter === 'Dưới 500.000đ') {
-          matchFee = card.annualFee > 0 && card.annualFee < 500000;
-      } else if (feeFilter === '500.000đ - 1.000.000đ') {
-          matchFee = card.annualFee >= 500000 && card.annualFee <= 1000000;
-      } else if (feeFilter === 'Trên 1.000.000đ') {
-          matchFee = card.annualFee > 1000000;
-      }
+    // Fee Filter
+    let matchFee = true;
+    if (feeFilter === 'Miễn phí') {
+      matchFee = card.annualFee === 0;
+    } else if (feeFilter === 'Dưới 500.000đ') {
+      matchFee = card.annualFee > 0 && card.annualFee < 500000;
+    } else if (feeFilter === '500.000đ - 1.000.000đ') {
+      matchFee = card.annualFee >= 500000 && card.annualFee <= 1000000;
+    } else if (feeFilter === 'Trên 1.000.000đ') {
+      matchFee = card.annualFee > 1000000;
+    }
 
-      // Category Filter
-      const matchCategory = selectedCategories.length === 0 || (card.cashbackRules && card.cashbackRules.some(r => selectedCategories.includes(r.category)));
+    // Category Filter
+    const matchCategory = selectedCategories.length === 0 || (card.cashbackRules && card.cashbackRules.some(r => selectedCategories.includes(r.category)));
 
-      // Search Filter
-      const matchSearch = searchTerm === '' || card.name.toLowerCase().includes(searchTerm.toLowerCase()) || (card.bankName && card.bankName.toLowerCase().includes(searchTerm.toLowerCase()));
+    // Search Filter
+    const matchSearch = searchTerm === '' || card.name.toLowerCase().includes(searchTerm.toLowerCase()) || (card.bankName && card.bankName.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      // Interest Filter
-      let matchInterest = true;
-      if (selectedInterest !== 'Tất cả') {
-          const s = selectedInterest.toLowerCase();
-          matchInterest = (card.tags && card.tags.some(t => t.toLowerCase().includes(s))) || 
-                          (card.description && card.description.toLowerCase().includes(s)) ||
-                          (card.benefits && card.benefits.some(b => b.toLowerCase().includes(s))) ||
-                          (card.cashbackRules && card.cashbackRules.some(r => r.category.toLowerCase().includes(s))) ||
-                          (card.name.toLowerCase().includes(s));
-      }
+    // Interest Filter
+    let matchInterest = true;
+    if (selectedInterest !== 'Tất cả') {
+      const s = selectedInterest.toLowerCase();
+      matchInterest = (card.tags && card.tags.some(t => t.toLowerCase().includes(s))) ||
+        (card.description && card.description.toLowerCase().includes(s)) ||
+        (card.benefits && card.benefits.some(b => b.toLowerCase().includes(s))) ||
+        (card.cashbackRules && card.cashbackRules.some(r => r.category.toLowerCase().includes(s))) ||
+        (card.name.toLowerCase().includes(s));
+    }
 
-      return matchBank && matchAudience && matchFee && matchCategory && matchSearch && matchInterest;
+    return matchBank && matchAudience && matchFee && matchCategory && matchSearch && matchInterest;
   });
 
   // Pagination
@@ -292,146 +315,147 @@ export default function HomePage() {
 
               {/* Sidebar Filters */}
               <aside className="lg:w-72 flex-shrink-0">
-                  <div className="sticky top-24">
-                      <div className="bg-white dark:bg-[#0c1425] rounded-3xl border border-slate-200/50 dark:border-slate-800 p-6 pt-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none">
-                          {/* Header */}
-                          <div className="flex items-center justify-between pb-4 pt-3 border-b border-slate-100 dark:border-slate-800/80 mb-2">
-                              <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-xl bg-vp-green/15 flex items-center justify-center text-vp-green">
-                                      <span className="material-symbols-outlined !text-[20px]">filter_alt</span>
-                                  </div>
-                                  <h3 className="font-bold text-[17px] text-slate-900 dark:text-white tracking-wide">Bộ lọc</h3>
-                              </div>
-                              <button onClick={() => { setSelectedBank('Tất cả'); setFeeFilter('Tất cả'); setSelectedAudience('Tất cả'); setSelectedCategories([]); setSearchTerm(''); }} className="text-[13px] text-vp-green hover:text-vp-green/80 flex items-center gap-1.5 font-semibold transition-colors">
-                                  Xóa bộ lọc <span className="material-symbols-outlined !text-[16px]">refresh</span>
-                              </button>
-                          </div>
-
-                          <div className="pt-4 space-y-6">
-                              {/* Bank Filter */}
-                              <div>
-                                  <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('bank')}>
-                                      <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Ngân hàng</h4>
-                                      <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.bank ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
-                                  </div>
-                                  <div className={`space-y-1 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar ${expandedSections.bank ? 'block' : 'hidden'}`}>
-                                      <div onClick={() => setSelectedBank('Tất cả')} className="flex items-center justify-between cursor-pointer py-1.5 group">
-                                          <div className="flex items-center gap-3">
-                                              <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === 'Tất cả' ? 'bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-950 shadow-sm' : 'border-2 border-slate-300 dark:border-slate-600 group-hover:border-green-400/50'}`}>
-                                                  {selectedBank === 'Tất cả' && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 800" }}>check</span>}
-                                              </span>
-                                              <span className="material-symbols-outlined text-vp-green text-[20px]">account_balance</span>
-                                              <span className="text-[15px] text-slate-700 dark:text-slate-300">Tất cả ngân hàng</span>
-                                          </div>
-                                          <span className={`text-[13px] ${selectedBank === 'Tất cả' ? 'text-vp-green font-semibold' : 'text-slate-400'}`}>{cards.length}</span>
-                                      </div>
-                                      {banks.map(bank => {
-                                          const bankLogo = cards.find(c => c.bankName === bank)?.bankLogo;
-                                          const count = cards.filter(c => c.bankName === bank).length;
-                                          return (
-                                              <div key={bank} onClick={() => setSelectedBank(bank)} className="flex items-center justify-between cursor-pointer py-1.5 group">
-                                                  <div className="flex items-center gap-3">
-                                                      <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === bank ? 'bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-950 shadow-sm' : 'border-2 border-slate-300 dark:border-slate-600 group-hover:border-green-400/50'}`}>
-                                                          {selectedBank === bank && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 800" }}>check</span>}
-                                                      </span>
-                                                      {bankLogo ? (
-                                                          <img src={bankLogo} alt={bank} className="h-5 w-6 object-contain flex-shrink-0 dark:bg-white/90 dark:rounded dark:px-0.5" />
-                                                      ) : (
-                                                          <span className="material-symbols-outlined text-slate-400 text-[20px] flex-shrink-0">credit_card</span>
-                                                      )}
-                                                      <span className="text-[15px] text-slate-700 dark:text-slate-300 truncate">{bank}</span>
-                                                  </div>
-                                                  <span className={`text-[13px] ${selectedBank === bank ? 'text-vp-green font-semibold' : 'text-slate-400'}`}>{count}</span>
-                                              </div>
-                                          );
-                                      })}
-                                  </div>
-                              </div>
-
-                              <hr className="border-slate-100 dark:border-slate-800" />
-
-                              {/* Target Audience Filter */}
-                              <div>
-                                  <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('audience')}>
-                                      <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Phân loại đối tượng</h4>
-                                      <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.audience ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
-                                  </div>
-                                  <div className={`${expandedSections.audience ? 'flex' : 'hidden'} flex-wrap gap-1.5`}>
-                                      {audiences.map(aud => (
-                                          <button
-                                              key={aud}
-                                              onClick={() => setSelectedAudience(aud)}
-                                              className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${selectedAudience === aud
-                                                  ? 'bg-vp-green/10 text-vp-green border-vp-green'
-                                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
-                                                  }`}
-                                          >
-                                              {aud}
-                                          </button>
-                                      ))}
-                                  </div>
-                              </div>
-
-                              <hr className="border-slate-100 dark:border-slate-800" />
-
-                              {/* Category Filter */}
-                              <div>
-                                  <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('category')}>
-                                      <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Danh mục hoàn tiền</h4>
-                                      <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.category ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
-                                  </div>
-                                  <div className={`${expandedSections.category ? 'flex' : 'hidden'} flex-wrap gap-1.5 max-h-[185px] overflow-y-auto pr-1 custom-scrollbar`}>
-                                      {filterCategories.map(cat => {
-                                          const isSelected = cat === 'Tất cả' ? selectedCategories.length === 0 : selectedCategories.includes(cat);
-                                          return (
-                                              <button
-                                                  key={cat}
-                                                  onClick={() => {
-                                                      if (cat === 'Tất cả') {
-                                                          setSelectedCategories([]);
-                                                      } else {
-                                                          setSelectedCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
-                                                      }
-                                                  }}
-                                                  className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${isSelected
-                                                      ? 'bg-vp-green/10 text-vp-green border-vp-green'
-                                                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
-                                                      }`}
-                                              >
-                                                  {cat}
-                                              </button>
-                                          );
-                                      })}
-                                  </div>
-                              </div>
-
-                              <hr className="border-slate-100 dark:border-slate-800" />
-
-                              {/* Fee Filter */}
-                              <div>
-                                  <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('fee')}>
-                                      <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Phí thường niên</h4>
-                                      <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.fee ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
-                                  </div>
-                                  <div className={`${expandedSections.fee ? 'flex' : 'hidden'} flex-wrap gap-1.5`}>
-                                      {fees.map(fee => (
-                                          <button
-                                              key={fee}
-                                              onClick={() => setFeeFilter(fee)}
-                                              className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${feeFilter === fee
-                                                  ? 'bg-vp-green/10 text-vp-green border-vp-green'
-                                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
-                                                  }`}
-                                          >
-                                              {fee}
-                                          </button>
-                                      ))}
-                                  </div>
-                              </div>
-
-                          </div>
+                <div className="sticky top-24">
+                  <div className="bg-white dark:bg-[#0c1425] rounded-3xl border border-slate-200/50 dark:border-slate-800 p-6 pt-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-4 pt-3 border-b border-slate-100 dark:border-slate-800/80 mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-vp-green/15 flex items-center justify-center text-vp-green">
+                          <span className="material-symbols-outlined !text-[20px]">filter_alt</span>
+                        </div>
+                        <h3 className="font-bold text-[17px] text-slate-900 dark:text-white tracking-wide">Bộ lọc</h3>
                       </div>
+                      <button onClick={() => { setSelectedBank('Tất cả'); setFeeFilter('Tất cả'); setSelectedAudience('Tất cả'); setSelectedCategories([]); setSearchTerm(''); }} className="text-[13px] text-vp-green hover:text-vp-green/80 flex items-center gap-1.5 font-semibold transition-colors">
+                        Xóa bộ lọc <span className="material-symbols-outlined !text-[16px]">refresh</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-4 space-y-6">
+                      {/* Bank Filter */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('bank')}>
+                          <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Ngân hàng</h4>
+                          <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.bank ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
+                        </div>
+                        <div className={`space-y-1 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar ${expandedSections.bank ? 'block' : 'hidden'}`}>
+                          <div onClick={() => setSelectedBank('Tất cả')} className="flex items-center justify-between cursor-pointer py-1.5 group">
+                            <div className="flex items-center gap-3">
+                              <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === 'Tất cả' ? 'bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-950 shadow-sm' : 'border-2 border-slate-300 dark:border-slate-600 group-hover:border-green-400/50'}`}>
+                                {selectedBank === 'Tất cả' && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 800" }}>check</span>}
+                              </span>
+                              <span className="material-symbols-outlined text-vp-green text-[20px]">account_balance</span>
+                              <span className="text-[15px] text-slate-700 dark:text-slate-300">Tất cả ngân hàng</span>
+                            </div>
+                            <span className={`text-[13px] ${selectedBank === 'Tất cả' ? 'text-vp-green font-semibold' : 'text-slate-400'}`}>{cards.length}</span>
+                          </div>
+                          {banks.map(bank => {
+                            const matchingCard = cards.find(c => normalizeBankName(c.bankName) === bank);
+                            const bankLogo = matchingCard?.bankLogo || getFallbackBankLogo(bank);
+                            const count = cards.filter(c => normalizeBankName(c.bankName) === bank).length;
+                            return (
+                              <div key={bank} onClick={() => setSelectedBank(bank)} className="flex items-center justify-between cursor-pointer py-1.5 group">
+                                <div className="flex items-center gap-3">
+                                  <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-all ${selectedBank === bank ? 'bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-950 shadow-sm' : 'border-2 border-slate-300 dark:border-slate-600 group-hover:border-green-400/50'}`}>
+                                    {selectedBank === bank && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 800" }}>check</span>}
+                                  </span>
+                                  {bankLogo ? (
+                                    <img src={bankLogo} alt={bank} className="h-5 w-6 object-contain flex-shrink-0 dark:bg-white/90 dark:rounded dark:px-0.5" />
+                                  ) : (
+                                    <span className="material-symbols-outlined text-slate-400 text-[20px] flex-shrink-0">credit_card</span>
+                                  )}
+                                  <span className="text-[15px] text-slate-700 dark:text-slate-300 truncate">{bank}</span>
+                                </div>
+                                <span className={`text-[13px] ${selectedBank === bank ? 'text-vp-green font-semibold' : 'text-slate-400'}`}>{count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <hr className="border-slate-100 dark:border-slate-800" />
+
+                      {/* Target Audience Filter */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('audience')}>
+                          <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Phân loại đối tượng</h4>
+                          <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.audience ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
+                        </div>
+                        <div className={`${expandedSections.audience ? 'flex' : 'hidden'} flex-wrap gap-1.5`}>
+                          {audiences.map(aud => (
+                            <button
+                              key={aud}
+                              onClick={() => setSelectedAudience(aud)}
+                              className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${selectedAudience === aud
+                                ? 'bg-vp-green/10 text-vp-green border-vp-green'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
+                                }`}
+                            >
+                              {aud}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <hr className="border-slate-100 dark:border-slate-800" />
+
+                      {/* Category Filter */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('category')}>
+                          <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Danh mục hoàn tiền</h4>
+                          <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.category ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
+                        </div>
+                        <div className={`${expandedSections.category ? 'flex' : 'hidden'} flex-wrap gap-1.5 max-h-[185px] overflow-y-auto pr-1 custom-scrollbar`}>
+                          {filterCategories.map(cat => {
+                            const isSelected = cat === 'Tất cả' ? selectedCategories.length === 0 : selectedCategories.includes(cat);
+                            return (
+                              <button
+                                key={cat}
+                                onClick={() => {
+                                  if (cat === 'Tất cả') {
+                                    setSelectedCategories([]);
+                                  } else {
+                                    setSelectedCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+                                  }
+                                }}
+                                className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${isSelected
+                                  ? 'bg-vp-green/10 text-vp-green border-vp-green'
+                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
+                                  }`}
+                              >
+                                {cat}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <hr className="border-slate-100 dark:border-slate-800" />
+
+                      {/* Fee Filter */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4 cursor-pointer group select-none" onClick={() => toggleSection('fee')}>
+                          <h4 className="text-[13px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Phí thường niên</h4>
+                          <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${expandedSections.fee ? 'rotate-0' : 'rotate-180'}`}>expand_less</span>
+                        </div>
+                        <div className={`${expandedSections.fee ? 'flex' : 'hidden'} flex-wrap gap-1.5`}>
+                          {fees.map(fee => (
+                            <button
+                              key={fee}
+                              onClick={() => setFeeFilter(fee)}
+                              className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all border ${feeFilter === fee
+                                ? 'bg-vp-green/10 text-vp-green border-vp-green'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-vp-green/50 hover:text-vp-green'
+                                }`}
+                            >
+                              {fee}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
                   </div>
+                </div>
               </aside>
 
               {/* Card Results */}
@@ -477,15 +501,14 @@ export default function HomePage() {
                     paginatedCards.map(card => {
                       const topRule = card.cashbackRules?.reduce((best, r) => r.percentage > (best?.percentage || 0) ? r : best, card.cashbackRules[0]);
                       return (
-                        <div key={card.id} className={`group bg-white dark:bg-[#0c1425] rounded-2xl border shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)] dark:hover:shadow-[0_20px_40px_rgba(0,177,79,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col ${
-                          card.id && isInCompare(card.id)
-                            ? 'border-vp-green ring-1 ring-vp-green'
-                            : 'border-slate-200/60 dark:border-slate-800/80 hover:border-vp-green/60 dark:hover:border-vp-green/50'
-                        }`}>
+                        <div key={card.id} className={`group bg-white dark:bg-[#0c1425] rounded-2xl border shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)] dark:hover:shadow-[0_20px_40px_rgba(0,177,79,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col ${card.id && isInCompare(card.id)
+                          ? 'border-vp-green ring-1 ring-vp-green'
+                          : 'border-slate-200/60 dark:border-slate-800/80 hover:border-vp-green/60 dark:hover:border-vp-green/50'
+                          }`}>
                           {/* Header: Bank + Badge */}
                           <div className="flex items-center justify-between px-5 pt-5 pb-3">
                             <div className="flex items-center gap-2">
-                              {card.bankLogo && <img src={card.bankLogo} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />}
+                              {(card.bankLogo || getFallbackBankLogo(card.bankName)) && <img src={card.bankLogo || getFallbackBankLogo(card.bankName)!} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />}
                             </div>
                             <div className="px-3 py-1.5 rounded-full border border-vp-green/50 text-vp-green text-xs font-medium flex items-center gap-1.5 glow-green bg-vp-green/10 select-none">
                               <span className="w-1.5 h-1.5 rounded-full bg-vp-green animate-pulse"></span>
@@ -498,7 +521,7 @@ export default function HomePage() {
                             <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{cleanCardName(card.name)}</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 truncate">{card.bankName}</p>
                           </div>
-                          
+
                           {/* Card Image */}
                           <div className="px-5 pb-4">
                             <div className="relative w-full aspect-[1.6/1] rounded-xl overflow-hidden border border-slate-100/70 dark:border-slate-800/80 shadow-md group-hover:shadow-lg transition-shadow">
@@ -524,6 +547,13 @@ export default function HomePage() {
                             </div>
                           </div>
 
+                          {card.minSpendForCashback ? (
+                            <div className="mx-5 mb-4 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800/50 flex items-center justify-center gap-1.5 text-sky-700 dark:text-sky-300">
+                              <span className="material-symbols-outlined text-[14px]">shopping_bag</span>
+                              <span className="text-[11px] font-bold">Chi tiêu tối thiểu: {(card.minSpendForCashback / 1000000).toLocaleString('vi-VN')} Tr/tháng</span>
+                            </div>
+                          ) : null}
+
                           {/* Category Tags */}
                           <div className="px-5 pb-3">
                             {(() => {
@@ -547,7 +577,7 @@ export default function HomePage() {
                               let currentLength = 0;
                               let MAX_TAGS = 0;
                               for (let i = 0; i < allTags.length; i++) {
-                                const textLength = allTags[i].type === 'category' ? (allTags[i].data as {name: string}).name.length : (allTags[i].data as string).length;
+                                const textLength = allTags[i].type === 'category' ? (allTags[i].data as { name: string }).name.length : (allTags[i].data as string).length;
                                 if (currentLength + textLength > 25 && MAX_TAGS > 0) {
                                   break;
                                 }
@@ -651,26 +681,25 @@ export default function HomePage() {
 
                           <div className="flex items-center gap-2 px-5 pb-5 mt-auto">
                             <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    if (!card.id) return;
-                                    if (isInCompare(card.id)) {
-                                      removeFromCompare(card.id);
-                                    } else {
-                                      addToCompare(card);
-                                    }
-                                }}
-                                className={`flex items-center justify-center w-11 h-11 rounded-xl border flex-shrink-0 transition-colors ${
-                                    card.id && isInCompare(card.id)
-                                    ? 'bg-vp-green/10 border-vp-green text-vp-green'
-                                    : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border-slate-200/60 dark:border-slate-700/50 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!card.id) return;
+                                if (isInCompare(card.id)) {
+                                  removeFromCompare(card.id);
+                                } else {
+                                  addToCompare(card);
+                                }
+                              }}
+                              className={`flex items-center justify-center w-11 h-11 rounded-xl border flex-shrink-0 transition-colors ${card.id && isInCompare(card.id)
+                                ? 'bg-vp-green/10 border-vp-green text-vp-green'
+                                : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border-slate-200/60 dark:border-slate-700/50 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                                 }`}
-                                title={card.id && isInCompare(card.id) ? "Bỏ chọn" : "So sánh thẻ"}
+                              title={card.id && isInCompare(card.id) ? "Bỏ chọn" : "So sánh thẻ"}
                             >
-                                <span className="material-symbols-outlined text-[20px]">
-                                    {card.id && isInCompare(card.id) ? 'check_box' : 'compare_arrows'}
-                                </span>
+                              <span className="material-symbols-outlined text-[20px]">
+                                {card.id && isInCompare(card.id) ? 'check_box' : 'compare_arrows'}
+                              </span>
                             </button>
                             <Link href={`/card/${generateSlug(card.name)}`} className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/50 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
                               Chi tiết
@@ -781,7 +810,7 @@ export default function HomePage() {
         </section>
 
         {/* ===== WHY CREDBACK ===== */}
-        <section className="py-20 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800/50">
+        {/* <section className="py-20 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800/50">
           <div className="max-w-7xl mx-auto px-6">
             <h2 className="text-3xl font-black text-center text-slate-900 dark:text-white mb-12">Vì sao chọn CredBack?</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
@@ -796,7 +825,7 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-        </section>
+        </section> */}
 
       </main>
     </div>

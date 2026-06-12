@@ -9,6 +9,7 @@ import AdminTable, { AdminTableColumn } from '@/components/Admin/AdminTable';
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [confirmBlockUser, setConfirmBlockUser] = useState<User | null>(null);
 
     useEffect(() => {
         fetchUsers();
@@ -47,6 +48,18 @@ export default function AdminUsersPage() {
         }
     };
 
+    const confirmToggleBlock = async () => {
+        if (!confirmBlockUser) return;
+        try {
+            const { isBlocked } = await userApi.toggleBlock(confirmBlockUser.id);
+            setUsers(users.map(u => u.id === confirmBlockUser.id ? { ...u, isBlocked } : u));
+            setConfirmBlockUser(null);
+        } catch (error) {
+            console.error('Failed to toggle block:', error);
+            alert('Lỗi khi thao tác khóa/mở khóa');
+        }
+    };
+
     const columns: AdminTableColumn<User>[] = [
         {
             header: 'Thông tin Định danh',
@@ -54,11 +67,14 @@ export default function AdminUsersPage() {
             width: '35%',
             render: (user) => (
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-800">
+                    <div className={`relative w-10 h-10 rounded-full border-2 overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-800 ${user.role === 'VIP' ? 'border-yellow-400 shadow-md shadow-yellow-500/20' : 'border-white dark:border-slate-800 shadow-sm'}`}>
                         <img src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`} alt={user.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{user.name}</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-1">
+                            {user.name}
+                            {user.role === 'VIP' && <span className="material-symbols-outlined text-[14px] text-yellow-500">workspace_premium</span>}
+                        </span>
                         <span className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {user.id.substring(user.id.length - 8).toUpperCase()}</span>
                     </div>
                 </div>
@@ -83,11 +99,33 @@ export default function AdminUsersPage() {
                     value={user.role || 'User'}
                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
                     className={`text-[11px] font-black uppercase tracking-widest py-1.5 px-3 rounded-xl border-none outline-none appearance-none cursor-pointer transition-colors shadow-sm
-                        ${user.role === 'Admin' ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/20' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20'}`}
+                        ${user.role === 'Admin' ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/20' : 
+                          user.role === 'VIP' ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 ring-1 ring-yellow-400/50' : 
+                          'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20'}`}
                 >
                     <option value="User">User</option>
+                    <option value="VIP">VIP</option>
                     <option value="Admin">Admin</option>
                 </select>
+            )
+        },
+        {
+            header: 'Trạng thái',
+            key: 'isBlocked',
+            width: '15%',
+            render: (user) => (
+                <button
+                    onClick={() => setConfirmBlockUser(user)}
+                    className={`flex items-center justify-center w-8 h-8 rounded-full transition-all active:scale-95 shadow-sm
+                        ${user.isBlocked 
+                            ? 'bg-rose-50 text-rose-500 hover:bg-rose-100 dark:bg-rose-500/20 dark:hover:bg-rose-500/30' 
+                            : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-100 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30'}`}
+                    title={user.isBlocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                >
+                    <span className="material-symbols-outlined text-[16px]">
+                        {user.isBlocked ? 'lock' : 'lock_open'}
+                    </span>
+                </button>
             )
         }
     ];
@@ -121,6 +159,51 @@ export default function AdminUsersPage() {
                 onDelete={(user) => handleDelete(user.id)}
                 emptyMessage="Không có dữ liệu"
             />
+
+            {/* Block Confirmation Modal */}
+            {confirmBlockUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-slide-up border border-slate-200 dark:border-slate-800">
+                        <div className="p-6">
+                            <div className={`w-12 h-12 rounded-full mb-4 flex items-center justify-center ${
+                                confirmBlockUser.isBlocked 
+                                    ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
+                                    : 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
+                            }`}>
+                                <span className="material-symbols-outlined text-2xl">
+                                    {confirmBlockUser.isBlocked ? 'lock_open' : 'lock'}
+                                </span>
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                {confirmBlockUser.isBlocked ? 'Mở khóa tài khoản?' : 'Khóa tài khoản này?'}
+                            </h3>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                {confirmBlockUser.isBlocked 
+                                    ? `Bạn có chắc chắn muốn mở khóa cho tài khoản ${confirmBlockUser.email}? Người dùng sẽ có thể đăng nhập lại bình thường.`
+                                    : `Bạn có chắc chắn muốn khóa tài khoản ${confirmBlockUser.email}? Người dùng sẽ bị đăng xuất và không thể đăng nhập lại.`}
+                            </p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+                            <button
+                                onClick={() => setConfirmBlockUser(null)}
+                                className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                onClick={confirmToggleBlock}
+                                className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors shadow-sm ${
+                                    confirmBlockUser.isBlocked 
+                                        ? 'bg-emerald-500 hover:bg-emerald-600' 
+                                        : 'bg-rose-500 hover:bg-rose-600'
+                                }`}
+                            >
+                                {confirmBlockUser.isBlocked ? 'Xác nhận Mở khóa' : 'Xác nhận Khóa'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -99,6 +99,17 @@ public class ID3Service
 
     private CardCashbackResult CalculateCardCashback(CreditCard card, List<CategorySpending> spendings)
     {
+        decimal totalAllocated = spendings.Sum(s => s.Amount);
+        if (card.MinSpendForCashback > 0 && totalAllocated < card.MinSpendForCashback)
+        {
+            return new CardCashbackResult
+            {
+                Card = card,
+                TotalCashback = 0,
+                Breakdown = spendings.Select(sc => new CardCashbackBreakdown { Category = sc.Category, Amount = sc.Amount, Cashback = 0, Rate = 0 }).ToList()
+            };
+        }
+
         decimal runningTotal = 0;
         var breakdown = new List<CardCashbackBreakdown>();
 
@@ -259,12 +270,35 @@ public class ID3Service
         }
 
         var results = comboCards.Select((c, i) => CalculateCardCashback(c, cardSpendings[i])).ToList();
+        
+        // Invalidate combo if any card has 0 cashback (due to unmet min spend or no allocation)
+        if (results.Any(r => r.TotalCashback == 0))
+        {
+            return new ComboResult { Cards = new List<ComboCardItem>(), TotalCashback = 0, Allocation = new List<CategoryAllocation>() };
+        }
+
         decimal totalCashback = results.Sum(r => r.TotalCashback);
+
+        var cardsWithCashback = comboCards.Select((c, idx) => new 
+        { 
+            OriginalIndex = idx, 
+            Card = c, 
+            Result = results[idx] 
+        })
+        .OrderByDescending(x => x.Result.TotalCashback)
+        .ToList();
+
+        var newIndexMapping = new Dictionary<int, int>();
+        for(int i = 0; i < cardsWithCashback.Count; i++)
+        {
+            newIndexMapping[cardsWithCashback[i].OriginalIndex] = i;
+        }
 
         var finalAllocation = allocation.Select(a => 
         {
             var entry = results[a.AssignedTo].Breakdown.FirstOrDefault(b => b.Category == a.Category);
             a.Cashback = entry?.Cashback ?? a.Cashback;
+            a.AssignedTo = newIndexMapping[a.AssignedTo];
             return a;
         }).ToList();
 
@@ -273,11 +307,11 @@ public class ID3Service
 
         var comboResult = new ComboResult
         {
-            Cards = comboCards.Select((c, idx) => new ComboCardItem 
+            Cards = cardsWithCashback.Select((c, idx) => new ComboCardItem 
             { 
-                Card = c, 
+                Card = c.Card, 
                 Label = COMBO_LABELS[idx], 
-                Cashback = results[idx].TotalCashback, 
+                Cashback = c.Result.TotalCashback, 
                 Color = COMBO_COLORS[idx] 
             }).ToList(),
             TotalCashback = totalCashback,

@@ -7,10 +7,34 @@ import { CardItem } from '@/components/CardItem';
 import { Card, CashbackRule, ComboResult, CategorySpending } from '@/types';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
+import { useCategoryContext } from '@/context/CategoryContext';
 import { Button } from '@/components/ui/button';
 import { cardApi } from '@/services/api';
-import { cleanCardName, generateSlug } from '@/lib/utils';
+import { cleanCardName, generateSlug, getFallbackBankLogo } from '@/lib/utils';
 import SaveCardModal from '@/components/SaveCardModal';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { PortraitCardVisual } from '@/components/PortraitCardVisual';
+
+// ═══════════════════════════════════════════════════════════
+// CATEGORY COLORS FOR PIE CHART
+// ═══════════════════════════════════════════════════════════
+const CATEGORY_COLORS: Record<string, string> = {
+    'Ăn uống': '#f97316', // orange
+    'Siêu thị/Tạp hoá': '#10b981', // emerald
+    'Siêu thị': '#10b981', // emerald
+    'Mua sắm trực tuyến': '#ec4899', // pink
+    'Sàn thương mại điện tử': '#ec4899', // pink
+    'Du lịch/Máy bay': '#3b82f6', // blue
+    'Du lịch': '#3b82f6', // blue
+    'Làm đẹp/Sức khỏe': '#d946ef', // fuchsia
+    'Làm đẹp': '#d946ef', // fuchsia
+    'Giao thông/Xăng xe': '#eab308', // yellow
+    'Di chuyển': '#eab308', // yellow
+    'Giải trí/Xem phim': '#8b5cf6', // violet
+    'Giải trí': '#8b5cf6', // violet
+    'Giáo dục': '#06b6d4', // cyan
+    'Khác': '#64748b', // slate
+};
 
 // ═══════════════════════════════════════════════════════════
 // COMBO UI COLORS
@@ -29,6 +53,12 @@ const COMBO_TW_COLORS = [
 function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult; bestSingleCashback: number }) {
     const cardCount = combo.cards.length;
     const gridClass = cardCount === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2';
+    const { categories: globalCategories, getCategoryColor } = useCategoryContext();
+    
+    const getCategoryIcon = (categoryName: string) => {
+        const cat = globalCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+        return cat?.icon || 'category';
+    };
 
     return (
         <div className="relative mb-10 animate-[scaleUp_0.8s_ease-out]">
@@ -68,28 +98,58 @@ function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult
                         const categories = combo.allocation.filter(a => a.assignedTo === idx);
                         const isLast = idx === cardCount - 1;
                         return (
-                            <div key={cc.card.id} className={`p-6 ${!isLast ? 'border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800' : ''}`}>
+                            <div key={cc.card.id} className={`relative p-6 ${!isLast ? 'border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800' : ''}`}>
+                                {!isLast && (
+                                    <>
+                                        {/* Desktop Plus */}
+                                        <div className="hidden md:flex absolute top-1/2 -right-3.5 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white dark:bg-[#18181b] border-2 border-slate-100 dark:border-slate-800 text-slate-400 items-center justify-center shadow-sm">
+                                            <span className="material-symbols-outlined text-sm font-black">add</span>
+                                        </div>
+                                        {/* Mobile Plus */}
+                                        <div className="flex md:hidden absolute -bottom-3.5 left-1/2 -translate-x-1/2 z-20 w-7 h-7 rounded-full bg-white dark:bg-[#18181b] border-2 border-slate-100 dark:border-slate-800 text-slate-400 items-center justify-center shadow-sm">
+                                            <span className="material-symbols-outlined text-sm font-black">add</span>
+                                        </div>
+                                    </>
+                                )}
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-14 h-10 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex-shrink-0">
-                                        {cc.card.imageUrl && <img src={cc.card.imageUrl} alt={cc.card.name} className="w-full h-full object-cover" />}
+                                    <div className="relative w-16 sm:w-20 aspect-[1.58/1] flex-shrink-0 flex items-center justify-center">
+                                        <div className="relative w-full h-full">
+                                            {cc.card.imageUrl && <PortraitCardVisual imageUrl={cc.card.imageUrl} name={cc.card.name} roundedClass="rounded-sm" />}
+                                        </div>
                                     </div>
                                     <div className="min-w-0">
                                         <p className={`text-xs font-bold uppercase tracking-widest ${tw.text}`}>{cc.label}</p>
                                         <h4 className="text-sm font-black text-slate-900 dark:text-white truncate">{cleanCardName(cc.card.name)}</h4>
-                                        <p className="text-[10px] text-slate-400 font-medium">{cc.card.bankName}</p>
+                                        <div className="flex items-center mt-1">
+                                            {(() => {
+                                                const logoUrl = cc.card.bankLogo || getFallbackBankLogo(cc.card.bankName);
+                                                return logoUrl ? (
+                                                    <img src={logoUrl} alt={cc.card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-0.5" />
+                                                ) : (
+                                                    <span className="text-[10px] text-slate-400 font-medium">{cc.card.bankName}</span>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2 mb-4">
-                                    {categories.map((a, i) => (
-                                        <div key={i} className={`flex items-center justify-between py-1.5 px-3 rounded-lg ${tw.bg} border ${tw.border}`}>
-                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{a.category}</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-[10px] font-bold ${tw.text}`}>{a.rate}%</span>
-                                                <span className={`text-xs font-black ${tw.text}`}>+{a.cashback.toLocaleString('vi-VN')}đ</span>
+                                    {categories.map((a, i) => {
+                                        const catColor = getCategoryColor(a.category);
+                                        const catIcon = getCategoryIcon(a.category);
+                                        return (
+                                            <div key={i} className={`flex items-center justify-between py-1.5 px-3 rounded-lg ${tw.bg} border ${tw.border}`}>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[15px]" style={{ color: catColor }}>{catIcon}</span>
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{a.category}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[10px] font-bold ${tw.text}`}>{a.rate}%</span>
+                                                    <span className={`text-xs font-black ${tw.text}`}>+{a.cashback.toLocaleString('vi-VN')}đ</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
                                 <div className="flex flex-col gap-1 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -98,12 +158,12 @@ function ComboRecommendation({ combo, bestSingleCashback }: { combo: ComboResult
                                         <span className={`text-lg font-black ${tw.text}`}>{cc.cashback.toLocaleString('vi-VN')}đ</span>
                                     </div>
                                     {cc.card.minSpendForCashback ? (
-                                        <div className="flex items-center justify-between pt-1 border-t border-slate-100/50 dark:border-slate-800/50 mt-1">
-                                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[12px]">info</span> Chi tiêu tối thiểu
+                                        <div className="flex items-center justify-between pt-1.5 pb-1 border-t border-amber-100 dark:border-amber-900/30 mt-1.5 bg-amber-50/80 dark:bg-amber-900/10 px-2 rounded-md">
+                                            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 flex items-center gap-1 uppercase tracking-widest">
+                                                <span className="material-symbols-outlined text-[13px]">warning</span> Yêu cầu chi tiêu
                                             </span>
-                                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                                                {(cc.card.minSpendForCashback / 1000000).toLocaleString('vi-VN')}Tr/th
+                                            <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">
+                                                {(cc.card.minSpendForCashback / 1000000).toLocaleString('vi-VN')} Tr/th
                                             </span>
                                         </div>
                                     ) : null}
@@ -179,20 +239,18 @@ function GamifiedBestCard({ card, onSaveCard }: { card: Card, onSaveCard: (c: Ca
                 </div>
 
                 {/* Left Side: Image */}
-                <div className="w-full md:w-64 flex-shrink-0 flex flex-col items-center z-10 relative">
-                    <div className="relative w-full aspect-[1.58/1] rounded-xl overflow-hidden shadow-[0_0_30px_rgba(251,191,36,0.3)] transform transition-transform hover:scale-105 duration-500 hover:-rotate-2 border-2 border-amber-200 dark:border-slate-700">
-                        <img
-                            alt={card.name}
-                            className="h-full w-full object-cover"
-                            src={card.imageUrl}
-                        />
-                        {isSelected && (
-                            <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center backdrop-blur-sm">
-                                <div className="bg-amber-500 text-white rounded-full p-2 shadow-lg">
-                                    <span className="material-symbols-outlined text-2xl">check</span>
+                <div className="w-full md:w-64 flex-shrink-0 flex flex-col items-center z-10 relative pt-2">
+                    <div className="relative w-full aspect-[1.58/1] rounded-xl shadow-[0_0_30px_rgba(251,191,36,0.3)] transform transition-transform hover:scale-105 duration-500 hover:-rotate-2 border-2 border-amber-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-2 sm:p-2.5 flex items-center justify-center">
+                        <div className="relative w-full h-full rounded-xl overflow-hidden shadow-md">
+                            <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} />
+                            {isSelected && (
+                                <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center backdrop-blur-sm z-20">
+                                    <div className="bg-amber-500 text-white rounded-full p-2 shadow-lg">
+                                        <span className="material-symbols-outlined text-2xl">check</span>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -223,6 +281,15 @@ function GamifiedBestCard({ card, onSaveCard }: { card: Card, onSaveCard: (c: Ca
                                 {card.description || "Thẻ tín dụng xuất sắc nhất dành cho nhu cầu chi tiêu của bạn."}
                             </p>
                         </div>
+                        {card.minSpendForCashback ? (
+                            <div className="flex gap-3 items-start pt-2">
+                                <span className="material-symbols-outlined text-red-500 dark:text-red-400 mt-0.5 text-[20px] animate-pulse">warning</span>
+                                <div className="bg-red-50 dark:bg-red-900/10 px-3 py-1.5 rounded-lg border border-red-100 dark:border-red-900/30">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-red-600 dark:text-red-400 mb-0.5">Yêu cầu tối thiểu</p>
+                                    <p className="text-sm font-bold text-red-700 dark:text-red-300">Cần chi tiêu {(card.minSpendForCashback / 1000000).toLocaleString('vi-VN')} Tr/tháng để được hoàn tiền.</p>
+                                </div>
+                            </div>
+                        ) : null}
                     </div>
 
                     {/* Stats & Actions */}
@@ -256,8 +323,8 @@ function GamifiedBestCard({ card, onSaveCard }: { card: Card, onSaveCard: (c: Ca
                                     </>
                                 )}
                             </Button>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 onClick={() => onSaveCard(card)}
                                 className="flex-1 sm:flex-none font-bold border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400 hover:text-blue-500 transition-all"
                             >
@@ -276,11 +343,6 @@ function GamifiedBestCard({ card, onSaveCard }: { card: Card, onSaveCard: (c: Ca
         </div>
     );
 }
-
-// ═══════════════════════════════════════════════════════════
-// MAIN PAGE
-// ═══════════════════════════════════════════════════════════
-
 function RecommendationsContent() {
     const { selectedCards, clearCompare } = useCompare();
     const { user } = useAuth();
@@ -299,10 +361,12 @@ function RecommendationsContent() {
     const [spendingBreakdown, setSpendingBreakdown] = useState<CategorySpending[]>([]);
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [cardToEmail, setCardToEmail] = useState<Card | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
     const historySavedRef = useRef(false);
 
     // Reset history saved flag when search params change
     useEffect(() => {
+        setIsMounted(true);
         historySavedRef.current = false;
     }, [spending, salary, topCategory]);
 
@@ -401,7 +465,7 @@ function RecommendationsContent() {
 
     return (
         <main className="flex-grow pt-10 px-4 pb-16 sm:px-8 md:px-16 lg:px-24 xl:px-40 bg-slate-50 dark:bg-[#0f0f0f] min-h-screen">
-            <div className="mx-auto max-w-5xl">
+            <div className="mx-auto max-w-7xl">
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 mb-2 uppercase">
@@ -411,96 +475,150 @@ function RecommendationsContent() {
                             Top <strong className="text-vp-green">{filteredCards.length} thẻ</strong> hoàn tiền tốt nhất cho bạn.
                         </p>
                     </div>
+                    
+                    <button 
+                        onClick={() => router.back()} 
+                        className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl font-bold transition-all text-sm w-fit shadow-sm hover:shadow-md"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
+                        Chỉnh sửa chi tiêu
+                    </button>
                 </div>
 
-                {/* Spending Breakdown Summary */}
-                {spendingBreakdown.length > 1 && (
-                    <div className="rounded-2xl bg-white dark:bg-[#18181b] border border-slate-200/50 dark:border-slate-800 p-5 mb-6 shadow-sm">
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                            <span className="material-symbols-outlined text-base">receipt_long</span>
-                            Chi tiêu hàng tháng của bạn
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {spendingBreakdown.map((sc, i) => (
-                                <div key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <span className="text-slate-400">{sc.category}:</span>
-                                    <span className="text-vp-green">{(sc.amount / 1000000).toFixed(1)}tr</span>
+                {/* Two Column Layout for Large Screens */}
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
+
+                    {/* Left Column (Sticky Dashboard & Filters) */}
+                    <div className="w-full lg:w-1/4 lg:sticky lg:top-28 space-y-6">
+
+                        {/* Spending Breakdown Summary */}
+                        {spendingBreakdown.length > 1 && (
+                            <div className="rounded-2xl bg-white dark:bg-[#18181b] border border-slate-200/50 dark:border-slate-800 p-5 md:p-6 shadow-sm flex flex-col sm:flex-row lg:flex-col items-center gap-6">
+                                <div className="flex items-left gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                                    {/* <span className="material-symbols-outlined text-base">pie_chart</span> */}
+                                    Cơ cấu chi tiêu hàng tháng
                                 </div>
-                            ))}
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-vp-green/10 border border-vp-green/20 text-xs font-black text-vp-green">
-                                Tổng: {(spendingBreakdown.reduce((sum, item) => sum + item.amount, 0) / 1000000).toFixed(1)}tr/tháng
+                                <div className="w-full sm:w-1/2 lg:w-full h-40 sm:h-48 lg:h-40">
+                                    {isMounted && (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={spendingBreakdown}
+                                                    dataKey="amount"
+                                                    nameKey="category"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={50}
+                                                    outerRadius={70}
+                                                    paddingAngle={3}
+                                                    stroke="none"
+                                                >
+                                                    {spendingBreakdown.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.category] || CATEGORY_COLORS['Khác']} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip
+                                                    formatter={(value: number) => [`${(value / 1000000).toFixed(1)} tr VNĐ`, 'Chi tiêu']}
+                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                                                />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    )}
+                                </div>
+                                <div className="w-full sm:w-1/2 lg:w-full">
+
+                                    <div className="grid grid-cols-1 gap-y-3">
+                                        {spendingBreakdown.map((sc, i) => (
+                                            <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: CATEGORY_COLORS[sc.category] || CATEGORY_COLORS['Khác'] }}></div>
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{sc.category}</span>
+                                                </div>
+                                                <span className="text-sm font-black text-slate-900 dark:text-white">{(sc.amount / 1000000).toFixed(1)}tr</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <span className="text-base font-black text-slate-900 dark:text-white">Tổng cộng</span>
+                                        <span className="text-lg font-black text-vp-green">{(spendingBreakdown.reduce((sum, item) => sum + item.amount, 0) / 1000000).toFixed(1)}tr / tháng</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Filters Bar */}
+                        <div className="rounded-3xl bg-white dark:bg-[#18181b] border border-slate-200/50 dark:border-slate-800 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none transition-all hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)]">
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-wider">
+                                    <span className="material-symbols-outlined text-lg">filter_list</span>
+                                    Bộ lọc tìm kiếm
+                                </div>
+                                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                    <div className="relative group min-w-fit">
+                                        <select
+                                            value={selectedBank}
+                                            onChange={(e) => setSelectedBank(e.target.value)}
+                                            className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200/60 dark:border-slate-700 hover:border-vp-green focus:border-vp-green focus:ring-2 focus:ring-vp-green/20 focus:outline-none cursor-pointer transition-all"
+                                        >
+                                            <option>Tất cả ngân hàng</option>
+                                            {banks.map(bank => (
+                                                <option key={bank} value={bank}>{bank}</option>
+                                            ))}
+                                        </select>
+                                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none text-slate-400">expand_more</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    </div> {/* End Left Column */}
 
-                {/* Filters Bar */}
-                <div className="rounded-3xl bg-white dark:bg-[#18181b] border border-slate-200/50 dark:border-slate-800 p-5 mb-10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none transition-all hover:shadow-[0_20px_40px_rgba(0,177,79,0.04)]">
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-wider">
-                            <span className="material-symbols-outlined text-lg">filter_list</span>
-                            Bộ lọc tìm kiếm
-                        </div>
-                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                            <div className="relative group min-w-fit">
-                                <select
-                                    value={selectedBank}
-                                    onChange={(e) => setSelectedBank(e.target.value)}
-                                    className="appearance-none bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-slate-700 dark:text-slate-200 pl-4 pr-10 py-3 rounded-xl border border-slate-200/60 dark:border-slate-700 hover:border-vp-green focus:border-vp-green focus:ring-2 focus:ring-vp-green/20 focus:outline-none cursor-pointer transition-all"
-                                >
-                                    <option>Tất cả ngân hàng</option>
-                                    {banks.map(bank => (
-                                        <option key={bank} value={bank}>{bank}</option>
+                    {/* Right Column (Cards List) */}
+                    <div className="w-full lg:w-3/4">
+
+                        {/* List Layout */}
+                        <div className="flex flex-col gap-6 pb-20">
+                            {loading ? (
+                                <div className="py-20 text-center animate-pulse">
+                                    <p className="text-slate-400 font-bold uppercase tracking-widest">Đang tải đề xuất tốt nhất...</p>
+                                </div>
+                            ) : filteredCards.length > 0 ? (
+                                <>
+                                    {/* Combo Recommendation — shown first if available */}
+                                    {comboResult && selectedBank === 'Tất cả ngân hàng' && (
+                                        <ComboRecommendation combo={comboResult} bestSingleCashback={bestSingleCashback} />
+                                    )}
+
+                                    {/* Individual card recommendations */}
+                                    {filteredCards.slice(0, visibleCount).map((card, idx) => (
+                                        (idx === 0 && selectedBank === 'Tất cả ngân hàng') ? (
+                                            <GamifiedBestCard key={`best-${card.id}`} card={card} onSaveCard={(c) => { setCardToEmail(c); setIsEmailModalOpen(true); }} />
+                                        ) : (
+                                            <CardItem key={card.id} card={card} onSaveCard={(c) => { setCardToEmail(c); setIsEmailModalOpen(true); }} />
+                                        )
                                     ))}
-                                </select>
-                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none text-slate-400">expand_more</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* List Layout */}
-                <div className="flex flex-col gap-6 pb-20">
-                    {loading ? (
-                        <div className="py-20 text-center animate-pulse">
-                            <p className="text-slate-400 font-bold uppercase tracking-widest">Đang tải đề xuất tốt nhất...</p>
-                        </div>
-                    ) : filteredCards.length > 0 ? (
-                        <>
-                            {/* Combo Recommendation — shown first if available */}
-                            {comboResult && selectedBank === 'Tất cả ngân hàng' && (
-                                <ComboRecommendation combo={comboResult} bestSingleCashback={bestSingleCashback} />
+                                </>
+                            ) : (
+                                <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-[40px] border-2 border-dashed border-slate-200 dark:border-slate-800">
+                                    <span className="material-symbols-outlined text-5xl text-slate-300 mb-4">search_off</span>
+                                    <p className="text-slate-500 font-bold">Không tìm thấy thẻ phù hợp. Hãy thử chọn ngân hàng khác.</p>
+                                </div>
                             )}
-
-                            {/* Individual card recommendations */}
-                            {filteredCards.slice(0, visibleCount).map((card, idx) => (
-                                (idx === 0 && selectedBank === 'Tất cả ngân hàng') ? (
-                                    <GamifiedBestCard key={`best-${card.id}`} card={card} onSaveCard={(c) => { setCardToEmail(c); setIsEmailModalOpen(true); }} />
-                                ) : (
-                                    <CardItem key={card.id} card={card} onSaveCard={(c) => { setCardToEmail(c); setIsEmailModalOpen(true); }} />
-                                )
-                            ))}
-                        </>
-                    ) : (
-                        <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-[40px] border-2 border-dashed border-slate-200 dark:border-slate-800">
-                            <span className="material-symbols-outlined text-5xl text-slate-300 mb-4">search_off</span>
-                            <p className="text-slate-500 font-bold">Không tìm thấy thẻ phù hợp. Hãy thử chọn ngân hàng khác.</p>
                         </div>
-                    )}
-                </div>
 
-                {/* Load More */}
-                {filteredCards.length > visibleCount && (
-                    <div className="mt-12 mb-20 flex items-center justify-center">
-                        <button
-                            onClick={handleShowMore}
-                            className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-8 py-3 text-sm font-bold text-slate-600 dark:text-slate-400 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 shadow-sm"
-                        >
-                            Hiển thị thêm kết quả
-                            <span className="material-symbols-outlined">expand_more</span>
-                        </button>
-                    </div>
-                )}
+                        {/* Load More */}
+                        {filteredCards.length > visibleCount && (
+                            <div className="mt-12 mb-20 flex items-center justify-center">
+                                <button
+                                    onClick={handleShowMore}
+                                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-8 py-3 text-sm font-bold text-slate-600 dark:text-slate-400 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 shadow-sm"
+                                >
+                                    Hiển thị thêm kết quả
+                                    <span className="material-symbols-outlined">expand_more</span>
+                                </button>
+                            </div>
+                        )}
+                    </div> {/* End Right Column */}
+                </div> {/* End Two Column Wrapper */}
             </div>
 
             {/* Floating Comparison Bar */}
@@ -535,10 +653,10 @@ function RecommendationsContent() {
                 </div>
             </div>
 
-            <SaveCardModal 
-                isOpen={isEmailModalOpen} 
-                onClose={() => setIsEmailModalOpen(false)} 
-                card={cardToEmail} 
+            <SaveCardModal
+                isOpen={isEmailModalOpen}
+                onClose={() => setIsEmailModalOpen(false)}
+                card={cardToEmail}
             />
         </main>
     );

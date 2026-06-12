@@ -36,7 +36,7 @@ export default function AboutPage() {
                                 <span className="material-symbols-outlined text-primary-600 dark:text-primary-400">trending_up</span>
                             </div>
                             <div>
-                                <div className="text-slate-900 dark:text-white font-black text-2xl">50+</div>
+                                <div className="text-slate-900 dark:text-white font-black text-2xl">300+</div>
                                 <div className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">Thẻ Tín Dụng</div>
                             </div>
                         </div>

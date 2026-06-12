@@ -31,9 +31,14 @@ builder.Services.AddSingleton<backend.Services.CategoryService>();
 builder.Services.AddSingleton<backend.Services.ArticleService>();
 builder.Services.AddSingleton<backend.Services.ArticleCategoryService>();
 builder.Services.AddSingleton<backend.Services.PromotionService>();
-builder.Services.AddSingleton<backend.Services.ChatService>();
+builder.Services.AddSingleton<backend.Services.VNPayService>();
+builder.Services.AddSingleton<backend.Services.PromotionAlertService>();
+builder.Services.AddHttpClient<backend.Services.ChatService>();
 builder.Services.AddSingleton<backend.Services.EmailService>();
 builder.Services.AddTransient<backend.Controllers.ScraperController>();
+builder.Services.AddScoped<backend.Services.ChatService>();
+builder.Services.AddHostedService<backend.Services.StatementReminderService>();
+builder.Services.AddHostedService<backend.Services.AnnualFeeReminderHostedService>();
 builder.Services.AddSingleton<IMongoClient>(new MongoClient(builder.Configuration.GetConnectionString("MongoDB")));
 
 // JWT Authentication Setup

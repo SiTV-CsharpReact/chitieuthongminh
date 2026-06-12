@@ -56,7 +56,14 @@ const navItems = [
         title: "Hệ thống",
         items: [
             { title: "Người dùng", url: "/admin/users", icon: "group" },
+            { title: "Thông báo", url: "/admin/notifications", icon: "notifications_active" },
             { title: "Cài đặt hệ thống", url: "/admin/settings", icon: "settings" },
+        ],
+    },
+    {
+        title: "Dịch vụ",
+        items: [
+            { title: "Quản lý VIP", url: "/admin/vip", icon: "stars" },
         ],
     },
 ];

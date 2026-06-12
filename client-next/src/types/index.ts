@@ -34,6 +34,14 @@ export interface Card {
   matchScore?: number;
   cashbackCategory?: string;
   cashbackRate?: number;
+  ratings?: {
+    cashback: number;
+    annualFee: number;
+    spendFit: number;
+    offer: number;
+    incomeRequirement: number;
+    overall: number;
+  };
 }
 
 export interface ExpenseCategory {
@@ -86,6 +94,7 @@ export interface User {
   email: string;
   avatar?: string;
   role?: string;
+  isBlocked?: boolean;
 }
 
 export interface UserSettings {
@@ -202,4 +211,25 @@ export interface ComboResult {
 export interface RecommendationResponse {
   singleCards: CardCashbackResult[];
   bestCombo: ComboResult | null;
+}
+
+export interface UserCardDetail {
+  issueDate?: string;
+  statementDate?: number;
+  dueDate?: number;
+}
+
+export interface WalletCard {
+  card: Card;
+  details: UserCardDetail;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
 }

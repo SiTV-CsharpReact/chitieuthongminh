@@ -91,23 +91,19 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        // HARDCODED ADMIN (Fix Cứng)
-        if (request.Email == "admin@credback.com" && request.Password == "admin123")
-        {
-            var token = GenerateJwtToken("admin_fixed_id", "Admin CredBack", request.Email, "Admin", "https://ui-avatars.com/api/?name=Admin+CredBack&background=00b14f&color=fff&rounded=true&bold=true");
-            return Ok(new { token });
-        }
-
-        // Dành cho các user thường thông qua DB (Tương lai mở rộng)
         var user = await _usersCollection.Find(u => u.Email == request.Email).FirstOrDefaultAsync();
-
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user == null || user.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác!" });
         }
 
-        var dbToken = GenerateJwtToken(user.Id!, user.Name, user.Email, user.Role, user.Avatar);
-        return Ok(new { token = dbToken });
+        if (user.IsBlocked)
+        {
+            return StatusCode(403, new { message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." });
+        }
+
+        var token = GenerateJwtToken(user.Id!, user.Name, user.Email, user.Role, user.Avatar ?? "");
+        return Ok(new { token });
     }
 
     [HttpPost("google")]
@@ -125,6 +121,11 @@ public class AuthController : ControllerBase
                 return BadRequest(new { message = "Không thể lấy email từ Google!" });
             
             var user = await _usersCollection.Find(u => u.Email == payload.Email).FirstOrDefaultAsync();
+
+            if (user != null && user.IsBlocked)
+            {
+                return Unauthorized(new { message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." });
+            }
 
             if (user == null)
             {
@@ -174,6 +175,11 @@ public class AuthController : ControllerBase
 
             var user = await _usersCollection.Find(u => u.Email == fbUser.Email).FirstOrDefaultAsync();
 
+            if (user != null && user.IsBlocked)
+            {
+                return Unauthorized(new { message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." });
+            }
+
             if (user == null)
             {
                 user = new User
@@ -207,23 +213,22 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
-    public IActionResult GetMe()
+    public async Task<IActionResult> GetMe()
     {
         var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-        var name = User.FindFirst(ClaimTypes.Name)?.Value;
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
-        var avatar = User.FindFirst("Avatar")?.Value;
+        if (string.IsNullOrEmpty(id) || !MongoDB.Bson.ObjectId.TryParse(id, out _)) return Unauthorized();
 
-        if (id == null) return Unauthorized();
+        // Fetch latest data from DB
+        var user = await _usersCollection.Find(u => u.Id == id).FirstOrDefaultAsync();
+        if (user == null || user.IsBlocked) return Unauthorized();
 
         return Ok(new
         {
-            id,
-            email,
-            name,
-            role,
-            avatar
+            id = user.Id,
+            email = user.Email,
+            name = user.Name,
+            role = user.Role,
+            avatar = user.Avatar
         });
     }
 

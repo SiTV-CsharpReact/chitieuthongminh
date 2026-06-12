@@ -29,4 +29,24 @@ public class User
 
     [BsonElement("ProviderId")]
     public string? ProviderId { get; set; }
+
+    [BsonElement("SavedCardIds")]
+    public List<string> SavedCardIds { get; set; } = new();
+
+    [BsonElement("CardIssueDates")]
+    public Dictionary<string, DateTime> CardIssueDates { get; set; } = new();
+
+    [BsonElement("CardDetails")]
+    public Dictionary<string, UserCardDetail> CardDetails { get; set; } = new();
+
+    [BsonElement("IsBlocked")]
+    public bool IsBlocked { get; set; } = false;
+}
+
+public class UserCardDetail
+{
+    public DateTime? IssueDate { get; set; }
+    public int? StatementDate { get; set; }
+    public int? DueDate { get; set; }
+    public DateTime? LastRemindedAt { get; set; }
 }

@@ -59,17 +59,15 @@ export default function ComparePage() {
                     </div>
                     <TooltipProvider>
                         <Tooltip>
-                            <TooltipTrigger>
-                                <div className="inline-block">
-                                    <button
-                                        onClick={() => router.push('/cards')}
-                                        disabled={selectedCards.length >= 3}
-                                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border font-medium transition-colors text-sm ${selectedCards.length >= 3 ? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-slate-400 opacity-60 cursor-not-allowed' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1425] text-slate-700 dark:text-slate-300 hover:border-vp-green hover:text-vp-green'}`}
-                                    >
-                                        <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                                        Thêm thẻ khác
-                                    </button>
-                                </div>
+                            <TooltipTrigger render={<div className="inline-block" />}>
+                                <button
+                                    onClick={() => router.push('/cards')}
+                                    disabled={selectedCards.length >= 3}
+                                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border font-medium transition-colors text-sm ${selectedCards.length >= 3 ? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-slate-400 opacity-60 cursor-not-allowed' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1425] text-slate-700 dark:text-slate-300 hover:border-vp-green hover:text-vp-green'}`}
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                                    Thêm thẻ khác
+                                </button>
                             </TooltipTrigger>
                             {selectedCards.length >= 3 && (
                                 <TooltipContent side="bottom" className="font-medium">

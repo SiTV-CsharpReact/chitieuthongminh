@@ -37,6 +37,17 @@ public class CreditCard
     public string? CreditLimit { get; set; }
     public string? InterestRate { get; set; }
     public string? TermsPdfUrl { get; set; }
+    public CardRatings? Ratings { get; set; }
+}
+
+public class CardRatings 
+{
+    public double Cashback { get; set; } = 0;
+    public double AnnualFee { get; set; } = 0;
+    public double SpendFit { get; set; } = 0;
+    public double Offer { get; set; } = 0;
+    public double IncomeRequirement { get; set; } = 0;
+    public double Overall { get; set; } = 0;
 }
 
 public class CashbackRule

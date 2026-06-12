@@ -9,10 +9,12 @@ namespace backend.Controllers;
 public class PromotionsController : ControllerBase
 {
     private readonly PromotionService _promotionsService;
+    private readonly PromotionAlertService _alertService;
 
-    public PromotionsController(PromotionService promotionsService)
+    public PromotionsController(PromotionService promotionsService, PromotionAlertService alertService)
     {
         _promotionsService = promotionsService;
+        _alertService = alertService;
     }
 
     [HttpGet]
@@ -39,6 +41,9 @@ public class PromotionsController : ControllerBase
         newPromotion.UpdatedAt = DateTime.UtcNow;
         await _promotionsService.CreateAsync(newPromotion);
 
+        // Notify VIP users
+        _alertService.NotifyVipUsersAsync(new List<CardPromotion> { newPromotion });
+
         return CreatedAtAction(nameof(Get), new { id = newPromotion.Id }, newPromotion);
     }
 
@@ -51,6 +56,10 @@ public class PromotionsController : ControllerBase
             p.UpdatedAt = DateTime.UtcNow;
             await _promotionsService.CreateAsync(p);
         }
+
+        // Notify VIP users for all new promotions
+        _alertService.NotifyVipUsersAsync(rules);
+
         return Ok(new { message = "Seeded successfully" });
     }
 

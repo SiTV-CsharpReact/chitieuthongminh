@@ -1,5 +1,7 @@
 using backend.Models;
-using System.Text.RegularExpressions;
+using System.Text.Json;
+using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace backend.Services;
 
@@ -26,591 +28,176 @@ public class ChatResponse
 public class ChatService
 {
     private readonly CreditCardService _creditCardService;
-    private readonly CategoryService _categoryService;
+    private readonly IConfiguration _configuration;
+    private readonly HttpClient _httpClient;
 
-    public ChatService(CreditCardService creditCardService, CategoryService categoryService)
+    public ChatService(CreditCardService creditCardService, IConfiguration configuration, HttpClient httpClient)
     {
         _creditCardService = creditCardService;
-        _categoryService = categoryService;
+        _configuration = configuration;
+        _httpClient = httpClient;
     }
 
     public async Task<ChatResponse> ProcessMessageAsync(ChatRequest request)
     {
-        var message = request.Message.ToLower().Trim();
+        var apiKey = _configuration["GeminiApiKey"];
+        if (string.IsNullOrEmpty(apiKey) || apiKey == "YOUR_API_KEY_HERE")
+        {
+            return new ChatResponse 
+            { 
+                Reply = "Hệ thống chưa được cấu hình Google Gemini API Key.\n\n**Hướng dẫn:** Vui lòng lấy API key miễn phí tại [Google AI Studio](https://aistudio.google.com/), sau đó dán vào thuộc tính `\"GeminiApiKey\"` trong file `appsettings.json` của Backend rồi khởi động lại ứng dụng.",
+                Intent = "error"
+            };
+        }
+
         var allCards = await _creditCardService.GetAsync();
-
-        // Intent detection
-        var intent = DetectIntent(message);
-
-        return intent switch
+        
+        // Compact the card list to save tokens
+        var compactedCards = allCards.Select(c => new
         {
-            "greeting" => HandleGreeting(),
-            "recommend" => await HandleRecommendation(message, allCards),
-            "compare" => HandleCompare(message, allCards),
-            "card_info" => HandleCardInfo(message, allCards),
-            "bank_search" => HandleBankSearch(message, allCards),
-            "cashback" => HandleCashback(message, allCards),
-            "salary" => HandleSalary(message, allCards),
-            "annual_fee" => HandleAnnualFee(message, allCards),
-            "top_cards" => HandleTopCards(allCards),
-            "count" => HandleCount(allCards),
-            "help" => HandleHelp(),
-            _ => HandleFallback(message, allCards),
-        };
-    }
+            Id = c.Id,
+            Name = c.Name,
+            Bank = c.Bank,
+            AnnualFee = c.AnnualFee,
+            MinSalary = c.MinSalary,
+            MaxCashbackPerMonth = c.MaxCashbackPerMonth,
+            MinSpendForCashback = c.MinSpendForCashback,
+            Tags = c.Tags,
+            CashbackRules = c.CashbackRules.Select(r => new { Category = r.Category, Percentage = r.Percentage, CapAmount = r.CapAmount }).ToList()
+        }).ToList();
 
-    private string DetectIntent(string message)
-    {
-        // Greeting
-        if (Regex.IsMatch(message, @"^(xin chào|xin chao|chào|chao|hello|hi|hey|ê|alo)\b"))
-            return "greeting";
+        var cardsJson = JsonSerializer.Serialize(compactedCards, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
-        // Recommendation
-        if (Regex.IsMatch(message, @"(gợi ý|đề xuất|recommend|tư vấn|nên dùng|thẻ nào|phù hợp|cho tôi|giúp tôi chọn|thẻ tốt)"))
-            return "recommend";
+        var systemInstruction = $@"Bạn là Trợ lý Tài chính AI của hệ thống CredBack (Chi Tiêu Thông Minh) tại Việt Nam.
+Nhiệm vụ của bạn là tư vấn thẻ tín dụng cho người dùng dựa trên nhu cầu của họ.
 
-        // Compare
-        if (Regex.IsMatch(message, @"(so sánh|compare|khác nhau|vs|versus|giữa.*và)"))
-            return "compare";
+Dưới đây là danh sách thẻ tín dụng có sẵn trong hệ thống (định dạng JSON):
+{cardsJson}
 
-        // Card info
-        if (Regex.IsMatch(message, @"(thông tin|chi tiết|info|details|về thẻ|card info)"))
-            return "card_info";
+Luật:
+1. Trả lời bằng tiếng Việt, thân thiện, súc tích và sử dụng markdown để làm nổi bật thông tin.
+2. NẾU người dùng hỏi về một lĩnh vực cụ thể (ví dụ: Du lịch, Ăn uống, Siêu thị), TUYỆT ĐỐI CHỈ tìm và đề xuất các thẻ có `CashbackRules` (danh mục hoàn tiền) hoặc `Tags` KHỚP VỚI LĨNH VỰC ĐÓ. (Ví dụ: Khách hỏi Du lịch -> Chỉ tìm thẻ hoàn tiền Du lịch/Ngoại tệ/Vé máy bay. KHÔNG ĐƯỢC đưa thẻ hoàn tiền Shopee/Siêu thị vào danh sách).
+3. KHÔNG đề xuất thẻ dành cho Doanh nghiệp (trong tên có chữ Corporate/Business) trừ khi người dùng nói họ là công ty/doanh nghiệp.
+4. KHÔNG BỊA RA TÊN THẺ KHÔNG CÓ TRONG DANH SÁCH.
+5. ĐẶC BIỆT CHÚ Ý ĐẾN MaxCashbackPerMonth (giới hạn hoàn tối đa/tháng) và CapAmount. Nếu tiêu 20 triệu vào thẻ hoàn 20% nhưng MaxCashback = 500k, thì số tiền hoàn chỉ là 500k.
+6. Khi tóm tắt thẻ trong nội dung câu trả lời, BẮT BUỘC dùng định dạng sau (đặt bên trong trường ""reply""):
+- **[Tên thẻ]** - *[Ngân hàng]*
+- Danh mục hoàn: [Liệt kê TẤT CẢ danh mục liên quan]
+- Mức hoàn: [Phần trăm]% (Tối đa: [MaxCashbackPerMonth] VNĐ/tháng)
+- Phí thường niên: [AnnualFee]
+7. LUÔN TRẢ VỀ KẾT QUẢ DƯỚI DẠNG JSON hợp lệ với cấu trúc sau:
+{{
+  ""reply"": ""Câu trả lời CÓ CHỨA ĐỊNH DẠNG TÓM TẮT THẺ ở trên"",
+  ""intent"": ""loại_yêu_cầu"",
+  ""suggestedCardIds"": [""id_the_1"", ""id_the_2""],
+  ""quickReplies"": [""Câu hỏi gợi ý 1"", ""Câu hỏi gợi ý 2""]
+}}
+Nếu không gợi ý thẻ nào, để suggestedCardIds là mảng rỗng [].";
 
-        // Bank search
-        if (Regex.IsMatch(message, @"(ngân hàng|bank|vib|hsbc|techcombank|vpbank|acb|bidv|mb|sacombank|tpbank|ocb|shinhan|eximbank|hdbank|vietcombank|uob|msb|standard chartered)"))
-            return "bank_search";
+        var contents = new List<object>();
 
-        // Cashback
-        if (Regex.IsMatch(message, @"(hoàn tiền|cashback|hoàn|tích điểm|điểm thưởng|ưu đãi|percent|%)"))
-            return "cashback";
-
-        // Salary
-        if (Regex.IsMatch(message, @"(lương|salary|thu nhập|income|triệu.*tháng|tr\/tháng)"))
-            return "salary";
-
-        // Annual fee
-        if (Regex.IsMatch(message, @"(phí|annual fee|thường niên|miễn phí|free|phi thuong nien)"))
-            return "annual_fee";
-
-        // Top cards
-        if (Regex.IsMatch(message, @"(top|tốt nhất|best|xếp hạng|ranking|nhiều nhất)"))
-            return "top_cards";
-
-        // Count
-        if (Regex.IsMatch(message, @"(bao nhiêu|có mấy|số lượng|count|total|tổng)"))
-            return "count";
-
-        // Help
-        if (Regex.IsMatch(message, @"(help|trợ giúp|hướng dẫn|làm gì|biết gì|có thể)"))
-            return "help";
-
-        return "unknown";
-    }
-
-    private ChatResponse HandleGreeting()
-    {
-        var greetings = new[]
+        // Add history
+        foreach (var msg in request.History)
         {
-            "Xin chào! 👋 Tôi là **Trợ lý Tài chính AI** của CredBack. Tôi có thể giúp bạn:\n\n• 💳 Tư vấn chọn thẻ tín dụng phù hợp\n• 📊 So sánh các thẻ với nhau\n• 💰 Tìm thẻ hoàn tiền cao nhất\n• 🏦 Tra cứu thẻ theo ngân hàng\n\nBạn cần tôi hỗ trợ gì?",
-            "Chào bạn! 🌟 Tôi là AI tư vấn thẻ tín dụng. Hãy cho tôi biết nhu cầu của bạn, tôi sẽ giúp bạn tìm chiếc thẻ hoàn hảo nhất! 💳",
-        };
-        return new ChatResponse
-        {
-            Reply = greetings[Random.Shared.Next(greetings.Length)],
-            Intent = "greeting",
-            QuickReplies = new List<string>
+            contents.Add(new
             {
-                "Thẻ hoàn tiền cao nhất?",
-                "Tư vấn thẻ cho lương 15 triệu",
-                "Thẻ miễn phí thường niên",
-                "So sánh thẻ VIB và HSBC"
+                role = msg.Role == "assistant" ? "model" : "user",
+                parts = new[] { new { text = msg.Content } }
+            });
+        }
+
+        // Add current message
+        contents.Add(new
+        {
+            role = "user",
+            parts = new[] { new { text = request.Message } }
+        });
+
+        var payload = new
+        {
+            system_instruction = new
+            {
+                parts = new[] { new { text = systemInstruction } }
+            },
+            contents = contents,
+            generationConfig = new
+            {
+                response_mime_type = "application/json"
             }
         };
-    }
 
-    private async Task<ChatResponse> HandleRecommendation(string message, List<CreditCard> allCards)
-    {
-        // Try to extract salary from message
-        var salaryMatch = Regex.Match(message, @"(\d+)\s*(triệu|tr|m)");
-        decimal salary = 0;
-        if (salaryMatch.Success)
-        {
-            salary = decimal.Parse(salaryMatch.Groups[1].Value) * 1_000_000;
-        }
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={apiKey}";
+        
+        var jsonPayload = JsonSerializer.Serialize(payload);
+        var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
-        // Try to extract category
-        string? category = null;
-        var categoryKeywords = new Dictionary<string, string[]>
+        try
         {
-            { "Ăn uống", new[] { "ăn", "uống", "nhà hàng", "food", "dining", "ẩm thực", "quán" } },
-            { "Mua sắm", new[] { "mua sắm", "shopping", "mua", "shop" } },
-            { "Du lịch", new[] { "du lịch", "travel", "bay", "khách sạn", "hotel" } },
-            { "Xăng dầu", new[] { "xăng", "dầu", "fuel", "gas", "petrol" } },
-            { "Online", new[] { "online", "trực tuyến", "internet", "web" } },
-            { "Giáo dục", new[] { "giáo dục", "học", "education", "trường" } },
-        };
+            var response = await _httpClient.PostAsync(url, content);
+            var responseString = await response.Content.ReadAsStringAsync();
 
-        foreach (var kvp in categoryKeywords)
-        {
-            if (kvp.Value.Any(k => message.Contains(k)))
+            if (!response.IsSuccessStatusCode)
             {
-                category = kvp.Key;
-                break;
+                Console.WriteLine($"Gemini API Error: {responseString}");
+                return new ChatResponse { Reply = $"Đã xảy ra lỗi khi gọi Gemini API: {responseString}" };
             }
-        }
 
-        var filtered = allCards.AsEnumerable();
+            using var doc = JsonDocument.Parse(responseString);
+            var textResult = doc.RootElement
+                .GetProperty("candidates")[0]
+                .GetProperty("content")
+                .GetProperty("parts")[0]
+                .GetProperty("text").GetString();
 
-        if (salary > 0)
-        {
-            filtered = filtered.Where(c => c.MinSalary <= 0 || c.MinSalary <= salary);
-        }
+            if (string.IsNullOrEmpty(textResult))
+                return new ChatResponse { Reply = "Xin lỗi, tôi không thể trả lời lúc này." };
 
-        // Score cards
-        var scored = filtered.Select(c =>
-        {
-            decimal score = 0;
-            if (category != null)
+            // Clean up possible markdown code blocks around json
+            textResult = textResult.Trim();
+            if (textResult.StartsWith("```json")) textResult = textResult.Substring(7);
+            if (textResult.StartsWith("```")) textResult = textResult.Substring(3);
+            if (textResult.EndsWith("```")) textResult = textResult.Substring(0, textResult.Length - 3);
+            textResult = textResult.Trim();
+
+            // Parse textResult as JSON
+            var aiResponse = JsonSerializer.Deserialize<JsonElement>(textResult);
+            
+            var reply = aiResponse.TryGetProperty("reply", out var replyElem) ? replyElem.GetString() ?? "" : "";
+            var intent = aiResponse.TryGetProperty("intent", out var intentElem) ? intentElem.GetString() ?? "" : "";
+            
+            var suggestedCards = new List<CreditCard>();
+            if (aiResponse.TryGetProperty("suggestedCardIds", out var idsElem) && idsElem.ValueKind == JsonValueKind.Array)
             {
-                foreach (var rule in c.CashbackRules)
+                foreach (var idElem in idsElem.EnumerateArray())
                 {
-                    if (rule.Category.Contains(category, StringComparison.OrdinalIgnoreCase))
-                        score += rule.Percentage * 10;
-                    else if (rule.Category is "Tất cả" or "All")
-                        score += rule.Percentage * 2;
+                    var id = idElem.GetString();
+                    var card = allCards.FirstOrDefault(c => c.Id == id);
+                    if (card != null) suggestedCards.Add(card);
                 }
             }
-            else
+
+            var quickReplies = new List<string>();
+            if (aiResponse.TryGetProperty("quickReplies", out var qrElem) && qrElem.ValueKind == JsonValueKind.Array)
             {
-                score = c.CashbackRules.Sum(r => r.Percentage * 3);
+                foreach (var qr in qrElem.EnumerateArray())
+                {
+                    var qrStr = qr.GetString();
+                    if (!string.IsNullOrEmpty(qrStr)) quickReplies.Add(qrStr);
+                }
             }
 
-            if (salary > 0 && c.MinSalary > 0)
-            {
-                var ratio = salary / c.MinSalary;
-                if (ratio >= 1.0m && ratio <= 1.5m) score += 40;
-                else if (ratio <= 3.0m) score += 20;
-            }
-
-            return new { Card = c, Score = score };
-        })
-        .OrderByDescending(x => x.Score)
-        .Take(3)
-        .ToList();
-
-        if (!scored.Any())
-        {
             return new ChatResponse
             {
-                Reply = "Hiện tại tôi chưa tìm thấy thẻ phù hợp với tiêu chí của bạn. Bạn có thể mô tả lại nhu cầu chi tiêu không? 🤔",
-                Intent = "recommend",
-                QuickReplies = new List<string> { "Thẻ hoàn tiền cao nhất?", "Thẻ không phí thường niên" }
+                Reply = reply,
+                Intent = intent,
+                SuggestedCards = suggestedCards,
+                QuickReplies = quickReplies
             };
         }
-
-        var cards = scored.Select(x => x.Card).ToList();
-        var lines = new List<string> { "🎯 **Đây là Top thẻ tôi gợi ý cho bạn:**\n" };
-        for (int i = 0; i < cards.Count; i++)
+        catch (Exception ex)
         {
-            var c = cards[i];
-            var topRule = c.CashbackRules.OrderByDescending(r => r.Percentage).FirstOrDefault();
-            var cbText = topRule != null ? $"Hoàn {topRule.Percentage}% {topRule.Category}" : "Nhiều ưu đãi";
-            var feeText = c.AnnualFee == 0 ? "Miễn phí thường niên" : $"Phí: {c.AnnualFee:N0}đ/năm";
-            var salaryText = c.MinSalary > 0 ? $" | Lương tối thiểu: {c.MinSalary / 1_000_000}M" : "";
-
-            lines.Add($"**{i + 1}. {c.Name}** — _{c.Bank}_");
-            lines.Add($"   💰 {cbText} | {feeText}{salaryText}\n");
+            Console.WriteLine($"ChatService Error: {ex.Message}");
+            return new ChatResponse { Reply = "Hệ thống AI đang bảo trì hoặc bận. Vui lòng thử lại sau." };
         }
-
-        if (salary > 0)
-            lines.Add($"_Đã lọc theo mức lương {salary / 1_000_000:N0} triệu/tháng._");
-        if (category != null)
-            lines.Add($"_Ưu tiên danh mục: {category}._");
-
-        return new ChatResponse
-        {
-            Reply = string.Join("\n", lines),
-            Intent = "recommend",
-            SuggestedCards = cards,
-            QuickReplies = new List<string>
-            {
-                $"Chi tiết {cards[0].Name}",
-                "So sánh 2 thẻ đầu",
-                "Tìm thẻ khác"
-            }
-        };
-    }
-
-    private ChatResponse HandleCompare(string message, List<CreditCard> allCards)
-    {
-        // Try to extract card/bank names
-        var matchedCards = allCards
-            .Where(c => message.Contains(c.Name.ToLower()) || message.Contains(c.Bank.ToLower()))
-            .GroupBy(c => c.Bank)
-            .Select(g => g.First())
-            .Take(2)
-            .ToList();
-
-        if (matchedCards.Count < 2)
-        {
-            // Fall back to top 2
-            matchedCards = allCards.OrderByDescending(c => c.CashbackRules.Sum(r => r.Percentage)).Take(2).ToList();
-        }
-
-        var a = matchedCards[0];
-        var b = matchedCards[1];
-
-        var aTopCb = a.CashbackRules.OrderByDescending(r => r.Percentage).FirstOrDefault();
-        var bTopCb = b.CashbackRules.OrderByDescending(r => r.Percentage).FirstOrDefault();
-
-        var reply = $"⚔️ **So sánh: {a.Name} vs {b.Name}**\n\n" +
-                    $"| Tiêu chí | {a.Name} | {b.Name} |\n" +
-                    $"|---|---|---|\n" +
-                    $"| 🏦 Ngân hàng | {a.Bank} | {b.Bank} |\n" +
-                    $"| 💰 Hoàn tiền cao nhất | {aTopCb?.Percentage ?? 0}% | {bTopCb?.Percentage ?? 0}% |\n" +
-                    $"| 📋 Phí thường niên | {(a.AnnualFee == 0 ? "Miễn phí" : $"{a.AnnualFee:N0}đ")} | {(b.AnnualFee == 0 ? "Miễn phí" : $"{b.AnnualFee:N0}đ")} |\n" +
-                    $"| 💵 Yêu cầu lương | {(a.MinSalary > 0 ? $"{a.MinSalary / 1_000_000}M+" : "Không")} | {(b.MinSalary > 0 ? $"{b.MinSalary / 1_000_000}M+" : "Không")} |\n" +
-                    $"| 🎁 Số ưu đãi | {a.CashbackRules.Count} quy tắc | {b.CashbackRules.Count} quy tắc |\n\n" +
-                    $"💡 **Nhận xét**: {(aTopCb?.Percentage >= bTopCb?.Percentage ? a.Name : b.Name)} có mức hoàn tiền cao hơn, " +
-                    $"còn {(a.AnnualFee <= b.AnnualFee ? a.Name : b.Name)} tiết kiệm phí hơn.";
-
-        return new ChatResponse
-        {
-            Reply = reply,
-            Intent = "compare",
-            SuggestedCards = matchedCards,
-            QuickReplies = new List<string>
-            {
-                $"Chi tiết {a.Name}",
-                $"Chi tiết {b.Name}",
-                "Gợi ý thẻ khác cho tôi"
-            }
-        };
-    }
-
-    private ChatResponse HandleCardInfo(string message, List<CreditCard> allCards)
-    {
-        var card = allCards.FirstOrDefault(c =>
-            message.Contains(c.Name.ToLower()) ||
-            (c.Name.Split(' ').Length > 1 && c.Name.Split(' ').Count(w => message.Contains(w.ToLower())) >= 2));
-
-        if (card == null)
-        {
-            card = allCards.FirstOrDefault(c => message.Contains(c.Bank.ToLower()));
-        }
-
-        if (card == null)
-        {
-            return new ChatResponse
-            {
-                Reply = "Tôi chưa tìm thấy thẻ bạn đề cập. Bạn có thể cho tôi biết tên thẻ hoặc ngân hàng cụ thể không? 🔍",
-                Intent = "card_info",
-                QuickReplies = allCards.Take(4).Select(c => $"Thông tin {c.Name}").ToList()
-            };
-        }
-
-        var rules = string.Join("\n", card.CashbackRules.Select(r =>
-            $"  • {r.Category}: **{r.Percentage}%**" + (r.CapAmount > 0 ? $" (tối đa {r.CapAmount:N0}đ)" : "")));
-
-        var benefits = card.Benefits.Any()
-            ? string.Join("\n", card.Benefits.Select(b => $"  ✅ {b}"))
-            : "  _Chưa có thông tin cụ thể_";
-
-        var reply = $"📋 **{card.Name}** — _{card.Bank}_\n\n" +
-                    $"💵 **Phí thường niên**: {(card.AnnualFee == 0 ? "Miễn phí 🎉" : $"{card.AnnualFee:N0}đ/năm")}\n" +
-                    $"💰 **Yêu cầu lương**: {(card.MinSalary > 0 ? $"Từ {card.MinSalary / 1_000_000:N0} triệu/tháng" : "Không yêu cầu")}\n\n" +
-                    $"🏷️ **Hoàn tiền**:\n{rules}\n\n" +
-                    $"🎁 **Quyền lợi**:\n{benefits}";
-
-        return new ChatResponse
-        {
-            Reply = reply,
-            Intent = "card_info",
-            SuggestedCards = new List<CreditCard> { card },
-            QuickReplies = new List<string>
-            {
-                "Tìm thẻ tương tự",
-                $"So sánh với thẻ khác",
-                "Thẻ hoàn tiền cao hơn?"
-            }
-        };
-    }
-
-    private ChatResponse HandleBankSearch(string message, List<CreditCard> allCards)
-    {
-        var banks = new[] { "vib", "hsbc", "techcombank", "vpbank", "acb", "bidv", "mb", "sacombank", "tpbank", "ocb", "shinhan", "eximbank", "hdbank", "vietcombank", "uob", "msb", "standard chartered", "mb bank" };
-        var matchedBank = banks.FirstOrDefault(b => message.Contains(b));
-
-        if (matchedBank == null)
-        {
-            return new ChatResponse
-            {
-                Reply = "Bạn muốn tìm thẻ của ngân hàng nào? Tôi hỗ trợ nhiều ngân hàng lớn! 🏦",
-                Intent = "bank_search",
-                QuickReplies = new List<string> { "Thẻ VIB", "Thẻ HSBC", "Thẻ Techcombank", "Thẻ VPBank" }
-            };
-        }
-
-        var bankCards = allCards
-            .Where(c => c.Bank.ToLower().Contains(matchedBank) || c.BankName.ToLower().Contains(matchedBank))
-            .ToList();
-
-        if (!bankCards.Any())
-        {
-            return new ChatResponse
-            {
-                Reply = $"Hiện tại hệ thống chưa có thẻ nào của **{matchedBank.ToUpper()}**. Bạn muốn tôi tìm ngân hàng khác không? 🔍",
-                Intent = "bank_search",
-                QuickReplies = new List<string> { "Thẻ VIB", "Thẻ HSBC", "Thẻ Techcombank" }
-            };
-        }
-
-        var lines = new List<string> { $"🏦 **Danh sách thẻ {matchedBank.ToUpper()}** ({bankCards.Count} thẻ):\n" };
-        foreach (var c in bankCards.Take(5))
-        {
-            var topRule = c.CashbackRules.OrderByDescending(r => r.Percentage).FirstOrDefault();
-            lines.Add($"• **{c.Name}** — Hoàn {topRule?.Percentage ?? 0}% | {(c.AnnualFee == 0 ? "Miễn phí" : $"{c.AnnualFee:N0}đ/năm")}");
-        }
-
-        if (bankCards.Count > 5)
-            lines.Add($"\n_...và {bankCards.Count - 5} thẻ khác._");
-
-        return new ChatResponse
-        {
-            Reply = string.Join("\n", lines),
-            Intent = "bank_search",
-            SuggestedCards = bankCards.Take(3).ToList(),
-            QuickReplies = bankCards.Take(3).Select(c => $"Chi tiết {c.Name}").ToList()
-        };
-    }
-
-    private ChatResponse HandleCashback(string message, List<CreditCard> allCards)
-    {
-        var topCards = allCards
-            .Select(c => new
-            {
-                Card = c,
-                MaxCb = c.CashbackRules.Any() ? c.CashbackRules.Max(r => r.Percentage) : 0
-            })
-            .OrderByDescending(x => x.MaxCb)
-            .Take(5)
-            .ToList();
-
-        var lines = new List<string> { "💰 **Top 5 thẻ hoàn tiền cao nhất**:\n" };
-        for (int i = 0; i < topCards.Count; i++)
-        {
-            var x = topCards[i];
-            var topRule = x.Card.CashbackRules.OrderByDescending(r => r.Percentage).First();
-            lines.Add($"**{i + 1}. {x.Card.Name}** — _{x.Card.Bank}_");
-            lines.Add($"   🔥 Hoàn **{topRule.Percentage}%** cho _{topRule.Category}_ " +
-                      (topRule.CapAmount > 0 ? $"(tối đa {topRule.CapAmount:N0}đ)" : "") + "\n");
-        }
-
-        return new ChatResponse
-        {
-            Reply = string.Join("\n", lines),
-            Intent = "cashback",
-            SuggestedCards = topCards.Select(x => x.Card).Take(3).ToList(),
-            QuickReplies = new List<string>
-            {
-                $"Chi tiết {topCards[0].Card.Name}",
-                "Thẻ hoàn tiền ăn uống",
-                "Thẻ hoàn tiền mua sắm"
-            }
-        };
-    }
-
-    private ChatResponse HandleSalary(string message, List<CreditCard> allCards)
-    {
-        var match = Regex.Match(message, @"(\d+)\s*(triệu|tr|m)");
-        if (!match.Success)
-        {
-            return new ChatResponse
-            {
-                Reply = "Bạn cho tôi biết mức lương hàng tháng (VD: 15 triệu) để tôi lọc thẻ phù hợp nhé! 💼",
-                Intent = "salary",
-                QuickReplies = new List<string> { "Lương 10 triệu", "Lương 15 triệu", "Lương 30 triệu", "Lương 50 triệu" }
-            };
-        }
-
-        var salary = decimal.Parse(match.Groups[1].Value) * 1_000_000;
-        var eligible = allCards.Where(c => c.MinSalary <= 0 || c.MinSalary <= salary).ToList();
-        var tooHigh = allCards.Where(c => c.MinSalary > salary && c.MinSalary > 0).ToList();
-
-        var lines = new List<string>
-        {
-            $"💼 **Với mức lương {salary / 1_000_000:N0} triệu/tháng**:\n",
-            $"✅ Bạn đủ điều kiện cho **{eligible.Count}** thẻ",
-            $"❌ Chưa đủ điều kiện cho **{tooHigh.Count}** thẻ\n"
-        };
-
-        var top3 = eligible
-            .OrderByDescending(c => c.CashbackRules.Sum(r => r.Percentage))
-            .Take(3)
-            .ToList();
-
-        if (top3.Any())
-        {
-            lines.Add("🌟 **Top thẻ phù hợp với bạn:**\n");
-            foreach (var c in top3)
-            {
-                var topRule = c.CashbackRules.OrderByDescending(r => r.Percentage).FirstOrDefault();
-                lines.Add($"• **{c.Name}** ({c.Bank}) — Hoàn {topRule?.Percentage ?? 0}%");
-            }
-        }
-
-        return new ChatResponse
-        {
-            Reply = string.Join("\n", lines),
-            Intent = "salary",
-            SuggestedCards = top3,
-            QuickReplies = top3.Take(2).Select(c => $"Chi tiết {c.Name}").Append("So sánh 2 thẻ đầu").ToList()
-        };
-    }
-
-    private ChatResponse HandleAnnualFee(string message, List<CreditCard> allCards)
-    {
-        bool wantFree = message.Contains("miễn phí") || message.Contains("free") || message.Contains("0") || message.Contains("không phí");
-
-        var filtered = wantFree
-            ? allCards.Where(c => c.AnnualFee == 0).ToList()
-            : allCards.OrderBy(c => c.AnnualFee).ToList();
-
-        var lines = new List<string>
-        {
-            wantFree
-                ? $"🎉 **Thẻ miễn phí thường niên** ({filtered.Count} thẻ):\n"
-                : $"📋 **Thẻ sắp xếp theo phí thường niên** (thấp → cao):\n"
-        };
-
-        foreach (var c in filtered.Take(5))
-        {
-            var topRule = c.CashbackRules.OrderByDescending(r => r.Percentage).FirstOrDefault();
-            lines.Add($"• **{c.Name}** ({c.Bank}) — {(c.AnnualFee == 0 ? "Miễn phí ✨" : $"{c.AnnualFee:N0}đ")} | Hoàn {topRule?.Percentage ?? 0}%");
-        }
-
-        if (filtered.Count > 5)
-            lines.Add($"\n_...và {filtered.Count - 5} thẻ khác._");
-
-        return new ChatResponse
-        {
-            Reply = string.Join("\n", lines),
-            Intent = "annual_fee",
-            SuggestedCards = filtered.Take(3).ToList(),
-            QuickReplies = new List<string> { "Thẻ hoàn tiền cao nhất", "Tư vấn theo lương", "So sánh 2 thẻ" }
-        };
-    }
-
-    private ChatResponse HandleTopCards(List<CreditCard> allCards)
-    {
-        var top = allCards
-            .Select(c => new
-            {
-                Card = c,
-                TotalScore = c.CashbackRules.Sum(r => r.Percentage * 5) + (c.AnnualFee == 0 ? 10 : 0) + c.Benefits.Count * 2
-            })
-            .OrderByDescending(x => x.TotalScore)
-            .Take(5)
-            .ToList();
-
-        var lines = new List<string> { "🏆 **Top 5 thẻ tín dụng tốt nhất hiện tại:**\n" };
-        for (int i = 0; i < top.Count; i++)
-        {
-            var x = top[i];
-            var medal = i switch { 0 => "🥇", 1 => "🥈", 2 => "🥉", _ => $"**{i + 1}.**" };
-            var topRule = x.Card.CashbackRules.OrderByDescending(r => r.Percentage).FirstOrDefault();
-            lines.Add($"{medal} **{x.Card.Name}** — _{x.Card.Bank}_");
-            lines.Add($"   Hoàn {topRule?.Percentage ?? 0}% | {(x.Card.AnnualFee == 0 ? "Miễn phí" : $"{x.Card.AnnualFee:N0}đ/năm")}\n");
-        }
-
-        return new ChatResponse
-        {
-            Reply = string.Join("\n", lines),
-            Intent = "top_cards",
-            SuggestedCards = top.Select(x => x.Card).Take(3).ToList(),
-            QuickReplies = new List<string>
-            {
-                $"Chi tiết {top[0].Card.Name}",
-                "Thẻ hoàn tiền ăn uống",
-                "Thẻ phí thường niên thấp"
-            }
-        };
-    }
-
-    private ChatResponse HandleCount(List<CreditCard> allCards)
-    {
-        var bankGroups = allCards.GroupBy(c => c.Bank).OrderByDescending(g => g.Count()).ToList();
-        var lines = new List<string>
-        {
-            $"📊 **Thống kê hệ thống:**\n",
-            $"• Tổng số thẻ: **{allCards.Count}** thẻ",
-            $"• Số ngân hàng: **{bankGroups.Count}** ngân hàng",
-            $"• Thẻ miễn phí: **{allCards.Count(c => c.AnnualFee == 0)}** thẻ\n",
-            "🏦 **Phân bổ theo ngân hàng:**\n"
-        };
-
-        foreach (var g in bankGroups.Take(6))
-        {
-            lines.Add($"• {g.Key}: **{g.Count()}** thẻ");
-        }
-
-        return new ChatResponse
-        {
-            Reply = string.Join("\n", lines),
-            Intent = "count",
-            QuickReplies = new List<string> { "Top thẻ tốt nhất", "Thẻ hoàn tiền cao nhất", "Tư vấn cho tôi" }
-        };
-    }
-
-    private ChatResponse HandleHelp()
-    {
-        return new ChatResponse
-        {
-            Reply = "🤖 **Tôi có thể giúp bạn:**\n\n" +
-                    "💳 **Tư vấn thẻ** — _\"Tư vấn thẻ cho lương 20 triệu\"_\n" +
-                    "⚔️ **So sánh thẻ** — _\"So sánh VIB và HSBC\"_\n" +
-                    "🔍 **Tra cứu thẻ** — _\"Thông tin VIB Cash Back\"_\n" +
-                    "🏦 **Tìm theo ngân hàng** — _\"Thẻ của Techcombank\"_\n" +
-                    "💰 **Hoàn tiền** — _\"Thẻ hoàn tiền ăn uống\"_\n" +
-                    "💼 **Lọc theo lương** — _\"Lương 15 triệu nên dùng thẻ nào?\"_\n" +
-                    "🏆 **Xếp hạng** — _\"Top thẻ tốt nhất\"_\n" +
-                    "📊 **Thống kê** — _\"Hệ thống có bao nhiêu thẻ?\"_\n\n" +
-                    "Hãy hỏi tôi bất cứ điều gì! 😊",
-            Intent = "help",
-            QuickReplies = new List<string>
-            {
-                "Top thẻ tốt nhất",
-                "Tư vấn thẻ cho tôi",
-                "Thẻ miễn phí thường niên",
-                "Hệ thống có bao nhiêu thẻ?"
-            }
-        };
-    }
-
-    private ChatResponse HandleFallback(string message, List<CreditCard> allCards)
-    {
-        // Try to find any card name in the message
-        var mentionedCard = allCards.FirstOrDefault(c =>
-            message.Contains(c.Name.ToLower()) ||
-            c.Name.Split(' ').Count(w => w.Length > 2 && message.Contains(w.ToLower())) >= 2);
-
-        if (mentionedCard != null)
-        {
-            return HandleCardInfo(message, allCards);
-        }
-
-        return new ChatResponse
-        {
-            Reply = "Tôi chưa hiểu rõ câu hỏi của bạn 🤔. Bạn có thể thử hỏi theo các gợi ý bên dưới hoặc gõ **\"help\"** để xem danh sách tính năng nhé!",
-            Intent = "unknown",
-            QuickReplies = new List<string>
-            {
-                "Tư vấn thẻ cho tôi",
-                "Top thẻ hoàn tiền",
-                "Hướng dẫn sử dụng",
-                "Thẻ miễn phí thường niên"
-            }
-        };
     }
 }

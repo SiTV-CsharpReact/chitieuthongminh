@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -10,6 +11,7 @@ import { cardApi } from '@/services/api';
 import { Card } from '@/types';
 import { cleanCardName, getFallbackBankLogo } from '@/lib/utils';
 import { PortraitCardVisual } from '@/components/PortraitCardVisual';
+import CardItem from '@/components/CardItem';
 
 interface CardDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -22,6 +24,7 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
   const { user, isAuthenticated, openLoginModal } = useAuth();
   const { isFavorite, addFavorite, removeFavorite, isOwned, addOwnedCard, removeOwnedCard } = useFavorites();
   const [card, setCard] = useState<Card | null>(null);
+  const [relatedCards, setRelatedCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [cardId, setCardId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,6 +61,39 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
         if (data.maxCashbackPerMonth && cashbackAmount > data.maxCashbackPerMonth) cashbackAmount = data.maxCashbackPerMonth;
 
         setCard({ ...data, cashbackAmount });
+
+        // Fetch related cards
+        try {
+          const allCards = await cardApi.getAll();
+          
+          // Lấy danh mục hoàn tiền chính (cao nhất, trừ "Tất cả")
+          const mainCategories = data.cashbackRules
+            .filter(r => !['all', 'tất cả'].includes(r.category.toLowerCase()))
+            .sort((a, b) => b.percentage - a.percentage)
+            .map(r => r.category.toLowerCase());
+
+          let related = [];
+          if (mainCategories.length > 0) {
+            const primaryCat = mainCategories[0];
+            related = allCards.filter(c => 
+              c.id !== data.id && 
+              c.cashbackRules.some(r => r.category.toLowerCase() === primaryCat)
+            ).sort((a, b) => {
+              const aRate = a.cashbackRules.find(r => r.category.toLowerCase() === primaryCat)?.percentage || 0;
+              const bRate = b.cashbackRules.find(r => r.category.toLowerCase() === primaryCat)?.percentage || 0;
+              return bRate - aRate;
+            }).slice(0, 8);
+          }
+
+          if (related.length < 4) {
+            const others = allCards.filter(c => c.id !== data.id && !related.find(r => r.id === c.id)).slice(0, 8 - related.length);
+            setRelatedCards([...related, ...others]);
+          } else {
+            setRelatedCards(related);
+          }
+        } catch (err) {
+          console.error("Failed to fetch related cards", err);
+        }
       } catch (e) {
         console.error("Failed to fetch card details:", e);
       } finally {
@@ -209,14 +245,14 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
           <div className="lg:col-span-4">
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#18181b] p-8 shadow-sm lg:sticky lg:top-28">
               <div className="flex flex-col items-center">
-                <div className="relative w-full mb-8 group perspective">
+                <div className="relative w-4/5 sm:w-2/3 lg:w-3/4 mx-auto mb-6 group perspective">
                   <div className="absolute inset-0 bg-primary-500/20 blur-2xl rounded-full transform translate-y-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="relative w-full aspect-[1.58/1] rounded-xl overflow-hidden shadow-xl -rotate-3 transform transition-all duration-500 group-hover:rotate-0 group-hover:scale-105">
+                  <div className="relative w-full aspect-[1.58/1] rounded-xl overflow-hidden shadow-xl -rotate-2 transform transition-all duration-500 group-hover:rotate-0 group-hover:scale-105">
                     <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} />
                   </div>
                 </div>
 
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 text-center">{cleanCardName(card.name)}</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50 text-center">{cleanCardName(card.name)}</h2>
                 <div className="flex items-center justify-center gap-2 mt-2">
                   {(card.bankLogo || getFallbackBankLogo(card.bankName)) && (
                     <img src={card.bankLogo || getFallbackBankLogo(card.bankName)!} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />
@@ -383,6 +419,35 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
           </div>
 
         </div>
+
+        {/* Related Cards Section */}
+        {relatedCards.length > 0 && (
+          <div className="mt-16">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-50 mb-6">Thẻ Cùng Danh Mục</h3>
+            <div className="flex overflow-x-auto gap-4 pb-8 snap-x snap-mandatory custom-scrollbar">
+              {relatedCards.map((relatedCard, idx) => (
+                <Link 
+                  key={relatedCard.id || idx} 
+                  href={`/card/${relatedCard.id}`}
+                  className="snap-start shrink-0 w-[240px] flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#18181b] p-4 shadow-sm hover:shadow-lg hover:border-primary-500/50 transition-all group hover:-translate-y-1"
+                >
+                  <div className="relative w-full aspect-[1.58/1] rounded-xl overflow-hidden shadow-sm mb-4">
+                    <PortraitCardVisual imageUrl={relatedCard.imageUrl} name={relatedCard.name} />
+                  </div>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 leading-tight min-h-[40px] group-hover:text-primary-500 transition-colors">
+                    {cleanCardName(relatedCard.name)}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-auto pt-3">
+                    {(relatedCard.bankLogo || getFallbackBankLogo(relatedCard.bankName)) && (
+                      <img src={relatedCard.bankLogo || getFallbackBankLogo(relatedCard.bankName)!} alt={relatedCard.bankName} className="h-4 object-contain dark:bg-white/90 dark:rounded px-0.5" />
+                    )}
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{relatedCard.bankName}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* QR Code Modal */}

@@ -21,6 +21,7 @@ const ADMIN_NAV_ITEMS = [
     { path: '/admin/article-categories', label: 'Chuyên mục bài viết', icon: 'topic' },
     { path: '/admin/promotions', label: 'Ưu đãi thẻ (VIB)', icon: 'redeem' },
     { path: '/admin/users', label: 'Người dùng', icon: 'group' },
+    { path: '/admin/notifications', label: 'Quản lý thông báo', icon: 'notifications_active' },
     { path: '/admin/settings', label: 'Cài đặt hệ thống', icon: 'settings' },
 ];
 

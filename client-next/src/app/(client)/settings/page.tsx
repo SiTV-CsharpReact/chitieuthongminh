@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { UserSettings, Card } from '@/types';
@@ -14,10 +15,11 @@ import { cleanCardName, generateSlug } from '@/lib/utils';
 
 export default function SettingsPage() {
     const { user, isAuthenticated, logout, openLoginModal } = useAuth();
+    const searchParams = useSearchParams();
     const { isDarkMode, toggleTheme } = useTheme();
-    const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'notifications' | 'history' | 'mycards'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'notifications' | 'history' | 'mycards' | 'vip'>('profile');
     const { favorites, ownedCards, removeFavorite, removeOwnedCard, clearFavorites, clearOwnedCards } = useFavorites();
-    
+
     const [settings, setSettings] = useState<UserSettings>({
         notifications: { email: true, push: true, promotions: false },
         security: { twoFactor: false },
@@ -43,6 +45,27 @@ export default function SettingsPage() {
         }
     }, [activeTab, user?.id]);
 
+    useEffect(() => {
+        const vnpResponseCode = searchParams.get('vnp_ResponseCode');
+        if (vnpResponseCode) {
+            setActiveTab('vip');
+
+            // Nếu giao dịch thành công (00), gọi IPN cục bộ để cập nhật DB (vì VNPay không gọi được localhost)
+            if (vnpResponseCode === '00' && user?.role !== 'VIP') {
+                const query = window.location.search;
+                fetch(`/api/payment/vnpay/ipn${query}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.RspCode === '00') {
+                            // Cập nhật role trong Context ngay lập tức
+                            updateUser({ role: 'VIP' });
+                        }
+                    })
+                    .catch(console.error);
+            }
+        }
+    }, [searchParams, user?.role]);
+
     const toggleSetting = (category: keyof UserSettings, key: string) => {
         setSettings(prev => ({
             ...prev,
@@ -59,14 +82,51 @@ export default function SettingsPage() {
         setSearchHistory([]);
     };
 
+    const handleUpgradeVnpay = async () => {
+        try {
+            const getCookie = (name: string) => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+                return null;
+            };
+            const token = getCookie('token');
+            const res = await fetch('/api/payment/vnpay/create', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) {
+                console.error('API Error:', res.status, res.statusText);
+                throw new Error('API request failed');
+            }
+
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (error) {
+            console.error('Lỗi khi tạo payment url', error);
+            alert('Không thể kết nối đến VNPay, vui lòng thử lại sau.');
+        }
+    };
+
     const menuItems = [
         { id: 'profile', label: 'Hồ sơ', icon: 'person' },
+        { id: 'vip', label: 'Tài khoản VIP', icon: 'workspace_premium' },
         { id: 'mycards', label: 'Thẻ của tôi', icon: 'credit_card' },
         { id: 'history', label: 'Lịch sử tìm thẻ', icon: 'history' },
         { id: 'preferences', label: 'Sở thích & Giao diện', icon: 'palette' },
         { id: 'notifications', label: 'Thông báo', icon: 'notifications' },
         { id: 'security', label: 'Bảo mật', icon: 'security' },
-    ];
+    ].filter(item => {
+        if (user?.role === 'Admin') {
+            return item.id === 'profile';
+        }
+        return true;
+    });
 
     if (!isAuthenticated || !user) {
         return (
@@ -88,15 +148,15 @@ export default function SettingsPage() {
     }
 
     return (
-        <main className="flex-grow pt-32 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-16 min-h-screen">
+        <main className="flex-grow pt-10 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 pb-16 min-h-screen">
             <div className="mx-auto max-w-6xl">
-                
+
                 <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 uppercase">Cài đặt</h1>
                         <p className="mt-2 text-lg text-slate-500 dark:text-slate-400 font-medium">Quản lý tài khoản {user.name}</p>
                     </div>
-                    <button 
+                    <button
                         onClick={logout}
                         className="self-start sm:self-auto flex items-center gap-2 rounded-xl font-bold px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white border border-red-600 shadow-lg shadow-red-500/20 transition-all text-sm"
                     >
@@ -106,17 +166,17 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
-                    
+
                     {/* Sidebar Menu */}
                     <aside className="md:col-span-3">
                         <nav className="space-y-2 sticky top-32">
                             {menuItems.map((item) => (
                                 <button
                                     key={item.id}
-                                    onClick={() => setActiveTab(item.id as 'profile' | 'preferences' | 'security' | 'notifications' | 'history' | 'mycards')}
+                                    onClick={() => setActiveTab(item.id as any)}
                                     className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-200
-                                        ${activeTab === item.id 
-                                            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' 
+                                        ${activeTab === item.id
+                                            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20'
                                             : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
                                         }
                                     `}
@@ -131,7 +191,83 @@ export default function SettingsPage() {
                     {/* Main Content Panel */}
                     <div className="md:col-span-9">
                         <div className="rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-10 shadow-sm min-h-[500px]">
-                            
+
+                            {/* VIP Tab */}
+                            {activeTab === 'vip' && (
+                                <div className="animate-fade-in space-y-8">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-yellow-500">workspace_premium</span>
+                                            Tài khoản VIP
+                                        </h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Nâng cấp để trải nghiệm các tính năng cá nhân hóa cao cấp nhất.</p>
+                                    </div>
+
+                                    {searchParams.get('vnp_ResponseCode') === '00' && (
+                                        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded-xl font-bold text-sm flex items-center gap-2">
+                                            <span className="material-symbols-outlined">check_circle</span>
+                                            Thanh toán thành công! Bạn hiện đang là thành viên VIP. Vui lòng tải lại trang nếu trạng thái chưa cập nhật.
+                                        </div>
+                                    )}
+                                    {searchParams.get('vnp_ResponseCode') && searchParams.get('vnp_ResponseCode') !== '00' && (
+                                        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl font-bold text-sm flex items-center gap-2">
+                                            <span className="material-symbols-outlined">error</span>
+                                            Thanh toán thất bại hoặc đã bị hủy (Mã lỗi: {searchParams.get('vnp_ResponseCode')}).
+                                        </div>
+                                    )}
+
+                                    {user.role === 'VIP' ? (
+                                        <div className="p-8 border-2 border-yellow-400/50 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 rounded-3xl text-center space-y-4">
+                                            <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto text-yellow-600 dark:text-yellow-500 shadow-inner">
+                                                <span className="material-symbols-outlined text-4xl">verified</span>
+                                            </div>
+                                            <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Xin chào, Thành viên VIP!</h4>
+                                            <p className="text-slate-600 dark:text-slate-400 font-medium">Cảm ơn bạn đã đồng hành. Bạn đang được hưởng các đặc quyền sau:</p>
+                                            <div className="grid sm:grid-cols-2 gap-4 text-left mt-6">
+                                                <div className="bg-white/60 dark:bg-slate-900/60 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800/30">
+                                                    <span className="block font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2"><span className="material-symbols-outlined text-yellow-600 text-sm">notifications_active</span>Thông báo ưu đãi</span>
+                                                    <span className="text-xs text-slate-500">Hệ thống tự động quét và gửi Email các khuyến mãi phù hợp với đúng loại thẻ bạn đang có.</span>
+                                                </div>
+                                                <div className="bg-white/60 dark:bg-slate-900/60 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800/30">
+                                                    <span className="block font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2"><span className="material-symbols-outlined text-yellow-600 text-sm">event</span>Nhắc Phí Thường Niên</span>
+                                                    <span className="text-xs text-slate-500">Tự động nhắc nhở đóng phí trước 7 ngày để tránh bị phạt trễ hạn.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl space-y-6 shadow-xl shadow-slate-200/20 dark:shadow-none relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-6 opacity-10">
+                                                <span className="material-symbols-outlined text-9xl">workspace_premium</span>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Gói Đặc Quyền VIP</h4>
+                                                <div className="mt-2 text-4xl font-black text-primary-500">30.000<span className="text-lg text-slate-400 ml-1">VNĐ/Tháng</span></div>
+                                            </div>
+                                            <ul className="space-y-3 font-medium text-slate-600 dark:text-slate-400 text-sm">
+                                                <li className="flex items-start gap-2">
+                                                    <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
+                                                    Mở khóa tính năng <b>Cảnh báo khuyến mãi may đo</b> (gửi riêng theo thẻ sở hữu).
+                                                </li>
+                                                <li className="flex items-start gap-2">
+                                                    <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
+                                                    Kích hoạt <b>Nhắc nhở phí thường niên</b> trước 7 ngày.
+                                                </li>
+                                                <li className="flex items-start gap-2">
+                                                    <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
+                                                    Sử dụng gói VIP trong vòng 30 ngày.
+                                                </li>
+                                            </ul>
+                                            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                                                <Button onClick={handleUpgradeVnpay} className="w-full sm:w-auto h-12 px-8 rounded-xl font-bold bg-[#005BAA] hover:bg-[#004A8A] text-white shadow-lg shadow-[#005BAA]/20 transition-all flex items-center justify-center gap-2">
+                                                    Thanh toán qua VNPAY
+                                                </Button>
+                                                <p className="text-[10px] text-slate-400 mt-3">* Giao dịch được xử lý an toàn bởi hệ thống Sandbox VNPAY.</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Profile Tab */}
                             {activeTab === 'profile' && (
                                 <div className="animate-fade-in space-y-8">
@@ -150,34 +286,29 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-6 max-w-2xl relative">
-                                        <div className="absolute inset-0 z-10 bg-white/40 dark:bg-slate-900/40 rounded-2xl flex items-center justify-center backdrop-blur-[1px]">
-                                            <div className="bg-slate-900 dark:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xl flex items-center gap-2">
-                                                <span className="material-symbols-outlined text-[16px] text-yellow-400">construction</span>
-                                                Tính năng cập nhật hồ sơ đang được bảo trì
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 opacity-60 pointer-events-none">
+                                    <div className="space-y-6 max-w-2xl">
+                                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Họ và tên</Label>
-                                                <Input disabled type="text" defaultValue={user.name} className="rounded-xl border-slate-200 dark:border-slate-800" />
+                                                <Input readOnly type="text" defaultValue={user.name} className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 cursor-default text-slate-700 dark:text-slate-300 font-medium" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Số điện thoại</Label>
-                                                <Input disabled type="tel" placeholder="+84" className="rounded-xl border-slate-200 dark:border-slate-800" />
+                                                <Input readOnly type="tel" placeholder="Chưa cập nhật" className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 cursor-default text-slate-700 dark:text-slate-300" />
                                             </div>
                                         </div>
-                                        <div className="space-y-1.5 opacity-60 pointer-events-none">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Vai trò</Label>
+                                            <Input readOnly type="text" defaultValue={user.role} className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 cursor-default font-bold text-primary-600 dark:text-primary-400" />
+                                        </div>
+                                        <div className="space-y-1.5">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bio</Label>
-                                            <textarea 
-                                                disabled
-                                                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 min-h-[100px]" 
-                                                defaultValue="Chuyên gia tài chính cá nhân."
+                                            <textarea
+                                                readOnly
+                                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-800/50 min-h-[100px] cursor-default resize-none text-slate-700 dark:text-slate-300"
+                                                defaultValue="Chưa có thông tin giới thiệu."
                                             ></textarea>
                                         </div>
-                                        <Button disabled className="rounded-xl font-bold px-8 opacity-50 cursor-not-allowed">
-                                            Lưu thay đổi
-                                        </Button>
                                     </div>
                                 </div>
                             )}
@@ -200,7 +331,7 @@ export default function SettingsPage() {
                                                 <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">TIẾT KIỆM PIN & BẢO VỆ MẮT</span>
                                             </div>
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={toggleTheme}
                                             className={`relative inline-flex h-7 w-12 cursor-pointer items-center rounded-full transition-colors duration-300 ${isDarkMode ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                                         >
@@ -249,7 +380,7 @@ export default function SettingsPage() {
                                                     <span className="block font-bold text-slate-700 dark:text-slate-200">{item.label}</span>
                                                     <span className="text-xs text-slate-500 dark:text-slate-400 leading-tight pr-4">{item.desc}</span>
                                                 </div>
-                                                <button 
+                                                <button
                                                     // @ts-ignore
                                                     onClick={() => toggleSetting('notifications', item.key)}
                                                     // @ts-ignore
@@ -286,7 +417,7 @@ export default function SettingsPage() {
                                                 <span className="block font-bold text-slate-700 dark:text-slate-200">Xác thực 2 yếu tố (2FA)</span>
                                                 <span className="text-xs text-slate-500 dark:text-slate-400">Yêu cầu mã xác minh mỗi khi đăng nhập từ thiết bị mới.</span>
                                             </div>
-                                            <button 
+                                            <button
                                                 onClick={() => toggleSetting('security', 'twoFactor')}
                                                 className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors duration-300 ${settings.security.twoFactor ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                                             >
@@ -399,8 +530,8 @@ export default function SettingsPage() {
                                             ))}
                                             {Math.ceil(searchHistory.length / HISTORY_ITEMS_PER_PAGE) > 1 && (
                                                 <div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                                    <Button 
-                                                        variant="outline" 
+                                                    <Button
+                                                        variant="outline"
                                                         size="sm"
                                                         onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
                                                         disabled={historyPage === 1}
@@ -412,8 +543,8 @@ export default function SettingsPage() {
                                                     <span className="text-sm font-bold text-slate-500">
                                                         Trang {historyPage} / {Math.ceil(searchHistory.length / HISTORY_ITEMS_PER_PAGE)}
                                                     </span>
-                                                    <Button 
-                                                        variant="outline" 
+                                                    <Button
+                                                        variant="outline"
                                                         size="sm"
                                                         onClick={() => setHistoryPage(p => Math.min(Math.ceil(searchHistory.length / HISTORY_ITEMS_PER_PAGE), p + 1))}
                                                         disabled={historyPage === Math.ceil(searchHistory.length / HISTORY_ITEMS_PER_PAGE)}

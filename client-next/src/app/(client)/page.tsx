@@ -284,13 +284,13 @@ export default function HomePage() {
         </section>
 
         {/* ===== INTEREST TAGS ===== */}
-        <section className="py-16">
+        <section className="py-16 pb-0">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-10">
               <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-3">Bạn quan tâm điều gì nhất?</h2>
               <p className="text-slate-500 dark:text-slate-400">Chọn 1 hoặc nhiều nhu cầu để nhận gợi ý chính xác hơn</p>
             </div>
-            <div className="flex flex-wrap gap-3 justify-center">
+            {/* <div className="flex flex-wrap gap-3 justify-center">
               {interestTags.map((tag) => (
                 <button key={tag} onClick={() => {
                   setSelectedInterest(tag);
@@ -304,7 +304,7 @@ export default function HomePage() {
                   {tag}
                 </button>
               ))}
-            </div>
+            </div> */}
           </div>
         </section>
 
@@ -510,16 +510,87 @@ export default function HomePage() {
                             <div className="flex items-center gap-2">
                               {(card.bankLogo || getFallbackBankLogo(card.bankName)) && <img src={card.bankLogo || getFallbackBankLogo(card.bankName)!} alt={card.bankName} className="h-5 object-contain dark:bg-white/90 dark:rounded dark:px-1 dark:py-0.5" />}
                             </div>
-                            <div className="px-3 py-1.5 rounded-full border border-vp-green/50 text-vp-green text-xs font-medium flex items-center gap-1.5 glow-green bg-vp-green/10 select-none">
-                              <span className="w-1.5 h-1.5 rounded-full bg-vp-green animate-pulse"></span>
-                              Phù hợp với bạn
-                            </div>
+                            <TooltipProvider delay={100}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[13px] font-bold flex items-center gap-1.5 bg-white dark:bg-slate-900/50 cursor-help shadow-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-800">
+                                    <span className="text-amber-500 text-[14px] leading-none mb-[1px]">★</span>
+                                    <span>{(card.ratings?.overall || 4.8).toFixed(1)}</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="p-0 bg-white dark:bg-[#121c2d] border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl z-50 min-w-[280px] overflow-hidden">
+                                  <div className="flex flex-col w-full">
+                                    <div className="p-5 pb-4 pt-3">
+                                      <div className="font-bold text-slate-900 dark:text-white text-base mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">Đánh giá mức độ phù hợp</div>
+                                      {/* <div className="text-xs text-slate-500 dark:text-slate-400 mb-5">Dựa trên nhu cầu của bạn</div> */}
+
+                                      <div className="space-y-4 text-xs text-slate-600 dark:text-slate-300">
+                                        {/* Item 1 */}
+                                        <div>
+                                          <div className="flex justify-between gap-4 mb-1.5">
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">Hoàn tiền</span>
+                                            <span className="font-bold text-slate-900 dark:text-white">{(card.ratings?.cashback || 4.8).toFixed(1)}/5</span>
+                                          </div>
+                                          <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="h-full bg-vp-green rounded-full" style={{ width: `${((card.ratings?.cashback || 4.8) / 5) * 100}%` }}></div>
+                                          </div>
+                                        </div>
+                                        {/* Item 2 */}
+                                        <div>
+                                          <div className="flex justify-between gap-4 mb-1.5">
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">Phí thường niên</span>
+                                            <span className="font-bold text-slate-900 dark:text-white">{(card.ratings?.annualFee || 4.5).toFixed(1)}/5</span>
+                                          </div>
+                                          <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="h-full bg-vp-green rounded-full" style={{ width: `${((card.ratings?.annualFee || 4.5) / 5) * 100}%` }}></div>
+                                          </div>
+                                        </div>
+                                        {/* Item 3 */}
+                                        <div>
+                                          <div className="flex justify-between gap-4 mb-1.5">
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">Phù hợp chi tiêu</span>
+                                            <span className="font-bold text-slate-900 dark:text-white">{(card.ratings?.spendFit || 5.0).toFixed(1)}/5</span>
+                                          </div>
+                                          <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="h-full bg-vp-green rounded-full" style={{ width: `${((card.ratings?.spendFit || 5.0) / 5) * 100}%` }}></div>
+                                          </div>
+                                        </div>
+                                        {/* Item 4 */}
+                                        <div>
+                                          <div className="flex justify-between gap-4 mb-1.5">
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">Ưu đãi</span>
+                                            <span className="font-bold text-slate-900 dark:text-white">{(card.ratings?.offer || 4.7).toFixed(1)}/5</span>
+                                          </div>
+                                          <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="h-full bg-vp-green rounded-full" style={{ width: `${((card.ratings?.offer || 4.7) / 5) * 100}%` }}></div>
+                                          </div>
+                                        </div>
+                                        {/* Item 5 */}
+                                        <div>
+                                          <div className="flex justify-between gap-4 mb-1.5">
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">Điều kiện thu nhập</span>
+                                            <span className="font-bold text-slate-900 dark:text-white">{(card.ratings?.incomeRequirement || 4.0).toFixed(1)}/5</span>
+                                          </div>
+                                          <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="h-full bg-vp-green rounded-full" style={{ width: `${((card.ratings?.incomeRequirement || 4.0) / 5) * 100}%` }}></div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 flex gap-2.5 items-start text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                                      <span className="material-symbols-outlined text-[14px] mt-0.5 opacity-70">info</span>
+                                      <p className="leading-relaxed font-medium">Đánh giá được cập nhật theo hành vi chi tiêu của bạn</p>
+                                    </div> */}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
 
                           {/* Card Name */}
                           <div className="px-5 pb-4">
                             <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">{cleanCardName(card.name)}</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 truncate">{card.bankName}</p>
                           </div>
 
                           {/* Card Image */}
@@ -530,18 +601,18 @@ export default function HomePage() {
                           </div>
 
                           {/* Stats Row Container */}
-                          <div className="grid grid-cols-3 gap-1 py-2.5 mx-5 mb-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-100/80 dark:border-slate-800/40">
+                          <div className="grid grid-cols-[1fr_auto_1fr] gap-1 py-2.5 mx-5 mb-4 px-2 rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-100/80 dark:border-slate-800/40">
                             <div className="text-center">
-                              <p className="text-[10px] text-slate-400 font-medium mb-0.5">Hoàn tiền ↑</p>
+                              <p className="text-[10px] text-slate-400 font-medium mb-0.5 whitespace-nowrap">Hoàn tiền ↑</p>
                               <p className="text-sm text-vp-green font-black">{topRule ? `${topRule.percentage}%` : 'N/A'}</p>
                             </div>
-                            <div className="text-center border-x border-slate-200/50 dark:border-slate-800/50">
-                              <p className="text-[10px] text-slate-400 font-medium mb-0.5">Phí thường niên</p>
-                              <p className="text-[10px] font-black text-slate-900 dark:text-white">{card.annualFee === 0 ? 'Miễn phí năm đầu' : `${(card.annualFee / 1000).toFixed(0)}K`}</p>
+                            <div className="text-center border-x border-slate-200/50 dark:border-slate-800/50 px-2">
+                              <p className="text-[10px] text-slate-400 font-medium mb-0.5 whitespace-nowrap">Phí thường niên</p>
+                              <p className="text-[10px] font-black text-slate-900 dark:text-white whitespace-nowrap">{card.annualFee === 0 ? 'Miễn phí năm đầu' : `${(card.annualFee / 1000).toFixed(0)}K`}</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-[10px] text-slate-400 font-medium mb-0.5">Hoàn tối đa</p>
-                              <p className="text-sm font-black text-vp-green">
+                              <p className="text-[10px] text-slate-400 font-medium mb-0.5 whitespace-nowrap">Hoàn tối đa</p>
+                              <p className="text-sm font-black text-vp-green whitespace-nowrap">
                                 {card.maxCashbackPerMonth ? `${(card.maxCashbackPerMonth / 1000).toLocaleString('vi-VN')}K/th` : 'N/A'}
                               </p>
                             </div>

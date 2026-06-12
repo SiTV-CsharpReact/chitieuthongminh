@@ -139,4 +139,126 @@ public class EmailService
 </body>
 </html>";
     }
+    public async Task SendPromotionAlertAsync(string toEmail, CardPromotion promotion, string cardName)
+    {
+        var smtpSettings = _config.GetSection("SmtpSettings");
+        string server = smtpSettings["Server"] ?? "smtp.gmail.com";
+        int port = int.Parse(smtpSettings["Port"] ?? "587");
+        string senderName = smtpSettings["SenderName"] ?? "CredBack";
+        string senderEmail = smtpSettings["SenderEmail"] ?? "";
+        string username = smtpSettings["Username"] ?? "";
+        string password = smtpSettings["Password"] ?? "";
+
+        using var client = new SmtpClient(server, port)
+        {
+            Credentials = new NetworkCredential(username, password),
+            EnableSsl = true
+        };
+
+        var discount = string.IsNullOrEmpty(promotion.DiscountRate) ? "" : $"<h2 style='color:#10b981; text-align:center;'>Giảm {promotion.DiscountRate}</h2>";
+        
+        var mailMessage = new MailMessage
+        {
+            From = new MailAddress(senderEmail, senderName),
+            Subject = $"[VIP Alert] Khuyến mãi mới cho thẻ {cardName}!",
+            IsBodyHtml = true,
+            Body = $@"
+            <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                <h1 style='color: #f59e0b;'>🎉 Đặc quyền VIP: Khuyến mãi dành riêng cho bạn!</h1>
+                <p>Chào bạn, hệ thống CredBack phát hiện một khuyến mãi mới cực hấp dẫn dành riêng cho chủ thẻ <strong>{cardName}</strong> mà bạn đang sở hữu.</p>
+                <div style='background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 20px 0;'>
+                    <h3 style='margin-top: 0;'>{promotion.Title}</h3>
+                    {discount}
+                    <p>{promotion.Description}</p>
+                    <p><strong>Thời gian:</strong> {promotion.StartDate} - {promotion.ValidUntil}</p>
+                    <a href='{promotion.SourceUrl}' style='display:inline-block; padding:10px 20px; background:#10b981; color:#fff; text-decoration:none; border-radius:5px;'>Xem chi tiết</a>
+                </div>
+                <p>Cảm ơn bạn đã đồng hành cùng CredBack VIP!</p>
+            </div>"
+        };
+
+        mailMessage.To.Add(toEmail);
+        await client.SendMailAsync(mailMessage);
+    }
+
+    public async Task SendAnnualFeeReminderAsync(string toEmail, CreditCard card)
+    {
+        var smtpSettings = _config.GetSection("SmtpSettings");
+        string server = smtpSettings["Server"] ?? "smtp.gmail.com";
+        int port = int.Parse(smtpSettings["Port"] ?? "587");
+        string senderName = smtpSettings["SenderName"] ?? "CredBack";
+        string senderEmail = smtpSettings["SenderEmail"] ?? "";
+        string username = smtpSettings["Username"] ?? "";
+        string password = smtpSettings["Password"] ?? "";
+
+        using var client = new SmtpClient(server, port)
+        {
+            Credentials = new NetworkCredential(username, password),
+            EnableSsl = true
+        };
+
+        var mailMessage = new MailMessage
+        {
+            From = new MailAddress(senderEmail, senderName),
+            Subject = $"[VIP Alert] Nhắc nhở phí thường niên thẻ {card.Name}",
+            IsBodyHtml = true,
+            Body = $@"
+            <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                <h1 style='color: #ef4444;'>⏰ Nhắc nhở: Phí thường niên sắp đến hạn</h1>
+                <p>Chào bạn, thẻ <strong>{card.Name}</strong> của bạn sẽ đến hạn thu phí thường niên trong vòng <strong>7 ngày tới</strong>.</p>
+                <div style='background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; margin: 20px 0;'>
+                    <p><strong>Ngân hàng:</strong> {card.BankName}</p>
+                    <p><strong>Mức phí dự kiến:</strong> {card.AnnualFee.ToString("N0")} VNĐ</p>
+                </div>
+                <p>Vui lòng đảm bảo số dư trong thẻ hoặc liên hệ tổng đài để yêu cầu miễn/giảm phí nếu bạn đủ điều kiện chi tiêu năm nhé.</p>
+                <p>Cảm ơn bạn đã dùng CredBack VIP!</p>
+            </div>"
+        };
+
+        mailMessage.To.Add(toEmail);
+        await client.SendMailAsync(mailMessage);
+    }
+
+    public async Task SendStatementReminderAsync(string toEmail, string cardName, int daysRemaining, DateTime nextDueDate)
+    {
+        var smtpSettings = _config.GetSection("SmtpSettings");
+        string server = smtpSettings["Server"] ?? "smtp.gmail.com";
+        int port = int.Parse(smtpSettings["Port"] ?? "587");
+        string senderName = smtpSettings["SenderName"] ?? "CredBack";
+        string senderEmail = smtpSettings["SenderEmail"] ?? "";
+        string username = smtpSettings["Username"] ?? "";
+        string password = smtpSettings["Password"] ?? "";
+
+        using var client = new SmtpClient(server, port)
+        {
+            Credentials = new NetworkCredential(username, password),
+            EnableSsl = true
+        };
+
+        var title = daysRemaining <= 0 ? "🔔 Đến hạn thanh toán thẻ!" : "⏳ Sắp đến hạn thanh toán thẻ";
+        var dueDateStr = nextDueDate.ToString("dd/MM/yyyy");
+        var message = daysRemaining <= 0 
+            ? $"Hôm nay là ngày thanh toán của thẻ <strong>{cardName}</strong>. Vui lòng thanh toán toàn bộ dư nợ để tránh phí phạt và lãi suất." 
+            : $"Thẻ <strong>{cardName}</strong> của bạn sẽ đến hạn thanh toán trong <strong>{daysRemaining} ngày tới</strong> ({dueDateStr}). Vui lòng chuẩn bị tài chính và sắp xếp thanh toán.";
+
+        var mailMessage = new MailMessage
+        {
+            From = new MailAddress(senderEmail, senderName),
+            Subject = $"[CredBack] {title}",
+            IsBodyHtml = true,
+            Body = $@"
+            <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                <h1 style='color: {(daysRemaining <= 0 ? "#ef4444" : "#f59e0b")};'>{title}</h1>
+                <p>Chào bạn,</p>
+                <div style='background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid {(daysRemaining <= 0 ? "#ef4444" : "#f59e0b")}; margin: 20px 0;'>
+                    <p style='margin:0; font-size: 16px;'>{message}</p>
+                </div>
+                <p>Bạn có thể vào ứng dụng CredBack để kiểm tra chi tiết các giao dịch cần thanh toán.</p>
+                <p>Cảm ơn bạn đã đồng hành cùng CredBack!</p>
+            </div>"
+        };
+
+        mailMessage.To.Add(toEmail);
+        await client.SendMailAsync(mailMessage);
+    }
 }

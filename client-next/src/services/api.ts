@@ -1,4 +1,4 @@
-import { Card, Category, Article, ArticleCategory, CardPromotion, User, SpendingData, RecommendationRequest, RecommendationResponse } from '@/types';
+import { Card, Category, Article, ArticleCategory, CardPromotion, SpendingData, User, UserProfile, RecommendationRequest, RecommendationResponse, WalletCard, UserCardDetail, Notification } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -351,6 +351,157 @@ export const userApi = {
             }
         });
         if (!response.ok) throw new Error('Failed to delete user');
+    },
+
+    async toggleBlock(userId: string): Promise<{ message: string, isBlocked: boolean }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/${userId}/block`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to toggle block status');
+        return response.json();
+    },
+
+    async getVips(): Promise<any[]> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/admin/vips`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch VIPs');
+        return response.json();
+    },
+
+    async sendVipReminder(vipId: string, cardId: string, daysRemaining: number, cardName: string, nextDueDate: string): Promise<{ message: string, lastRemindedAt: string }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/admin/vips/${vipId}/remind/${cardId}`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ daysRemaining, cardName, nextDueDate })
+        });
+        if (!response.ok) throw new Error('Failed to send VIP reminder');
+        return response.json();
+    },
+
+    async getWallet(): Promise<WalletCard[]> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/wallet`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch wallet');
+        return response.json();
+    },
+
+    async updateCardDetails(cardId: string, details: UserCardDetail): Promise<void> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/wallet/${cardId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(details),
+        });
+        if (!response.ok) throw new Error('Failed to update card details');
+    },
+
+    async addToWallet(cardId: string): Promise<{ message: string, savedCardIds: string[] }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/wallet/${cardId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to add to wallet');
+        return response.json();
+    },
+
+    async removeFromWallet(cardId: string): Promise<{ message: string, savedCardIds: string[] }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Users/wallet/${cardId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to remove from wallet');
+        return response.json();
+    }
+};
+
+export const notificationApi = {
+    async getMyNotifications(): Promise<Notification[]> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Notifications`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+        return response.json();
+    },
+
+    async markAsRead(id: string): Promise<void> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Notifications/${id}/read`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to mark notification as read');
+    },
+
+    async getAdminNotifications(): Promise<Notification[]> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Notifications/admin`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch admin notifications');
+        return response.json();
+    },
+
+    async sendNotification(data: { target: string, title: string, message: string, link?: string }): Promise<void> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Notifications/admin`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Failed to send notification');
+    },
+
+    async triggerReminders(): Promise<{ message: string }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Notifications/admin/trigger-reminders`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to trigger reminders');
+        return response.json();
+    }
+};
+
+
+
+export const recommendationApi = {
+    async smartSelector(amount: number, category: string): Promise<{ cards: { card: Card, cashbackRate: number, cashbackAmount: number }[] }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/Recommendation/smart-selector`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ amount, category }),
+        });
+        if (!response.ok) throw new Error('Failed to fetch smart recommendation');
+        return response.json();
     }
 };
 

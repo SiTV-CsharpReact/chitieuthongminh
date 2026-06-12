@@ -30,7 +30,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card, onSaveCard }) => {
 
       {/* Left Side: Image */}
       <div className="w-full md:w-56 flex-shrink-0 flex flex-col items-center justify-start pt-2">
-        <div className="relative w-full aspect-[1.58/1] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/40 p-2 sm:p-2.5 flex items-center justify-center">
+        <div className="relative w-full aspect-[1.58/1] dark:border-slate-800/80  dark:bg-slate-900/40 p-2 sm:p-2.5 flex items-center justify-center">
           <div className="relative w-full h-full rounded-xl overflow-hidden shadow-md group-hover:scale-[1.03] transition-transform duration-300">
             <PortraitCardVisual imageUrl={card.imageUrl} name={card.name} />
             {isSelected && (
@@ -120,8 +120,8 @@ export const CardItem: React.FC<CardItemProps> = ({ card, onSaveCard }) => {
               )}
             </Button>
             {onSaveCard && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={(e) => { e.preventDefault(); onSaveCard(card); }}
                 className="flex-1 sm:flex-none font-bold transition-all border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-500 text-slate-700 dark:text-slate-300"
               >

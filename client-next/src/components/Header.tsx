@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { notificationApi } from '@/services/api';
+import { Notification } from '@/types';
 import { useTheme } from '@/context/ThemeContext';
 import { useCompare } from '@/context/CompareContext';
 import { Logo } from './Logo';
@@ -11,8 +13,8 @@ import { Logo } from './Logo';
 const NAV_ITEMS = [
     { label: 'Trang chủ', path: '/' },
     { label: 'Giới thiệu', path: '/about', icon: 'info' },
-    // { label: 'Công nghệ', path: '/technologies', icon: 'memory' },
     { label: 'Danh sách thẻ', path: '/cards', icon: 'credit_card' },
+    { label: 'Ví thẻ', path: '/wallet', icon: 'account_balance_wallet' },
     { label: 'Tin tức', path: '/news', icon: 'newspaper' },
     { label: 'Cài đặt', path: '/settings', icon: 'settings' },
 ];
@@ -25,6 +27,11 @@ export const Header: React.FC = () => {
 
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    
+    // Notifications State
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notiRef = useRef<HTMLDivElement>(null);
 
     // Sliding Indicator State
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
@@ -33,8 +40,65 @@ export const Header: React.FC = () => {
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+        
+        const handleClickOutside = (event: MouseEvent) => {
+            if (notiRef.current && !notiRef.current.contains(event.target as Node)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
     }, []);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchNotifications();
+            // Poll every 1 minute
+            const interval = setInterval(fetchNotifications, 60000);
+            return () => clearInterval(interval);
+        } else {
+            setNotifications([]);
+        }
+    }, [isAuthenticated]);
+
+    const fetchNotifications = async () => {
+        try {
+            const data = await notificationApi.getMyNotifications();
+            setNotifications(data);
+        } catch (error) {
+            console.error("Failed to load notifications", error);
+        }
+    };
+
+    const handleReadNotification = async (noti: Notification, navigate: boolean) => {
+        if (!noti.isRead) {
+            try {
+                await notificationApi.markAsRead(noti.id);
+                setNotifications(prev => prev.map(n => n.id === noti.id ? { ...n, isRead: true } : n));
+            } catch (error) {
+                console.error("Failed to mark as read", error);
+            }
+        }
+        if (navigate && noti.link) {
+            window.location.href = noti.link;
+        }
+    };
+
+    const handleReadAllNotifications = async () => {
+        const unreadNotis = notifications.filter(n => !n.isRead);
+        if (unreadNotis.length === 0) return;
+
+        try {
+            await Promise.all(unreadNotis.map(n => notificationApi.markAsRead(n.id)));
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        } catch (error) {
+            console.error("Failed to mark all as read", error);
+        }
+    };
 
     useEffect(() => {
         const activeIndex = NAV_ITEMS.findIndex(item =>
@@ -102,7 +166,12 @@ export const Header: React.FC = () => {
                         }}
                     />
 
-                    {NAV_ITEMS.map((item, idx) => {
+                    {NAV_ITEMS.filter(item => {
+                        if (isAuthenticated && user?.role === 'Admin') {
+                            return item.path === '/settings';
+                        }
+                        return true;
+                    }).map((item, idx) => {
                         const isActive = item.path === '/' ? pathname === '/' : pathname.startsWith(item.path);
                         return (
                             <Link
@@ -166,13 +235,97 @@ export const Header: React.FC = () => {
                         </span>
                     </button>
 
+                    {/* Notification Bell */}
+                    {isAuthenticated && (
+                        <div className="relative" ref={notiRef}>
+                            <button
+                                onClick={() => setShowNotifications(!showNotifications)}
+                                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/70 dark:bg-slate-900/70 text-slate-600 dark:text-slate-300 shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-700/50 backdrop-blur-md transition-all hover:bg-white dark:hover:bg-slate-800 hover:text-primary-500 dark:hover:text-primary-400 hover:shadow-md hover:-translate-y-0.5 relative"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">notifications</span>
+                                {notifications.filter(n => !n.isRead).length > 0 && (
+                                    <span className="absolute top-0 right-0 h-4 w-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold border-2 border-white dark:border-slate-950">
+                                        {notifications.filter(n => !n.isRead).length}
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Notification Dropdown */}
+                            {showNotifications && (
+                                <div className="absolute right-0 mt-3 w-96 max-h-[60vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-slide-up origin-top-right flex flex-col z-50 custom-scrollbar">
+                                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-10">
+                                        <h3 className="font-black text-slate-900 dark:text-white">Thông báo</h3>
+                                        <div className="flex items-center gap-3">
+                                            {notifications.some(n => !n.isRead) && (
+                                                <button 
+                                                    onClick={handleReadAllNotifications}
+                                                    className="text-[10px] font-bold text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors uppercase tracking-wider bg-primary-50 dark:bg-primary-900/10 px-2 py-1 rounded-md"
+                                                >
+                                                    Đọc tất cả
+                                                </button>
+                                            )}
+                                            <span className="text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-full">
+                                                {notifications.filter(n => !n.isRead).length} mới
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        {notifications.length > 0 ? (
+                                            notifications.map(noti => (
+                                                <div
+                                                    key={noti.id}
+                                                    onClick={() => handleReadNotification(noti, false)}
+                                                    className={`group cursor-pointer p-4 text-left border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all flex gap-3 items-center ${!noti.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                                                >
+                                                    <div className={`w-2 h-2 rounded-full shrink-0 ${!noti.isRead ? 'bg-blue-500 shadow-sm shadow-blue-500/50' : 'bg-transparent'}`} />
+                                                    <div className="flex-1">
+                                                        <p className={`text-sm mb-1 ${!noti.isRead ? 'font-black text-slate-900 dark:text-white' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
+                                                            {noti.title}
+                                                        </p>
+                                                        <p className="text-xs text-slate-500 line-clamp-2">{noti.message}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 mt-2">
+                                                            {new Date(noti.createdAt).toLocaleDateString('vi-VN')} {new Date(noti.createdAt).toLocaleTimeString('vi-VN')}
+                                                        </p>
+                                                    </div>
+                                                    {noti.link && (
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleReadNotification(noti, true);
+                                                            }}
+                                                            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center shrink-0 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-slate-400 hover:text-primary-500 transition-colors border border-transparent hover:border-primary-200 dark:hover:border-primary-800/50"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[14px] translate-x-[1px]">arrow_forward_ios</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-8 text-center flex flex-col items-center">
+                                                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
+                                                    <span className="material-symbols-outlined text-slate-400">notifications_off</span>
+                                                </div>
+                                                <p className="text-sm font-bold text-slate-500">Bạn không có thông báo nào</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {isAuthenticated && user ? (
-                        <Link href="/settings" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/70 dark:bg-slate-900/70 p-0.5 shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-700/50 backdrop-blur-md transition-all hover:ring-primary-500 hover:shadow-md hover:-translate-y-0.5">
+                        <Link href="/settings" className={`relative flex h-10 w-10 items-center justify-center rounded-full bg-white/70 dark:bg-slate-900/70 p-0.5 shadow-sm backdrop-blur-md transition-all hover:shadow-md hover:-translate-y-0.5 ${user.role === 'VIP' ? 'ring-2 ring-yellow-400 dark:ring-yellow-500 hover:ring-yellow-500' : 'ring-1 ring-slate-200/50 dark:ring-slate-700/50 hover:ring-primary-500'}`}>
                             <img
                                 src={user.avatar}
                                 alt={user.name}
                                 className="h-full w-full rounded-full object-cover"
                             />
+                            {user.role === 'VIP' && (
+                                <div className="absolute -bottom-1.5 -right-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-[9px] tracking-wider font-black px-1.5 py-0.5 rounded-full border-2 border-white dark:border-slate-950 shadow-sm">
+                                    VIP
+                                </div>
+                            )}
                         </Link>
                     ) : (
                         <button
@@ -215,7 +368,12 @@ export const Header: React.FC = () => {
                         </div>
 
                         <nav className="flex flex-col gap-2">
-                            {NAV_ITEMS.map((item) => {
+                            {NAV_ITEMS.filter(item => {
+                                if (isAuthenticated && user?.role === 'Admin') {
+                                    return item.path === '/settings';
+                                }
+                                return true;
+                            }).map((item) => {
                                 const isActive = item.path === '/' ? pathname === '/' : pathname.startsWith(item.path);
                                 return (
                                     <Link

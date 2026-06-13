@@ -40,6 +40,7 @@ export function AdminCardForm({ isOpen, onClose, currentCard, categories, onSave
     const [tags, setTags] = useState<string[]>([]);
     const [link, setLink] = useState('');
     const [registerUrl, setRegisterUrl] = useState('');
+    const [termsPdfUrl, setTermsPdfUrl] = useState('');
     const [ratings, setRatings] = useState({
         cashback: 0,
         annualFee: 0,
@@ -71,6 +72,7 @@ export function AdminCardForm({ isOpen, onClose, currentCard, categories, onSave
                 setTags(currentCard.tags || []);
                 setLink(currentCard.link || '');
                 setRegisterUrl(currentCard.registerUrl || '');
+                setTermsPdfUrl(currentCard.termsPdfUrl || '');
                 setRatings(currentCard.ratings || {
                     cashback: 0,
                     annualFee: 0,
@@ -99,6 +101,7 @@ export function AdminCardForm({ isOpen, onClose, currentCard, categories, onSave
                 setTags([]);
                 setLink('');
                 setRegisterUrl('');
+                setTermsPdfUrl('');
                 setRatings({
                     cashback: 0,
                     annualFee: 0,
@@ -163,6 +166,7 @@ export function AdminCardForm({ isOpen, onClose, currentCard, categories, onSave
             imageUrl,
             link,
             registerUrl,
+            termsPdfUrl,
             annualFee: annualFee === '' ? 0 : Number(annualFee),
             minSalary: minSalary === '' ? 0 : Number(minSalary),
             requirement,
@@ -441,6 +445,26 @@ export function AdminCardForm({ isOpen, onClose, currentCard, categories, onSave
                                                 {registerUrl && (
                                                     <a href={registerUrl} target="_blank" rel="noopener noreferrer" className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-green-600 dark:text-green-400 font-bold hover:underline bg-slate-50 dark:bg-slate-800 px-1">
                                                         Kiểm tra link
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">
+                                                Link Thể lệ (PDF)
+                                            </label>
+                                            <div className="relative flex items-center">
+                                                <input
+                                                    type="url"
+                                                    value={termsPdfUrl}
+                                                    onChange={e => setTermsPdfUrl(e.target.value)}
+                                                    className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-lg px-3 py-2 pr-[85px] text-xs font-bold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-red-500 transition-all outline-none font-mono"
+                                                    placeholder="https://.../the-le.pdf"
+                                                />
+                                                {termsPdfUrl && (
+                                                    <a href={termsPdfUrl} target="_blank" rel="noopener noreferrer" className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-red-600 dark:text-red-400 font-bold hover:underline bg-slate-50 dark:bg-slate-800 px-1 flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-[12px]">picture_as_pdf</span> Xem PDF
                                                     </a>
                                                 )}
                                             </div>

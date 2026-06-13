@@ -518,7 +518,7 @@ function RecommendationsContent() {
                                                     ))}
                                                 </Pie>
                                                 <Tooltip
-                                                    formatter={(value: number) => [`${(value / 1000000).toFixed(1)} tr VNĐ`, 'Chi tiêu']}
+                                                    formatter={(value: any) => [`${(value / 1000000).toFixed(1)} tr VNĐ`, 'Chi tiêu']}
                                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
                                                 />
                                             </PieChart>

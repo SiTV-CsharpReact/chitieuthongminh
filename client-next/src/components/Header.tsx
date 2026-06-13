@@ -27,7 +27,7 @@ export const Header: React.FC = () => {
 
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    
+
     // Notifications State
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
@@ -40,14 +40,14 @@ export const Header: React.FC = () => {
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
-        
+
         const handleClickOutside = (event: MouseEvent) => {
             if (notiRef.current && !notiRef.current.contains(event.target as Node)) {
                 setShowNotifications(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
-        
+
         return () => {
             window.removeEventListener('scroll', handleScroll);
             document.removeEventListener('mousedown', handleClickOutside);
@@ -257,7 +257,7 @@ export const Header: React.FC = () => {
                                         <h3 className="font-black text-slate-900 dark:text-white">Thông báo</h3>
                                         <div className="flex items-center gap-3">
                                             {notifications.some(n => !n.isRead) && (
-                                                <button 
+                                                <button
                                                     onClick={handleReadAllNotifications}
                                                     className="text-[10px] font-bold text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors uppercase tracking-wider bg-primary-50 dark:bg-primary-900/10 px-2 py-1 rounded-md"
                                                 >
@@ -288,7 +288,7 @@ export const Header: React.FC = () => {
                                                         </p>
                                                     </div>
                                                     {noti.link && (
-                                                        <button 
+                                                        <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 handleReadNotification(noti, true);
@@ -315,15 +315,16 @@ export const Header: React.FC = () => {
                     )}
 
                     {isAuthenticated && user ? (
-                        <Link href="/settings" className={`relative flex h-10 w-10 items-center justify-center rounded-full bg-white/70 dark:bg-slate-900/70 p-0.5 shadow-sm backdrop-blur-md transition-all hover:shadow-md hover:-translate-y-0.5 ${user.role === 'VIP' ? 'ring-2 ring-yellow-400 dark:ring-yellow-500 hover:ring-yellow-500' : 'ring-1 ring-slate-200/50 dark:ring-slate-700/50 hover:ring-primary-500'}`}>
+                        <Link href="/settings" className={`relative flex h-10 w-10 items-center justify-center rounded-full bg-white/70 dark:bg-slate-900/70 p-0.5 shadow-sm backdrop-blur-md transition-all hover:shadow-md hover:-translate-y-0.5 ${user.role === 'VIP' ? 'ring-2 ring-amber-500 dark:ring-amber-500/80 hover:ring-amber-400 dark:hover:ring-amber-400/80' : 'ring-1 ring-slate-200/50 dark:ring-slate-700/50 hover:ring-primary-500'}`}>
                             <img
                                 src={user.avatar}
                                 alt={user.name}
                                 className="h-full w-full rounded-full object-cover"
                             />
                             {user.role === 'VIP' && (
-                                <div className="absolute -bottom-1.5 -right-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-[9px] tracking-wider font-black px-1.5 py-0.5 rounded-full border-2 border-white dark:border-slate-950 shadow-sm">
-                                    VIP
+                                <div className="absolute -bottom-2 -right-3 inline-flex items-center gap-0.5 bg-amber-50 dark:bg-[#231508] border border-amber-500 dark:border-amber-500/80 shadow-sm px-1.5 py-0.5 rounded-full">
+                                    <span className="material-symbols-outlined !text-[8px] text-amber-600 dark:text-amber-500">diamond</span>
+                                    <span className="text-amber-600 dark:text-amber-500 text-[8px] font-bold uppercase tracking-wider">VIP</span>
                                 </div>
                             )}
                         </Link>

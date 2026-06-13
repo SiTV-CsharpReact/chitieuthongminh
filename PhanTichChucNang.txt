@@ -1,0 +1,54 @@
+### I. Tác nhân (Actors)
+1. Người dùng thường (User): Người dùng có tài khoản miễn phí trên hệ thống.
+2. Người dùng VIP (VIP User): Người dùng đã trả phí nâng cấp tài khoản để hưởng các đặc quyền thông báo và quản lý nợ.
+3. Quản trị viên (Admin): Người điều hành nền tảng, quản lý nội dung, dữ liệu thẻ và cấu hình bot.
+4. Hệ thống tự động (System/Bot): Tác nhân ngầm chạy các lịch trình tự động (Scraper, Reminders).
+
+### II. Chức năng hệ thống
+
+1. Chức năng chung (Cho tất cả người dùng)
+- Đăng ký tài khoản
+- Đăng nhập
+- Đăng xuất
+- Quản lý tài khoản (Đổi mật khẩu, xem hồ sơ cá nhân)
+
+2. Người dùng (User)
+- Chọn nhóm đối tượng / Chân dung (Persona: Sinh viên, Mẹ bỉm, Người hay đi du lịch...)
+- Nhập chi tiết thông tin chi tiêu hàng tháng (Siêu thị, Du lịch, Mua sắm online...)
+- Xem đề xuất thẻ tín dụng (Hệ thống tính toán Cashback qua thuật toán máy học ID3)
+- Quản lý Ví thẻ (Thêm thẻ đang sở hữu, nhập ngày sao kê/ngày đến hạn)
+- Xem danh sách tất cả thẻ (Có bộ lọc theo ngân hàng, phân khúc thẻ)
+- So sánh thẻ tín dụng (Đặt 2-3 thẻ lên bàn cân so sánh trực quan)
+- Đọc tin tức và khuyến mãi
+- Tương tác với Chatbot AI (Tư vấn viên tài chính ảo bằng Gemini)
+- Mở thẻ tín dụng qua submit (Chuyển hướng an toàn tới trang đăng ký thẻ của Ngân hàng)
+- Nâng cấp tài khoản VIP (Tích hợp thanh toán trực tuyến qua cổng VNPay tự động)
+
+3. Người dùng VIP (VIP User) - *Đặc quyền bổ sung*
+- Nhận cảnh báo khuyến mãi cá nhân hóa (Nhận Email ngay lập tức khi Bot tìm thấy ưu đãi khớp với thẻ đang dùng)
+- Nhắc nợ sao kê tự động (Nhận Email và Thông báo In-app trước 3 ngày và đúng ngày đến hạn thanh toán thẻ)
+- Xem thông báo nội bộ (Nhận các Broadcast độc quyền từ Ban quản trị)
+
+4. Quản trị viên (Admin)
+- Quản lý Thẻ tín dụng:
+  + Thêm mới thẻ tín dụng
+  + Cập nhật/Chỉnh sửa thông tin và quyền lợi thẻ
+- Quản lý Danh mục chi tiêu:
+  + Xem danh sách danh mục và mã MCC
+  + Thêm/Sửa/Xóa danh mục chi tiêu
+  + Tự động tải và đồng bộ các chuẩn mã MCC quốc tế
+- Quản lý Tin tức / Blog:
+  + Thêm/Sửa/Xóa bài viết bằng trình soạn thảo Rich Text
+- Quản lý Hệ thống & Bot tự động:
+  + Cấu hình và Bật/Tắt Bot cào dữ liệu ưu đãi từ 20+ ngân hàng (Auto Scraper)
+  + Duyệt và quản lý danh sách các ưu đãi được Bot thu thập
+  + Theo dõi lịch sử quét và điều khiển chạy ép (Trigger) các Job chạy ngầm
+- Quản lý Người dùng & Giao dịch:
+  + Xem danh sách người dùng, cấp quyền hoặc khóa tài khoản
+  + Theo dõi lịch sử giao dịch thanh toán nâng cấp VIP
+  + Gửi thông báo hệ thống (Broadcast) tới một người, toàn bộ VIP, hoặc tất cả người dùng
+
+5. Hệ thống Tự động (System/Bot) - *Chạy ngầm*
+- Tự động quét duyệt web ngân hàng mỗi 24h để bóc tách dữ liệu khuyến mãi (Playwright).
+- Tự động lắng nghe Webhook (IPN) từ VNPay để cập nhật trạng thái VIP tức thời.
+- Tự động kiểm tra hạn nợ thẻ của VIP và kích hoạt gửi Email/Thông báo.

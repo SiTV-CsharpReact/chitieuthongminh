@@ -11,6 +11,9 @@ export default function AdminUsersPage() {
     const [loading, setLoading] = useState(true);
     const [confirmBlockUser, setConfirmBlockUser] = useState<User | null>(null);
 
+    const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState('All');
+
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -131,25 +134,60 @@ export default function AdminUsersPage() {
     ];
 
     const regularUsers = React.useMemo(() => {
-        return users.filter(u => u.role !== 'Admin');
-    }, [users]);
+        let filtered = users.filter(u => u.role !== 'Admin');
+        
+        if (roleFilter !== 'All') {
+            filtered = filtered.filter(u => u.role === roleFilter);
+        }
+        
+        if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
+            filtered = filtered.filter(u => 
+                (u.name && u.name.toLowerCase().includes(lowerSearch)) || 
+                (u.email && u.email.toLowerCase().includes(lowerSearch))
+            );
+        }
+        
+        return filtered;
+    }, [users, searchTerm, roleFilter]);
 
     return (
         <div className="space-y-6 animate-fade-in transition-all">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-2">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản Lý Người Dùng</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                        Giám sát và phân quyền hệ thống tài khoản CredBack ({regularUsers.length} tài khoản)
+                        Giám sát và phân quyền hệ thống tài khoản CredBack ({users.filter(u => u.role !== 'Admin').length} tài khoản)
                     </p>
                 </div>
-                <AdminButton
-                    variant="outline"
-                    onClick={fetchUsers}
-                    icon="sync"
-                >
-                    Làm mới
-                </AdminButton>
+                <div className="flex gap-3 items-center w-full sm:w-auto">
+                    <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                        <input 
+                            type="text" 
+                            placeholder="Tìm kiếm..." 
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all shadow-sm"
+                        />
+                    </div>
+                    <select
+                        value={roleFilter}
+                        onChange={e => setRoleFilter(e.target.value)}
+                        className="px-5 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium transition-all shadow-sm cursor-pointer"
+                    >
+                        <option value="All">Tất cả quyền</option>
+                        <option value="User">User</option>
+                        <option value="VIP">VIP</option>
+                    </select>
+                    <AdminButton
+                        variant="outline"
+                        onClick={fetchUsers}
+                        icon="sync"
+                    >
+                        Làm mới
+                    </AdminButton>
+                </div>
             </div>
 
             <AdminTable
@@ -186,13 +224,13 @@ export default function AdminUsersPage() {
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
                             <button
                                 onClick={() => setConfirmBlockUser(null)}
-                                className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                className="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                             >
                                 Hủy bỏ
                             </button>
                             <button
                                 onClick={confirmToggleBlock}
-                                className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors shadow-sm ${
+                                className={`px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-colors shadow-sm ${
                                     confirmBlockUser.isBlocked 
                                         ? 'bg-emerald-500 hover:bg-emerald-600' 
                                         : 'bg-rose-500 hover:bg-rose-600'

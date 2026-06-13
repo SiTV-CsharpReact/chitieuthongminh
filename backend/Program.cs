@@ -25,8 +25,16 @@ builder.Services.AddCors(options =>
 
 // Register Custom Services
 builder.Services.AddSingleton<backend.Services.MongoDBService>();
+builder.Services.AddSingleton<backend.Services.SystemSettingsService>();
 builder.Services.AddSingleton<backend.Services.ID3Service>();
 builder.Services.AddSingleton<backend.Services.CreditCardService>();
+builder.Services.AddSingleton<backend.Services.ScraperDraftService>();
+builder.Services.AddSingleton<backend.Services.PromoScraperDraftService>();
+builder.Services.AddSingleton<backend.Services.ScraperStatusService>();
+builder.Services.AddScoped<backend.Services.AutoScraperService>();
+builder.Services.AddScoped<backend.Services.PromotionScraperService>();
+builder.Services.AddSingleton<backend.Services.CardScraperStatusService>();
+builder.Services.AddScoped<backend.Services.CardScraperService>();
 builder.Services.AddSingleton<backend.Services.CategoryService>();
 builder.Services.AddSingleton<backend.Services.ArticleService>();
 builder.Services.AddSingleton<backend.Services.ArticleCategoryService>();
@@ -34,11 +42,14 @@ builder.Services.AddSingleton<backend.Services.PromotionService>();
 builder.Services.AddSingleton<backend.Services.VNPayService>();
 builder.Services.AddSingleton<backend.Services.PromotionAlertService>();
 builder.Services.AddHttpClient<backend.Services.ChatService>();
+builder.Services.AddHttpClient<backend.Services.PdfExtractorService>();
+builder.Services.AddSingleton<backend.Services.PdfExtractorService>();
 builder.Services.AddSingleton<backend.Services.EmailService>();
 builder.Services.AddTransient<backend.Controllers.ScraperController>();
 builder.Services.AddScoped<backend.Services.ChatService>();
 builder.Services.AddHostedService<backend.Services.StatementReminderService>();
 builder.Services.AddHostedService<backend.Services.AnnualFeeReminderHostedService>();
+builder.Services.AddHostedService<backend.Services.AutoScraperHostedService>();
 builder.Services.AddSingleton<IMongoClient>(new MongoClient(builder.Configuration.GetConnectionString("MongoDB")));
 
 // JWT Authentication Setup

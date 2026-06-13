@@ -161,7 +161,7 @@ export default function VIPManagementPage() {
                                     <button 
                                         onClick={handleSendAllReminders}
                                         disabled={sendingId !== null}
-                                        className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50"
+                                        className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50"
                                     >
                                         <span className="material-symbols-outlined text-[18px]">mark_email_read</span>
                                         Nhắc nhở tất cả

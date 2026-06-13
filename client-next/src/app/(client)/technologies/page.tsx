@@ -150,7 +150,7 @@ const technologies = [
   },
   {
     category: 'Web Scraper',
-    name: 'Bank Card Scraper',
+    name: 'Bank Thẻ tín dụng',
     icon: 'travel_explore',
     gradient: 'from-[#8b5cf6] to-[#6d28d9]',
     description:
@@ -377,11 +377,10 @@ export default function TechnologiesPage() {
                 <div
                   key={tech.name}
                   onClick={() => setActiveTech(isOpen ? null : i)}
-                  className={`group cursor-pointer bg-white dark:bg-slate-900 rounded-3xl border transition-all duration-500 overflow-hidden ${
-                    isOpen
+                  className={`group cursor-pointer bg-white dark:bg-slate-900 rounded-3xl border transition-all duration-500 overflow-hidden ${isOpen
                       ? 'border-primary-500/60 shadow-xl shadow-primary-500/10 ring-1 ring-primary-500/20'
                       : 'border-slate-100 dark:border-slate-800 hover:border-primary-500/30 hover:shadow-lg hover:shadow-primary-500/5'
-                  } ${gridObs.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                    } ${gridObs.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                   style={{ transitionDelay: `${(i % 6) * 80}ms` }}
                 >
                   <div className="p-6">
@@ -417,9 +416,8 @@ export default function TechnologiesPage() {
 
                   {/* expandable features */}
                   <div
-                    className={`overflow-hidden transition-all duration-500 ${
-                      isOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
-                    }`}
+                    className={`overflow-hidden transition-all duration-500 ${isOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
+                      }`}
                   >
                     <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">

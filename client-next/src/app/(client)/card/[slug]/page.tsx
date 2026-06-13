@@ -72,7 +72,7 @@ export default function CardDetailPage({ params }: CardDetailPageProps) {
             .sort((a, b) => b.percentage - a.percentage)
             .map(r => r.category.toLowerCase());
 
-          let related = [];
+          let related: any[] = [];
           if (mainCategories.length > 0) {
             const primaryCat = mainCategories[0];
             related = allCards.filter(c => 

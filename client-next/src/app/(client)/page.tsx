@@ -512,11 +512,9 @@ export default function HomePage() {
                             </div>
                             <TooltipProvider delay={100}>
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[13px] font-bold flex items-center gap-1.5 bg-white dark:bg-slate-900/50 cursor-help shadow-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <TooltipTrigger render={<div className="px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 text-[13px] font-bold flex items-center gap-1.5 bg-amber-50/50 dark:bg-amber-500/10 cursor-help shadow-sm shadow-amber-500/10 transition-all hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:border-amber-300 dark:hover:border-amber-500/50" />}>
                                     <span className="text-amber-500 text-[14px] leading-none mb-[1px]">★</span>
                                     <span>{(card.ratings?.overall || 4.8).toFixed(1)}</span>
-                                  </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="p-0 bg-white dark:bg-[#121c2d] border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl z-50 min-w-[280px] overflow-hidden">
                                   <div className="flex flex-col w-full">

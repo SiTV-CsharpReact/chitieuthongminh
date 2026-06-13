@@ -238,7 +238,7 @@ export default function AdminCardsPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                                <th className="px-4 py-2 w-12">
+                                <th className="px-5 py-2.5 w-12">
                                     <input
                                         type="checkbox"
                                         checked={paginatedCards.length > 0 && selectedIds.size === paginatedCards.length}
@@ -266,7 +266,7 @@ export default function AdminCardsPage() {
                                         : 'hover:bg-slate-50/30 dark:hover:bg-slate-800/20'
                                         }`}
                                 >
-                                    <td className="px-4 py-2.5">
+                                    <td className="px-5 py-2.5.5">
                                         <input
                                             type="checkbox"
                                             checked={selectedIds.has(card.id!)}
@@ -414,7 +414,7 @@ export default function AdminCardsPage() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="px-8 py-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex justify-between items-center">
+                    <div className="px-5 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex justify-between items-center">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             Trang {currentPage} trên {totalPages}
                         </span>

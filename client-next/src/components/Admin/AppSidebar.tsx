@@ -40,7 +40,7 @@ const navItems = [
         items: [
             { title: "Quản lý thẻ", url: "/admin/cards", icon: "credit_card" },
             { title: "Danh mục hoàn tiền", url: "/admin/categories", icon: "category" },
-            { title: "Ưu đãi thẻ (VIB)", url: "/admin/promotions", icon: "redeem" },
+            { title: "Danh sách ưu đãi", url: "/admin/promotions", icon: "redeem" },
         ],
     },
     {
@@ -57,6 +57,9 @@ const navItems = [
         items: [
             { title: "Người dùng", url: "/admin/users", icon: "group" },
             { title: "Thông báo", url: "/admin/notifications", icon: "notifications_active" },
+            { title: "Bot cào dữ liệu", url: "/admin/scraper", icon: "smart_toy" },
+            { title: "Bot cào ưu đãi", url: "/admin/scraper-promo", icon: "local_offer" },
+            { title: "Bot cào thẻ", url: "/admin/scraper-cards", icon: "credit_card" },
             { title: "Cài đặt hệ thống", url: "/admin/settings", icon: "settings" },
         ],
     },

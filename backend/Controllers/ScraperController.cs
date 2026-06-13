@@ -19,6 +19,8 @@ public class BankScraperUrlModel
 {
     public string BankName { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
+    public string? PromotionUrl { get; set; }
+    public string? ScrapingMethod { get; set; }
 }
 
 public class CardScrapedDto

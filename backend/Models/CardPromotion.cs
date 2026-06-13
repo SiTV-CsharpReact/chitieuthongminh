@@ -27,6 +27,9 @@ public class CardPromotion
     [BsonElement("SourceUrl")]
     public string? SourceUrl { get; set; }
 
+    [BsonElement("BankName")]
+    public string? BankName { get; set; }
+
     [BsonElement("StartDate")]
     public string? StartDate { get; set; }
 

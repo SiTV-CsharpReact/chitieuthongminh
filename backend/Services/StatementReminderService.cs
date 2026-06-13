@@ -28,16 +28,38 @@ public class StatementReminderService : BackgroundService
         {
             try
             {
+                using var scope = _serviceProvider.CreateScope();
+                var mongoClient = scope.ServiceProvider.GetRequiredService<IMongoClient>();
+                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                var database = mongoClient.GetDatabase(config["DatabaseName"]);
+                var settingsCollection = database.GetCollection<SystemSettings>("SystemSettings");
+                var settings = await settingsCollection.Find(_ => true).FirstOrDefaultAsync(stoppingToken);
+                
+                int runHour = settings?.ReminderRunHour ?? 23;
+
+                var now = DateTimeOffset.Now;
+                var nextRun = new DateTimeOffset(now.Year, now.Month, now.Day, runHour, 0, 0, now.Offset);
+                if (now >= nextRun)
+                {
+                    nextRun = nextRun.AddDays(1);
+                }
+
+                var delay = nextRun - now;
+                _logger.LogInformation($"StatementReminderService is sleeping until {nextRun} (Delay: {delay})");
+
+                await Task.Delay(delay, stoppingToken);
+
                 await RunReminderJobAsync(stoppingToken);
+            }
+            catch (TaskCanceledException)
+            {
+                break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred executing StatementReminderService.");
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); // Retry after 5 mins on error
             }
-
-            // Run every 24 hours (can be changed to 1 hour or specific time)
-            // For production, usually calculate time to next 08:00 AM. Here we just sleep 24h.
-            await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
         }
     }
 
@@ -53,19 +75,36 @@ public class StatementReminderService : BackgroundService
         var cardsCollection = database.GetCollection<CreditCard>("CreditCards");
         var notificationsCollection = database.GetCollection<Notification>("Notifications");
 
-        _logger.LogInformation("Running VIP Statement Reminder Job at {Time}", DateTimeOffset.Now);
+        var settingsCollection = database.GetCollection<SystemSettings>("SystemSettings");
+        var settings = await settingsCollection.Find(_ => true).FirstOrDefaultAsync(token);
+        if (settings == null)
+        {
+            settings = new SystemSettings();
+            await settingsCollection.InsertOneAsync(settings, cancellationToken: token);
+        }
+        int daysBefore = settings.ReminderDaysBefore > 0 ? settings.ReminderDaysBefore : 3;
+
+        _logger.LogInformation($"Running VIP Statement Reminder Job at {DateTimeOffset.Now}. Days before: {daysBefore}");
 
         // Lấy danh sách tài khoản VIP
         var vipUsers = await usersCollection.Find(u => u.Role == "VIP").ToListAsync(token);
 
+        int usersProcessed = 0;
+        int cardsProcessed = 0;
+        int notificationsSent = 0;
+
         foreach (var user in vipUsers)
         {
             if (user.CardDetails == null || !user.CardDetails.Any()) continue;
+            
+            usersProcessed++;
 
             foreach (var kvp in user.CardDetails)
             {
                 var cardId = kvp.Key;
                 var details = kvp.Value;
+                
+                cardsProcessed++;
 
                 if (details.DueDate <= 0 || details.DueDate > 31) continue;
 
@@ -90,14 +129,14 @@ public class StatementReminderService : BackgroundService
 
                 var daysRemaining = (nextDueDate.Date - today.Date).TotalDays;
 
-                if (daysRemaining == 3 || daysRemaining == 0)
+                if (daysRemaining == daysBefore || daysRemaining == 0)
                 {
                     var card = await cardsCollection.Find(c => c.Id == cardId).FirstOrDefaultAsync(token);
                     if (card == null) continue;
 
                     string message = daysRemaining == 0 
                         ? $"Hôm nay là ngày thanh toán của thẻ {card.Name}. Vui lòng thanh toán toàn bộ dư nợ để tránh phí phạt." 
-                        : $"Thẻ {card.Name} của bạn sẽ đến hạn thanh toán trong 3 ngày tới ({nextDueDate:dd/MM/yyyy}). Vui lòng sắp xếp thanh toán.";
+                        : $"Thẻ {card.Name} của bạn sẽ đến hạn thanh toán trong {daysBefore} ngày tới ({nextDueDate:dd/MM/yyyy}). Vui lòng sắp xếp thanh toán.";
 
                     string title = daysRemaining == 0 ? "🔔 Đến hạn thanh toán thẻ!" : "⏳ Sắp đến hạn thanh toán thẻ";
 
@@ -128,6 +167,8 @@ public class StatementReminderService : BackgroundService
                         user.CardDetails[cardId].LastRemindedAt = DateTime.UtcNow;
                         var update = Builders<User>.Update.Set(u => u.CardDetails, user.CardDetails);
                         await usersCollection.UpdateOneAsync(u => u.Id == user.Id, update, cancellationToken: token);
+                        
+                        notificationsSent++;
 
                         // Send Email Notification in background
                         if (!string.IsNullOrEmpty(user.Email))
@@ -153,5 +194,17 @@ public class StatementReminderService : BackgroundService
                 }
             }
         }
+
+        // Lưu log settings
+        var settingsUpdate = Builders<SystemSettings>.Update
+            .Set(s => s.LastReminderRunTime, DateTime.UtcNow)
+            .Set(s => s.LastReminderUsersProcessed, usersProcessed)
+            .Set(s => s.LastReminderCardsProcessed, cardsProcessed)
+            .Set(s => s.LastReminderNotificationsSent, notificationsSent)
+            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+            
+        await settingsCollection.UpdateOneAsync(s => s.Id == settings.Id, settingsUpdate, cancellationToken: token);
+        
+        _logger.LogInformation($"Finished VIP Statement Reminder Job. Users: {usersProcessed}, Cards: {cardsProcessed}, Notifications: {notificationsSent}");
     }
 }

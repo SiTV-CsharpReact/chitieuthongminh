@@ -9,17 +9,15 @@ import AdminButton from '@/components/Admin/AdminButton';
 export default function AdminPromotionsPage() {
     const [promotions, setPromotions] = useState<CardPromotion[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedPromotion, setSelectedPromotion] = useState<CardPromotion | null>(null);
     
-    // Modal Cào Dữ Liệu
-    const [showScraperModal, setShowScraperModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [importJson, setImportJson] = useState('');
-    const [scrapeUrl, setScrapeUrl] = useState('https://www.vib.com.vn/vn/promotion/vib-world');
-    const [isScraping, setIsScraping] = useState(false);
-    const [scrapeResult, setScrapeResult] = useState<any[]>([]);
 
     // Pagination & Filter state
     const [searchTerm, setSearchTerm] = useState('');
+    const [bankFilter, setBankFilter] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('');
     const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -49,36 +47,7 @@ export default function AdminPromotionsPage() {
         }
     };
 
-    const handleScraping = async () => {
-        if (!scrapeUrl) return;
-        try {
-            setIsScraping(true);
-            const result = await scraperApi.extractPromotions(scrapeUrl);
-            setScrapeResult(result.promotions || []);
-        } catch (error) {
-            console.error('Lỗi lấy khuyến mại:', error);
-            alert('Quét dữ liệu thất bại, vui lòng kiểm tra thiết lập CORS và kết nối mạng!');
-        } finally {
-            setIsScraping(false);
-        }
-    };
 
-    const handleSaveExtracted = async () => {
-        if (scrapeResult.length === 0) return;
-        try {
-            const payload = scrapeResult.map(p => ({
-                ...p,
-                applicableCards: ['VIB Card / Default']
-            }));
-            await promotionApi.saveBatch(payload);
-            setShowScraperModal(false);
-            setScrapeResult([]);
-            fetchPromotions();
-        } catch (error) {
-            console.error('Lưu khuyến mại thất bại:', error);
-            alert('Có lỗi xảy ra khi lưu hàng loạt dữ liệu');
-        }
-    };
 
     const handleDeleteAll = async () => {
         if (!confirm('CẢNH BÁO: Hành động này sẽ xoá TOÀN BỘ ưu đãi hiện có. Bạn có chắc chắn?')) return;
@@ -102,12 +71,58 @@ export default function AdminPromotionsPage() {
         }
     };
 
-    const filteredPromotions = promotions.filter(p => 
-        p.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const uniqueBanks = Array.from(new Set(promotions.map(p => p.bankName).filter(Boolean))).sort() as string[];
+    const uniqueCategories = Array.from(new Set(promotions.map(p => p.categoryTab).filter(Boolean))).sort() as string[];
+
+    const filteredPromotions = promotions.filter(p => {
+        const matchSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchBank = !bankFilter || p.bankName === bankFilter;
+        const matchCategory = !categoryFilter || p.categoryTab === categoryFilter;
+        return matchSearch && matchBank && matchCategory;
+    });
 
     const totalPages = Math.ceil(filteredPromotions.length / pageSize);
     const currentItems = filteredPromotions.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+    const getPageNumbers = () => {
+        const pages: (number | string)[] = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            if (currentPage <= 4) {
+                for (let i = 1; i <= 5; i++) pages.push(i);
+                pages.push('...');
+                pages.push(totalPages);
+            } else if (currentPage >= totalPages - 3) {
+                pages.push(1);
+                pages.push('...');
+                for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+            } else {
+                pages.push(1);
+                pages.push('...');
+                for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+                pages.push('...');
+                pages.push(totalPages);
+            }
+        }
+        return pages;
+    };
+
+    const isExpired = (dateString?: string) => {
+        if (!dateString) return false;
+        const parts = dateString.split(/[\/\-\.]/);
+        if (parts.length >= 2) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            let year = parts.length >= 3 ? parseInt(parts[2], 10) : new Date().getFullYear();
+            if (year < 100) year += 2000;
+            const date = new Date(year, month, day);
+            if (isNaN(date.getTime())) return false;
+            date.setHours(23, 59, 59, 999);
+            return date < new Date();
+        }
+        return false;
+    };
 
     return (
         <div className="space-y-6 animate-fade-in transition-all">
@@ -134,12 +149,7 @@ export default function AdminPromotionsPage() {
                     >
                         Xoá Tất Cả
                     </AdminButton>
-                    <AdminButton
-                        onClick={() => setShowScraperModal(true)}
-                        icon="api"
-                    >
-                        Clone Từ VIB World
-                    </AdminButton>
+
                 </div>
             </div>
 
@@ -155,8 +165,30 @@ export default function AdminPromotionsPage() {
                         className="w-full pl-12 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white"
                     />
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4 flex-wrap">
+                    <select
+                        value={bankFilter}
+                        onChange={(e) => { setBankFilter(e.target.value); setCurrentPage(1); }}
+                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white"
+                    >
+                        <option value="">Tất cả Ngân hàng</option>
+                        {uniqueBanks.map(bank => (
+                            <option key={bank} value={bank}>{bank}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={categoryFilter}
+                        onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white"
+                    >
+                        <option value="">Tất cả Danh mục</option>
+                        {uniqueCategories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+
+                    <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2">
                         <span className="text-sm text-slate-500">Hiển thị:</span>
                         <select
                             value={pageSize}
@@ -177,20 +209,21 @@ export default function AdminPromotionsPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-20">Hình ảnh</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tên ưu đãi</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Danh mục</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mức giảm</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Ngày bắt đầu</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Hạn dùng</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Thẻ áp dụng</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Thao tác</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider w-20">Hình ảnh</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Tên ưu đãi</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Ngân hàng</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Danh mục</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Mức giảm</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Ngày bắt đầu</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Hạn dùng</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Thẻ áp dụng</th>
+                                <th className="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={8} className="px-5 py-6 text-center text-slate-500">
                                         <div className="flex items-center justify-center gap-3">
                                             <span className="material-symbols-outlined animate-spin">sync</span>
                                             Đang tải dữ liệu...
@@ -199,14 +232,14 @@ export default function AdminPromotionsPage() {
                                 </tr>
                             ) : currentItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={8} className="px-5 py-6 text-center text-slate-500">
                                         Không tìm thấy ưu đãi nào
                                     </td>
                                 </tr>
                             ) : (
                                 currentItems.map((p) => (
                                     <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors group">
-                                        <td className="px-6 py-4">
+                                        <td className="px-5 py-2.5 cursor-pointer" onClick={() => setSelectedPromotion(p)}>
                                             <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0">
                                                 {p.imageUrl ? (
                                                     <img src={p.imageUrl} alt="" className="w-full h-full object-cover" />
@@ -217,35 +250,50 @@ export default function AdminPromotionsPage() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 min-w-[250px]">
-                                            <div className="font-bold text-slate-900 dark:text-slate-100 line-clamp-2" title={p.title}>
+                                        <td className="px-5 py-2.5 min-w-[250px] cursor-pointer" onClick={() => setSelectedPromotion(p)}>
+                                            <div className="font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline line-clamp-2" title={p.title}>
                                                 {p.title}
                                             </div>
-                                            <div className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wider">{p.sourceUrl?.includes('vib.com.vn') ? 'VIB Deals' : 'Source'}</div>
+                                            <div className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wider">{p.bankName || p.sourceUrl || 'Source'}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-5 py-2.5 whitespace-nowrap">
+                                            <span className="text-xs font-black text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md border border-amber-200 dark:border-amber-800">
+                                                {p.bankName || 'Khác'}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-2.5 whitespace-nowrap">
                                             <span className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-md font-medium border border-indigo-100 dark:border-indigo-800">
                                                 {p.categoryTab || 'Khác'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-5 py-2.5 whitespace-nowrap">
                                             <span className="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-xs font-black ring-1 ring-inset ring-green-600/20">
                                                 {p.discountRate || 'Khám phá'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-5 py-2.5 whitespace-nowrap">
                                             <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-500 text-sm">
                                                 <span className="material-symbols-outlined text-sm">calendar_today</span>
                                                 {formatDate(p.startDate)}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-sm">
-                                                <span className="material-symbols-outlined text-sm">event_available</span>
-                                                {formatDate(p.validUntil)}
+                                        <td className="px-5 py-2.5 text-slate-500 text-sm">
+                                            <div className="flex flex-col gap-1">
+                                                {p.startDate && p.validUntil ? (
+                                                    <span>Từ <b>{p.startDate}</b> đến <b>{p.validUntil}</b></span>
+                                                ) : p.validUntil ? (
+                                                    <span>Đến <b>{p.validUntil}</b></span>
+                                                ) : p.startDate ? (
+                                                    <span>Từ <b>{p.startDate}</b></span>
+                                                ) : (
+                                                    <span>Vô thời hạn</span>
+                                                )}
+                                                {isExpired(p.validUntil) && (
+                                                    <span className="inline-block w-fit px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[9px] font-bold uppercase tracking-wider">Đã hết hạn</span>
+                                                )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-5 py-2.5">
                                             <div className="flex flex-wrap gap-1">
                                                 {(p.applicableCards || []).slice(0, 1).map((card, i) => (
                                                     <span key={i} className="text-xs bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
@@ -257,7 +305,7 @@ export default function AdminPromotionsPage() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-5 py-2.5 text-right">
                                             <div className="flex justify-end gap-2">
                                                 <AdminButton
                                                     variant="ghost"
@@ -285,7 +333,7 @@ export default function AdminPromotionsPage() {
 
                 {/* Pagination footer */}
                 {!loading && totalPages > 1 && (
-                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div className="px-5 py-2.5 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                         <div className="text-sm text-slate-500">
                             Hiển thị {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredPromotions.length)} trong số {filteredPromotions.length}
                         </div>
@@ -297,18 +345,22 @@ export default function AdminPromotionsPage() {
                             >
                                 <span className="material-symbols-outlined text-sm">chevron_left</span>
                             </button>
-                            {[...Array(totalPages)].map((_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setCurrentPage(i + 1)}
-                                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
-                                        currentPage === i + 1 
-                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' 
-                                            : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-500'
-                                    }`}
-                                >
-                                    {i + 1}
-                                </button>
+                            {getPageNumbers().map((page, index) => (
+                                page === '...' ? (
+                                    <span key={`ellipsis-${index}`} className="px-2 text-slate-400">...</span>
+                                ) : (
+                                    <button
+                                        key={`page-${page}`}
+                                        onClick={() => setCurrentPage(page as number)}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                                            currentPage === page 
+                                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' 
+                                                : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-500'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                )
                             ))}
                             <button
                                 disabled={currentPage === totalPages}
@@ -322,93 +374,78 @@ export default function AdminPromotionsPage() {
                 )}
             </div>
 
-            {/* Scraper Modal */}
-            <Dialog open={showScraperModal} onOpenChange={setShowScraperModal}>
-                <DialogContent className="max-w-4xl h-[90vh] bg-white dark:bg-slate-800 p-0 gap-0 border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-                    <DialogHeader className="hidden"><DialogTitle>Scraper Modal</DialogTitle></DialogHeader>
-                    <div className="flex flex-col h-full bg-white dark:bg-slate-800">
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 shrink-0">
-                            <div>
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">
-                                    Robot Cào Dữ Liệu Ưu Đãi (Scraper)
-                                </h3>
-                                <p className="text-sm text-slate-500 mt-1">Dán liên kết trang danh sách khuyến mại để tiến hành tự động bóc tách.</p>
-                            </div>
-                            <button onClick={() => setShowScraperModal(false)} className="text-slate-400 hover:text-red-500">
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                        
-                        <div className="p-6 flex flex-col sm:flex-row gap-4 border-b border-slate-100 dark:border-slate-700">
-                            <input
-                                type="text"
-                                value={scrapeUrl}
-                                onChange={(e) => setScrapeUrl(e.target.value)}
-                                placeholder="https://www.vib.com.vn/vn/promotion/vib-world"
-                                className="flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
-                            />
-                            <AdminButton
-                                onClick={handleScraping}
-                                disabled={isScraping || !scrapeUrl}
-                                loading={isScraping}
-                                icon={!isScraping ? "search" : undefined}
-                                className="px-6 py-3"
-                            >
-                                {isScraping ? 'Đang rà quét...' : 'Bắt đầu quét'}
-                            </AdminButton>
-                        </div>
-
-                        <div className="flex-1 overflow-auto p-6 bg-slate-50/50 dark:bg-slate-900/50">
-                            {scrapeResult.length > 0 ? (
-                                <div>
-                                    <h4 className="font-bold text-green-600 flex items-center gap-2 mb-4">
-                                        <span className="material-symbols-outlined">check_circle</span> 
-                                        Tìm thấy {scrapeResult.length} ưu đãi
-                                    </h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {scrapeResult.map((res, i) => (
-                                            <div key={i} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col gap-3 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                                <div className="flex gap-4">
-                                                    <img src={res.imageUrl} alt="" className="w-16 h-16 object-cover rounded-lg shrink-0 border border-slate-100" />
-                                                    <div className="flex flex-col flex-1 min-w-0">
-                                                        <span className="text-xs font-bold text-green-600 mb-1">{res.discountRate || 'Khám phá'}</span>
-                                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">{res.title}</p>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200">{res.categoryTab}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+            {/* Detail Modal */}
+            {selectedPromotion && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="relative h-48 sm:h-64 shrink-0 bg-slate-100 dark:bg-slate-800">
+                            {selectedPromotion.imageUrl ? (
+                                <img src={selectedPromotion.imageUrl} alt={selectedPromotion.title} className="w-full h-full object-cover" />
                             ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-400 py-12">
-                                    <span className="material-symbols-outlined text-6xl opacity-20 mb-4">robot_2</span>
-                                    {isScraping ? "Bot đang chạy xuyên qua các thẻ HTML..." : "Kết quả cào dữ liệu sẽ hiển thị tại đây"}
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-6xl text-slate-300">local_offer</span>
                                 </div>
                             )}
+                            <button 
+                                onClick={() => setSelectedPromotion(null)}
+                                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-md transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
                         </div>
+                        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-black ring-1 ring-inset ring-amber-600/20">
+                                    {selectedPromotion.bankName}
+                                </span>
+                                <span className="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-xs font-black ring-1 ring-inset ring-green-600/20">
+                                    {selectedPromotion.discountRate || 'Khám phá'}
+                                </span>
+                                <span className="px-2.5 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-black ring-1 ring-inset ring-indigo-600/20">
+                                    {selectedPromotion.categoryTab || 'Chung'}
+                                </span>
+                            </div>
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mb-4 leading-tight">{selectedPromotion.title}</h2>
+                            
+                            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                                <span className="material-symbols-outlined text-lg">event_available</span>
+                                <span>Thời gian: <span className="font-bold">
+                                    {selectedPromotion.startDate && selectedPromotion.validUntil ? `Từ ${selectedPromotion.startDate} đến ${selectedPromotion.validUntil}` 
+                                    : selectedPromotion.validUntil ? `Đến ${selectedPromotion.validUntil}`
+                                    : selectedPromotion.startDate ? `Từ ${selectedPromotion.startDate}`
+                                    : 'Vô thời hạn'}
+                                </span></span>
+                            </div>
 
-                        <div className="p-6 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 flex justify-end gap-3 rounded-b-2xl">
-                            <AdminButton
-                                variant="ghost"
-                                onClick={() => { setScrapeResult([]); setShowScraperModal(false); }}
-                            >
-                                Đóng
-                            </AdminButton>
-                            <AdminButton
-                                variant="success"
-                                disabled={scrapeResult.length === 0}
-                                onClick={handleSaveExtracted}
-                                className="px-5 py-2.5"
-                            >
-                                Lưu ({scrapeResult.length}) Dữ Liệu Này
-                            </AdminButton>
+                            <div className="prose prose-slate dark:prose-invert max-w-none mb-8">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">Chi tiết ưu đãi</h3>
+                                {selectedPromotion.description ? (
+                                    <div 
+                                        className="text-slate-700 dark:text-slate-300 leading-relaxed max-w-full break-words" 
+                                        dangerouslySetInnerHTML={{ __html: selectedPromotion.description }} 
+                                    />
+                                ) : (
+                                    <p className="text-slate-400 italic">Không có mô tả chi tiết từ ngân hàng.</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 shrink-0">
+                            <AdminButton variant="ghost" onClick={() => setSelectedPromotion(null)}>Đóng</AdminButton>
+                            {selectedPromotion.sourceUrl && (
+                                <a 
+                                    href={selectedPromotion.sourceUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm transition-colors flex items-center gap-2 shadow-sm"
+                                >
+                                    Xem trên trang gốc
+                                    <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                </a>
+                            )}
                         </div>
                     </div>
-                </DialogContent>
-            </Dialog>
+                </div>
+            )}
 
             {/* Manual Import Modal */}
             <Dialog open={showImportModal} onOpenChange={setShowImportModal}>

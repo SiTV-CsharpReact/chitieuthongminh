@@ -227,7 +227,7 @@ export default function AdminCategoriesPage() {
 
                 {/* Pagination Footer */}
                 {categories.length > 0 && (
-                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="px-5 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
                             <span className="text-[11px] font-bold text-slate-500">Hiển thị</span>
                             <select 
@@ -265,7 +265,7 @@ export default function AdminCategoriesPage() {
 
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border-slate-200 dark:border-slate-800 p-0 gap-0 shadow-2xl">
-                    <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-left shrink-0">
+                    <DialogHeader className="px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-left shrink-0">
                         <DialogTitle className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">
                             {isEditing ? 'Sửa danh mục' : 'Thêm danh mục mới'}
                         </DialogTitle>
@@ -294,7 +294,7 @@ export default function AdminCategoriesPage() {
                                 <input
                                     type="text"
                                     required
-                                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
+                                    className="w-full px-5 py-2.5.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
                                     placeholder="Vd: Ăn uống, Du lịch..."
                                     value={currentCategory.name}
                                     onChange={(e) => setCurrentCategory({ ...currentCategory, name: e.target.value })}
@@ -311,7 +311,7 @@ export default function AdminCategoriesPage() {
                                     />
                                     <input
                                         type="text"
-                                        className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
+                                        className="flex-1 px-5 py-2.5.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
                                         value={currentCategory.color}
                                         onChange={(e) => setCurrentCategory({ ...currentCategory, color: e.target.value })}
                                     />
@@ -325,7 +325,7 @@ export default function AdminCategoriesPage() {
                                     </div>
                                     <input
                                         type="text"
-                                        className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
+                                        className="flex-1 px-5 py-2.5.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none"
                                         value={currentCategory.icon || ''}
                                         onChange={(e) => setCurrentCategory({ ...currentCategory, icon: e.target.value })}
                                         placeholder="Vd: restaurant, flight..."
@@ -337,7 +337,7 @@ export default function AdminCategoriesPage() {
                                     <span className="material-symbols-outlined text-[14px]">sell</span> Mã MCC (Ngăn cách bởi dấu phẩy)
                                 </label>
                                 <textarea
-                                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none resize-y min-h-[80px]"
+                                    className="w-full px-5 py-2.5.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-600 transition-all outline-none resize-y min-h-[80px]"
                                     value={currentCategory.mccCodes ? currentCategory.mccCodes.join(', ') : ''}
                                     onChange={(e) => {
                                         const val = e.target.value;

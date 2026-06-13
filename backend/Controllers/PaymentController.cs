@@ -12,10 +12,12 @@ public class PaymentController : ControllerBase
 {
     private readonly VNPayService _vnPayService;
     private readonly IMongoCollection<User> _usersCollection;
+    private readonly IConfiguration _configuration;
 
     public PaymentController(VNPayService vnPayService, IConfiguration configuration, IMongoClient mongoClient)
     {
         _vnPayService = vnPayService;
+        _configuration = configuration;
         var database = mongoClient.GetDatabase(configuration["DatabaseName"]);
         _usersCollection = database.GetCollection<User>("Users");
     }
@@ -24,11 +26,11 @@ public class PaymentController : ControllerBase
     [HttpPost("vnpay/create")]
     public IActionResult CreatePaymentUrl()
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-        // 30,000 VND for VIP (1 month)
-        var url = _vnPayService.CreatePaymentUrl(HttpContext, userId, 30000);
+        var vipPrice = _configuration.GetValue<long>("VNPay:VipPrice", 199000);
+        var url = _vnPayService.CreatePaymentUrl(HttpContext, userId, vipPrice);
         return Ok(new { url });
     }
 

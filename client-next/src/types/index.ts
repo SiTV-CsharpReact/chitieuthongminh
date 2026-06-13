@@ -14,6 +14,8 @@ export interface Card {
   imageUrl?: string;
   link?: string;
   registerUrl?: string;
+  termsPdfUrl?: string;
+  sourceUrl?: string;
   annualFee: number;
   minSalary?: number; // Lương tối thiểu (VNĐ). 0 = không yêu cầu
   requirement?: string; // Yêu cầu mở thẻ
@@ -144,6 +146,7 @@ export interface CardPromotion {
   applicableCards?: string[];
   createdAt?: string;
   updatedAt?: string;
+  bankName?: string;
 }
 
 export interface SpendingData {
@@ -232,4 +235,13 @@ export interface Notification {
   link?: string;
   isRead: boolean;
   createdAt: string;
+  targetName?: string;
+  targetRole?: string;
+}
+
+export interface ScraperDraft extends Card {
+  reason: string;
+  createdAt: string;
+  existingCardId?: string;
+  status?: string; // "Pending" | "Approved" | "Rejected"
 }

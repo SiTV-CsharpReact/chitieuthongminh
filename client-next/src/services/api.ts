@@ -207,6 +207,114 @@ export const scraperApi = {
     }
 };
 
+export const autoScraperApi = {
+    async getDrafts(): Promise<any[]> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/drafts`);
+        if (!response.ok) throw new Error('Failed to fetch drafts');
+        return response.json();
+    },
+
+    async trigger(): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/trigger`, {
+            method: 'POST'
+        });
+        if (!response.ok) throw new Error('Failed to trigger scraper');
+        return response.json();
+    },
+
+    async getStatus(): Promise<{ isRunning: boolean, totalBanks: number, processedBanks: number, currentBank: string, newDraftsFound: number, errorMessage?: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/status`);
+        if (!response.ok) throw new Error('Failed to get status');
+        return response.json();
+    },
+
+    async approve(id: string): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/approve/${id}`, {
+            method: 'POST'
+        });
+        if (!response.ok) throw new Error('Failed to approve draft');
+        return response.json();
+    },
+
+    async reject(id: string): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/draft/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to reject draft');
+        return response.json();
+    },
+
+    async clearAll(): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/drafts/all`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to clear all drafts');
+        return response.json();
+    },
+
+    async triggerPromotions(): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/trigger-promotions`, {
+            method: 'POST'
+        });
+        if (!response.ok) throw new Error('Failed to trigger promotion scraper');
+        return response.json();
+    },
+
+    async getPromoDrafts(): Promise<any[]> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/promo-drafts`);
+        if (!response.ok) throw new Error('Failed to fetch promo drafts');
+        return response.json();
+    },
+
+    async approvePromoDraft(id: string): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/promo-drafts/${id}/approve`, {
+            method: 'POST',
+        });
+        if (!response.ok) throw new Error('Failed to approve promo draft');
+        return response.json();
+    },
+
+    async approveAllPromoDrafts(): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/promo-drafts/approve-all`, {
+            method: 'POST',
+        });
+        if (!response.ok) throw new Error('Failed to approve all promo drafts');
+        return response.json();
+    },
+
+    async rejectPromoDraft(id: string): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/promo-drafts/${id}/reject`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to reject promo draft');
+        return response.json();
+    },
+
+    async deletePromoDraft(id: string): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/promo-drafts/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete promo draft');
+        return response.json();
+    },
+
+    async clearAllPromoDrafts(): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/promo-drafts/clear`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to clear all promo drafts');
+        return response.json();
+    },
+
+    async clearHistoryPromoDrafts(): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/AutoScraper/promo-drafts/clear-history`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to clear history promo drafts');
+        return response.json();
+    }
+};
+
 export const articleCategoryApi = {
     async getAll(): Promise<ArticleCategory[]> {
         const response = await fetch(`${API_BASE_URL}/ArticleCategories`);
@@ -328,15 +436,15 @@ export const userApi = {
         if (!response.ok) throw new Error('Failed to fetch users');
         return response.json();
     },
-    
+
     async updateRole(id: string, role: string): Promise<void> {
         const token = getCookie('token');
         const response = await fetch(`${API_BASE_URL}/Users/${id}`, {
             method: 'PUT',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
-             },
+            },
             body: JSON.stringify({ role }),
         });
         if (!response.ok) throw new Error('Failed to update user');
@@ -376,7 +484,7 @@ export const userApi = {
         const token = getCookie('token');
         const response = await fetch(`${API_BASE_URL}/Users/admin/vips/${vipId}/remind/${cardId}`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
@@ -467,9 +575,9 @@ export const notificationApi = {
         const token = getCookie('token');
         const response = await fetch(`${API_BASE_URL}/Notifications/admin`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(data)
         });
@@ -494,7 +602,7 @@ export const recommendationApi = {
         const token = getCookie('token');
         const response = await fetch(`${API_BASE_URL}/Recommendation/smart-selector`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
@@ -518,3 +626,70 @@ export const imageApi = {
     }
 };
 
+export const settingsApi = {
+    async getSettings(): Promise<any> {
+        const response = await fetch(`${API_BASE_URL}/SystemSettings`);
+        if (!response.ok) throw new Error('Failed to fetch settings');
+        return response.json();
+    },
+
+    async updateSettings(settings: any): Promise<{ message: string }> {
+        const response = await fetch(`${API_BASE_URL}/SystemSettings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings),
+        });
+        if (!response.ok) throw new Error('Failed to update settings');
+        return response.json();
+    }
+};
+
+export const cardScraperApi = {
+    async start(): Promise<{ message: string }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/CardScraper/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to start Thẻ tín dụng');
+        return response.json();
+    },
+
+    async getStatus(): Promise<{ isRunning: boolean, totalBanks: number, processedBanks: number, currentBank: string, newCardsFound: number, lastRunTime?: string }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/CardScraper/status`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to get status');
+        return response.json();
+    },
+
+    async getDrafts(): Promise<any[]> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/CardScraper/drafts`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch drafts');
+        return response.json();
+    },
+
+    async importDraft(id: string): Promise<{ message: string }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/CardScraper/import/${id}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to import draft');
+        return response.json();
+    },
+
+    async deleteDraft(id: string): Promise<{ message: string }> {
+        const token = getCookie('token');
+        const response = await fetch(`${API_BASE_URL}/CardScraper/drafts/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to delete draft');
+        return response.json();
+    }
+};

@@ -29,8 +29,8 @@ export default function WalletPage() {
     const [selectorError, setSelectorError] = useState('');
 
     const categories = [
-        'Ăn uống', 'Siêu thị/Tạp hoá', 'Mua sắm trực tuyến', 
-        'Du lịch/Máy bay', 'Làm đẹp/Sức khỏe', 'Giao thông/Xăng xe', 
+        'Ăn uống', 'Siêu thị/Tạp hoá', 'Mua sắm trực tuyến',
+        'Du lịch/Máy bay', 'Làm đẹp/Sức khỏe', 'Giao thông/Xăng xe',
         'Giải trí/Xem phim', 'Khác'
     ];
 
@@ -77,10 +77,10 @@ export default function WalletPage() {
             };
 
             await userApi.updateCardDetails(editingCard.card.id!, detailsToSave);
-            
-            setSavedCards(prev => prev.map(c => 
-                c.card.id === editingCard.card.id 
-                    ? { ...c, details: detailsToSave } 
+
+            setSavedCards(prev => prev.map(c =>
+                c.card.id === editingCard.card.id
+                    ? { ...c, details: detailsToSave }
                     : c
             ));
             setEditingCard(null);
@@ -147,7 +147,7 @@ export default function WalletPage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 mb-2 uppercase">
+                        <h1 className="text-3xl font-bold mb-2 tracking-tight text-slate-900 dark:text-white">
                             Ví Thẻ Của Tôi
                         </h1>
                         <p className="text-lg text-slate-500 dark:text-slate-400 max-w-xl">
@@ -158,14 +158,14 @@ export default function WalletPage() {
 
                 {/* Tabs */}
                 <div className="flex bg-white dark:bg-[#18181b] p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-800 mb-8 w-full sm:w-fit shadow-sm">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('wallet')}
                         className={`flex-1 sm:w-48 py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'wallet' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                     >
                         <span className="material-symbols-outlined text-lg">credit_card</span>
                         Thẻ của tôi
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('selector')}
                         className={`flex-1 sm:w-48 py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'selector' ? 'bg-emerald-500/10 text-emerald-600 shadow-sm ring-1 ring-emerald-500/20' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                     >
@@ -186,7 +186,7 @@ export default function WalletPage() {
                                 {savedCards.map(walletCard => (
                                     <div key={walletCard.card.id} className="relative group">
                                         <CardItem card={walletCard.card} />
-                                        
+
                                         {/* Hiển thị chi tiết thẻ */}
                                         <div className="mt-4 grid grid-cols-3 gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                                             <div>
@@ -210,7 +210,7 @@ export default function WalletPage() {
                                         </div>
 
                                         <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     setEditingCard(walletCard);
                                                     setEditDetails({
@@ -224,7 +224,7 @@ export default function WalletPage() {
                                             >
                                                 <span className="material-symbols-outlined text-xl">settings</span>
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleRemoveCard(walletCard.card.id!)}
                                                 className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center shadow-sm"
                                                 title="Xóa khỏi ví"
@@ -260,7 +260,7 @@ export default function WalletPage() {
                                     <span className="material-symbols-outlined text-emerald-500 text-2xl">magic_button</span>
                                     Thanh toán thông minh
                                 </h3>
-                                
+
                                 <form onSubmit={handleSmartSelect} className="space-y-6">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -268,8 +268,8 @@ export default function WalletPage() {
                                         </label>
                                         <div className="relative group">
                                             <span className="absolute inset-y-0 left-4 flex items-center text-slate-400 group-focus-within:text-emerald-500 transition-colors font-black">đ</span>
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 value={amount}
                                                 onChange={(e) => setAmount(formatCurrency(e.target.value))}
                                                 placeholder="Ví dụ: 10,000,000"
@@ -286,7 +286,7 @@ export default function WalletPage() {
                                             <span className="absolute inset-y-0 left-4 flex items-center text-slate-400 group-focus-within:text-emerald-500 pointer-events-none transition-colors">
                                                 <span className="material-symbols-outlined text-[20px]">category</span>
                                             </span>
-                                            <select 
+                                            <select
                                                 value={category}
                                                 onChange={(e) => setCategory(e.target.value)}
                                                 className="appearance-none w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl py-3.5 pl-12 pr-10 text-slate-900 dark:text-white font-bold focus:border-emerald-500 focus:ring-0 transition-colors cursor-pointer"
@@ -308,8 +308,8 @@ export default function WalletPage() {
                                         </div>
                                     )}
 
-                                    <Button 
-                                        type="submit" 
+                                    <Button
+                                        type="submit"
                                         disabled={selectorLoading}
                                         className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl text-base shadow-lg shadow-emerald-500/20"
                                     >
@@ -331,7 +331,7 @@ export default function WalletPage() {
                                     <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2 mb-2">
                                         Kết quả gợi ý từ Ví của bạn
                                     </h3>
-                                    
+
                                     {selectorResults.length > 0 ? (
                                         selectorResults.map((result, idx) => (
                                             <div key={result.card.id} className={`relative flex flex-col sm:flex-row gap-5 p-5 rounded-2xl border-2 ${idx === 0 ? 'bg-emerald-500/5 border-emerald-500/50 shadow-lg shadow-emerald-500/10' : 'bg-white dark:bg-[#18181b] border-slate-200/50 dark:border-slate-800'}`}>
@@ -408,7 +408,7 @@ export default function WalletPage() {
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                                         Ngày phát hành thẻ
                                     </label>
-                                    <input 
+                                    <input
                                         type="date"
                                         value={editDetails.issueDate}
                                         onChange={(e) => setEditDetails({ ...editDetails, issueDate: e.target.value })}
@@ -422,7 +422,7 @@ export default function WalletPage() {
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                                             Ngày chốt sao kê
                                         </label>
-                                        <select 
+                                        <select
                                             value={editDetails.statementDate}
                                             onChange={(e) => setEditDetails({ ...editDetails, statementDate: Number(e.target.value) })}
                                             className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-semibold focus:border-emerald-500 focus:ring-0 transition-colors"
@@ -438,7 +438,7 @@ export default function WalletPage() {
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                                             Ngày đến hạn
                                         </label>
-                                        <select 
+                                        <select
                                             value={editDetails.dueDate}
                                             onChange={(e) => setEditDetails({ ...editDetails, dueDate: Number(e.target.value) })}
                                             className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-semibold focus:border-emerald-500 focus:ring-0 transition-colors"

@@ -26,7 +26,10 @@ public class NotificationsController : ControllerBase
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-        var notifications = await _notificationsCollection.Find(n => n.UserId == userId || n.UserId == "ALL")
+        var user = await _usersCollection.Find(u => u.Id == userId).FirstOrDefaultAsync();
+        bool isVip = user?.Role == "VIP";
+
+        var notifications = await _notificationsCollection.Find(n => n.UserId == userId || n.UserId == "ALL" || (isVip && n.UserId == "VIP"))
             .SortByDescending(n => n.CreatedAt)
             .Limit(50)
             .ToListAsync();
@@ -41,8 +44,11 @@ public class NotificationsController : ControllerBase
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
+        var user = await _usersCollection.Find(u => u.Id == userId).FirstOrDefaultAsync();
+        bool isVip = user?.Role == "VIP";
+
         var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
-        await _notificationsCollection.UpdateOneAsync(n => n.Id == id && (n.UserId == userId || n.UserId == "ALL"), update);
+        await _notificationsCollection.UpdateOneAsync(n => n.Id == id && (n.UserId == userId || n.UserId == "ALL" || (isVip && n.UserId == "VIP")), update);
         
         return Ok(new { message = "Đã đánh dấu đọc" });
     }
@@ -81,18 +87,14 @@ public class NotificationsController : ControllerBase
         }
         else if (request.Target == "VIP")
         {
-            // Lấy tất cả VIP và insert
-            var vips = await _usersCollection.Find(u => u.Role == "VIP").ToListAsync();
-            foreach (var vip in vips)
+            // Tạo 1 bản ghi chung cho VIP
+            notifications.Add(new Notification
             {
-                notifications.Add(new Notification
-                {
-                    UserId = vip.Id!,
-                    Title = request.Title,
-                    Message = request.Message,
-                    Link = request.Link
-                });
-            }
+                UserId = "VIP",
+                Title = request.Title,
+                Message = request.Message,
+                Link = request.Link
+            });
         }
         else
         {
@@ -129,7 +131,30 @@ public class NotificationsController : ControllerBase
             .Limit(100)
             .ToListAsync();
 
-        return Ok(notifications);
+        var userIdsToFetch = notifications
+            .Where(n => n.UserId != "ALL" && n.UserId != "VIP")
+            .Select(n => n.UserId)
+            .Distinct()
+            .ToList();
+
+        var users = await _usersCollection.Find(u => userIdsToFetch.Contains(u.Id)).ToListAsync();
+        var userDict = users.ToDictionary(u => u.Id!, u => string.IsNullOrEmpty(u.Name) ? u.Email : u.Name);
+
+        var result = notifications.Select(n => new
+        {
+            n.Id,
+            n.UserId,
+            TargetName = n.UserId == "ALL" ? "Tất cả đối tượng" : 
+                         n.UserId == "VIP" ? "Tất cả tài khoản VIP" : 
+                         (userDict.GetValueOrDefault(n.UserId) ?? n.UserId),
+            n.Title,
+            n.Message,
+            n.Link,
+            n.IsRead,
+            n.CreatedAt
+        });
+
+        return Ok(result);
     }
 
     [Authorize]

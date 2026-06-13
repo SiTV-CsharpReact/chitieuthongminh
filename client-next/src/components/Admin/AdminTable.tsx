@@ -41,7 +41,7 @@ export default function AdminTable<T>({
         return String(item[rowKey as keyof T]);
     };
 
-    const cellPadding = compact ? "px-4 py-2.5" : "px-8 py-5";
+    const cellPadding = "px-5 py-2.5";
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">

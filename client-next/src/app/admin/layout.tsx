@@ -22,7 +22,8 @@ const ADMIN_NAV_ITEMS = [
     { path: '/admin/promotions', label: 'Ưu đãi thẻ (VIB)', icon: 'redeem' },
     { path: '/admin/users', label: 'Người dùng', icon: 'group' },
     { path: '/admin/notifications', label: 'Quản lý thông báo', icon: 'notifications_active' },
-    { path: '/admin/settings', label: 'Cài đặt hệ thống', icon: 'settings' },
+    { path: '/admin/scraper', label: 'Bot cào dữ liệu', icon: 'smart_toy' },
+    // { path: '/admin/settings', label: 'Cài đặt hệ thống', icon: 'settings' },
 ];
 
 export default function AdminLayout({

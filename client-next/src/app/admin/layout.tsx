@@ -92,10 +92,7 @@ export default function AdminLayout({
                                 <button className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 hover:text-emerald-500 transition-colors">
                                     <span className="material-symbols-outlined">notifications</span>
                                 </button>
-                                <Link href="/" className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 py-1 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all">
-                                    <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-                                    Xem Web
-                                </Link>
+
                             </div>
                         </header>
 

@@ -41,6 +41,9 @@ public class User
 
     [BsonElement("IsBlocked")]
     public bool IsBlocked { get; set; } = false;
+
+    [BsonElement("CreatedAt")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class UserCardDetail

@@ -67,7 +67,7 @@ export default function AdminUsersPage() {
         {
             header: 'Thông tin Định danh',
             key: 'name',
-            width: '35%',
+            width: '30%',
             render: (user) => (
                 <div className="flex items-center gap-4">
                     <div className={`relative w-10 h-10 rounded-full border-2 overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-800 ${user.role === 'VIP' ? 'border-yellow-400 shadow-md shadow-yellow-500/20' : 'border-white dark:border-slate-800 shadow-sm'}`}>
@@ -94,17 +94,27 @@ export default function AdminUsersPage() {
             )
         },
         {
+            header: 'Ngày tham gia',
+            key: 'createdAt',
+            width: '15%',
+            render: (user) => (
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                </span>
+            )
+        },
+        {
             header: 'Quyền hạn',
             key: 'role',
-            width: '20%',
+            width: '15%',
             render: (user) => (
                 <select
                     value={user.role || 'User'}
                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
                     className={`text-[11px] font-black uppercase tracking-widest py-1.5 px-3 rounded-xl border-none outline-none appearance-none cursor-pointer transition-colors shadow-sm
-                        ${user.role === 'Admin' ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/20' : 
-                          user.role === 'VIP' ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 ring-1 ring-yellow-400/50' : 
-                          'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20'}`}
+                        ${user.role === 'Admin' ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/20' :
+                            user.role === 'VIP' ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 ring-1 ring-yellow-400/50' :
+                                'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20'}`}
                 >
                     <option value="User">User</option>
                     <option value="VIP">VIP</option>
@@ -120,8 +130,8 @@ export default function AdminUsersPage() {
                 <button
                     onClick={() => setConfirmBlockUser(user)}
                     className={`flex items-center justify-center w-8 h-8 rounded-full transition-all active:scale-95 shadow-sm
-                        ${user.isBlocked 
-                            ? 'bg-rose-50 text-rose-500 hover:bg-rose-100 dark:bg-rose-500/20 dark:hover:bg-rose-500/30' 
+                        ${user.isBlocked
+                            ? 'bg-rose-50 text-rose-500 hover:bg-rose-100 dark:bg-rose-500/20 dark:hover:bg-rose-500/30'
                             : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-100 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30'}`}
                     title={user.isBlocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
                 >
@@ -135,19 +145,19 @@ export default function AdminUsersPage() {
 
     const regularUsers = React.useMemo(() => {
         let filtered = users.filter(u => u.role !== 'Admin');
-        
+
         if (roleFilter !== 'All') {
             filtered = filtered.filter(u => u.role === roleFilter);
         }
-        
+
         if (searchTerm) {
             const lowerSearch = searchTerm.toLowerCase();
-            filtered = filtered.filter(u => 
-                (u.name && u.name.toLowerCase().includes(lowerSearch)) || 
+            filtered = filtered.filter(u =>
+                (u.name && u.name.toLowerCase().includes(lowerSearch)) ||
                 (u.email && u.email.toLowerCase().includes(lowerSearch))
             );
         }
-        
+
         return filtered;
     }, [users, searchTerm, roleFilter]);
 
@@ -156,16 +166,16 @@ export default function AdminUsersPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-2">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Quản Lý Người Dùng</h1>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                    {/* <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                         Giám sát và phân quyền hệ thống tài khoản CredBack ({users.filter(u => u.role !== 'Admin').length} tài khoản)
-                    </p>
+                    </p> */}
                 </div>
                 <div className="flex gap-3 items-center w-full sm:w-auto">
                     <div className="relative">
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
-                        <input 
-                            type="text" 
-                            placeholder="Tìm kiếm..." 
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             className="pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all shadow-sm"
@@ -203,11 +213,10 @@ export default function AdminUsersPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-slide-up border border-slate-200 dark:border-slate-800">
                         <div className="p-6">
-                            <div className={`w-12 h-12 rounded-full mb-4 flex items-center justify-center ${
-                                confirmBlockUser.isBlocked 
-                                    ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
-                                    : 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
-                            }`}>
+                            <div className={`w-12 h-12 rounded-full mb-4 flex items-center justify-center ${confirmBlockUser.isBlocked
+                                ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
+                                : 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
+                                }`}>
                                 <span className="material-symbols-outlined text-2xl">
                                     {confirmBlockUser.isBlocked ? 'lock_open' : 'lock'}
                                 </span>
@@ -216,7 +225,7 @@ export default function AdminUsersPage() {
                                 {confirmBlockUser.isBlocked ? 'Mở khóa tài khoản?' : 'Khóa tài khoản này?'}
                             </h3>
                             <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                {confirmBlockUser.isBlocked 
+                                {confirmBlockUser.isBlocked
                                     ? `Bạn có chắc chắn muốn mở khóa cho tài khoản ${confirmBlockUser.email}? Người dùng sẽ có thể đăng nhập lại bình thường.`
                                     : `Bạn có chắc chắn muốn khóa tài khoản ${confirmBlockUser.email}? Người dùng sẽ bị đăng xuất và không thể đăng nhập lại.`}
                             </p>
@@ -230,11 +239,10 @@ export default function AdminUsersPage() {
                             </button>
                             <button
                                 onClick={confirmToggleBlock}
-                                className={`px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-colors shadow-sm ${
-                                    confirmBlockUser.isBlocked 
-                                        ? 'bg-emerald-500 hover:bg-emerald-600' 
-                                        : 'bg-rose-500 hover:bg-rose-600'
-                                }`}
+                                className={`px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-colors shadow-sm ${confirmBlockUser.isBlocked
+                                    ? 'bg-emerald-500 hover:bg-emerald-600'
+                                    : 'bg-rose-500 hover:bg-rose-600'
+                                    }`}
                             >
                                 {confirmBlockUser.isBlocked ? 'Xác nhận Mở khóa' : 'Xác nhận Khóa'}
                             </button>

@@ -209,13 +209,13 @@ function SettingsContent() {
                                 <div className="rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#101828] overflow-hidden shadow-sm">
                                     <div className="p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start justify-between border-b border-slate-100 dark:border-slate-800/60">
                                         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-                                            <div className={`h-16 w-16 rounded-full overflow-hidden ring-4 transition-all flex-shrink-0 ${user.role === 'VIP' ? 'ring-amber-500 dark:ring-amber-500/80' : 'ring-slate-100 dark:ring-slate-800'}`}>
+                                            <div className={`h-16 w-16 rounded-full overflow-hidden ring-4 transition-all flex-shrink-0 ${(user.role === 'VIP' || user.role === 'Admin') ? 'ring-amber-500 dark:ring-amber-500/80' : 'ring-slate-100 dark:ring-slate-800'}`}>
                                                 <img src={user.avatar} alt="Avatar" className="h-full w-full object-cover" />
                                             </div>
                                             <div className="text-center sm:text-left mt-1 sm:mt-0">
                                                 <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-0.5">{user.name}</h2>
                                                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mb-2">{user.email}</p>
-                                                {user.role === 'VIP' && (
+                                                {(user.role === 'VIP' || user.role === 'Admin') && (
                                                     <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50">
                                                         <span className="material-symbols-outlined !text-[12px] text-yellow-600 dark:text-yellow-500">diamond</span>
                                                         <span className="text-yellow-600 dark:text-yellow-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">VIP</span>
@@ -239,7 +239,7 @@ function SettingsContent() {
                                         </div>
                                     )}
 
-                                    {user.role === 'VIP' ? (
+                                    {user.role === 'VIP' || user.role === 'Admin' ? (
                                         <>
                                             <div className="p-5 sm:p-6 pb-0 relative z-10">
                                                 {/* <div className="flex items-center gap-4 sm:gap-5 mb-5 sm:mb-6">

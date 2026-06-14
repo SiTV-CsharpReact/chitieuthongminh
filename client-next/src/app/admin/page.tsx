@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { cardApi, userApi } from '@/services/api';
+import { cardApi, userApi, promotionApi } from '@/services/api';
 import { Card as CreditCard, User, SpendingData } from '@/types';
 import AdminButton from '@/components/Admin/AdminButton';
 import AdminConfirm from '@/components/Admin/AdminConfirm';
@@ -37,6 +37,7 @@ export default function AdminDashboardPage() {
     const [cards, setCards] = useState<CreditCard[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [spendingLogs, setSpendingLogs] = useState<SpendingData[]>([]);
+    const [promotionsCount, setPromotionsCount] = useState(0);
     const [isSeeding, setIsSeeding] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [activities, setActivities] = useState<ActivityLog[]>([]);
@@ -69,14 +70,16 @@ export default function AdminDashboardPage() {
 
     const fetchStats = async () => {
         try {
-            const [cardsData, usersData, spendingData] = await Promise.all([
+            const [cardsData, usersData, spendingData, promotionsData] = await Promise.all([
                 cardApi.getAll().catch(e => { console.error('Error fetching cards:', e); return [] as CreditCard[]; }),
                 userApi.getAll().catch(e => { console.error('Error fetching users:', e); return [] as User[]; }),
                 cardApi.getSpending().catch(e => { console.error('Error fetching spending:', e); return [] as SpendingData[]; }),
+                promotionApi.getAll().catch(e => { console.error('Error fetching promotions:', e); return []; })
             ]);
             setCards(cardsData);
             setUsers(usersData);
             setSpendingLogs(spendingData);
+            setPromotionsCount(promotionsData.length);
             setActivities(buildActivities(spendingData));
         } catch (error) {
             console.error('Error fetching stats:', error);
@@ -111,44 +114,17 @@ export default function AdminDashboardPage() {
             .slice(0, 5);
     }, [cards]);
 
-    const estimatedSavings = useMemo(() => {
-        if (!spendingLogs.length || !cards.length) return 0;
-        let total = 0;
-        spendingLogs.forEach(log => {
-            const category = log.category || 'Tất cả';
-            let maxCashbackAmount = 0;
-            
-            cards.forEach(card => {
-                const matchingRule = card.cashbackRules.find(r =>
-                    category.toLowerCase().includes(r.category.toLowerCase()) ||
-                    r.category.toLowerCase().includes(category.toLowerCase())
-                );
-                const generalRule = card.cashbackRules.find(r =>
-                    r.category === 'Tất cả' || r.category === 'All' || r.category === 'Mọi chi tiêu'
-                );
-                const appliedRule = matchingRule || generalRule;
-                const rate = appliedRule ? appliedRule.percentage : 0;
-                
-                let cb = (log.amount * rate) / 100;
-                if (appliedRule && appliedRule.capAmount && cb > appliedRule.capAmount) {
-                    cb = appliedRule.capAmount;
-                }
-                
-                if (cb > maxCashbackAmount) {
-                    maxCashbackAmount = cb;
-                }
-            });
-            total += maxCashbackAmount;
-        });
-        return total;
-    }, [spendingLogs, cards]);
+    const totalRevenue = useMemo(() => {
+        const vipCount = users.filter(u => u.role === 'VIP').length;
+        return vipCount * 199000;
+    }, [users]);
 
-    const formattedSavings = useMemo(() => {
-        if (estimatedSavings >= 1000000) {
-            return `${(estimatedSavings / 1000000).toFixed(1)}M`;
+    const formattedRevenue = useMemo(() => {
+        if (totalRevenue >= 1000000) {
+            return `${(totalRevenue / 1000000).toFixed(1)}M`;
         }
-        return `${estimatedSavings.toLocaleString()} đ`;
-    }, [estimatedSavings]);
+        return `${totalRevenue.toLocaleString()} đ`;
+    }, [totalRevenue]);
 
     const growthData = useMemo(() => {
         const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -180,10 +156,10 @@ export default function AdminDashboardPage() {
 
     const stats = useMemo(() => [
         { label: 'Tổng số thẻ', value: cards.length.toString(), icon: 'credit_card', color: 'bg-emerald-500', trend: '+5%' },
+        { label: 'Tổng số ưu đãi', value: promotionsCount.toString(), icon: 'local_offer', color: 'bg-amber-500', trend: '+18%' },
         { label: 'Người dùng', value: users.filter(u => u.role !== 'Admin').length.toString(), icon: 'group', color: 'bg-blue-600', trend: '+12%' },
-        { label: 'Yêu cầu so sánh', value: spendingLogs.length.toString(), icon: 'compare_arrows', color: 'bg-amber-500', trend: '+18%' },
-        { label: 'Tiết kiệm ước tính', value: formattedSavings, icon: 'savings', color: 'bg-indigo-500', trend: '+8%' },
-    ], [cards, users, spendingLogs, formattedSavings]);
+        { label: 'Tổng tiền kiếm được', value: formattedRevenue, icon: 'payments', color: 'bg-indigo-500', trend: '+8%' },
+    ], [cards, users, promotionsCount, formattedRevenue]);
 
     if (!mounted) return null;
 
@@ -194,17 +170,7 @@ export default function AdminDashboardPage() {
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Tổng quan hệ thống</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Dữ liệu phân tích cập nhật theo thời gian thực</p>
                 </div>
-                <AdminButton
-                    onClick={() => setShowSeedConfirm(true)}
-                    disabled={isSeeding}
-                    loading={isSeeding}
-                    variant="primary"
-                    icon={!isSeeding ? "database" : undefined}
-                    size="sm"
-                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4"
-                >
-                    {isSeeding ? 'Đang tạo...' : 'Tạo lại dữ liệu mẫu'}
-                </AdminButton>
+
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -320,16 +286,7 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
 
-            <AdminConfirm
-                isOpen={showSeedConfirm}
-                onClose={() => setShowSeedConfirm(false)}
-                onConfirm={handleSeed}
-                title="Tạo lại dữ liệu mẫu?"
-                description="Hành động này sẽ xoá toàn bộ dữ liệu hiện tại (Thẻ, Danh mục, Ưu đãi) và thay thế bằng 10 bộ dữ liệu mẫu chuẩn. Bạn có chắc chắn muốn thực hiện?"
-                confirmText="Đồng ý, tạo mẫu"
-                variant="warning"
-                isLoading={isSeeding}
-            />
+
         </div>
     );
 }

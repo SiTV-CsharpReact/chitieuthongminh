@@ -97,6 +97,7 @@ export interface User {
   avatar?: string;
   role?: string;
   isBlocked?: boolean;
+  createdAt?: string;
 }
 
 export interface UserSettings {

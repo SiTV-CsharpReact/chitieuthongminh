@@ -30,8 +30,45 @@ const whyUs = [
   { icon: 'support_agent', title: 'Hỗ trợ 24/7', desc: 'Đội ngũ tư vấn luôn sẵn sàng giúp đỡ bạn' },
 ];
 
+const heroCards = [
+  {
+    name: 'MΔX',
+    brand: 'VISA',
+    type: 'Visa Platinum',
+    bgFront: 'from-[#c5e17a] to-[#7ec758]',
+    textColor: 'text-black',
+    badge1: { icon: 'percent', title: 'Hoàn tiền', val: 'đến 20%', color: 'text-primary-500', position: 'top-0 right-0', delay: '0s' },
+    badge2: { icon: 'money_off', title: 'Trả góp', val: '0% lãi suất', color: 'text-blue-500', position: 'top-1/4 -right-4', delay: '1s' },
+    badge3: { icon: 'account_balance_wallet', title: 'Hạn mức', val: 'đến 1 tỷ', color: 'text-amber-500', position: 'bottom-4 left-0', delay: '0.5s' },
+    badge4: { icon: 'verified', title: 'Miễn phí', val: 'thường niên', color: 'text-emerald-500', position: 'top-1/3 -left-4', delay: '1.5s' }
+  },
+  {
+    name: 'CASHBACK',
+    brand: 'MASTERCARD',
+    type: 'World Elite',
+    bgFront: 'from-blue-600 to-indigo-800',
+    textColor: 'text-white',
+    badge1: { icon: 'flight_takeoff', title: 'Phòng chờ', val: 'Thương gia', color: 'text-amber-500', position: 'top-0 right-0', delay: '0s' },
+    badge2: { icon: 'card_giftcard', title: 'Quà tặng', val: 'Mở thẻ mới', color: 'text-rose-500', position: 'top-1/4 -right-4', delay: '1s' },
+    badge3: { icon: 'percent', title: 'Hoàn tiền', val: 'đến 15%', color: 'text-primary-500', position: 'bottom-4 left-0', delay: '0.5s' },
+    badge4: { icon: 'stars', title: 'Tích điểm', val: 'x5 mọi GD', color: 'text-emerald-500', position: 'top-1/3 -left-4', delay: '1.5s' }
+  },
+  {
+    name: 'SIGNATURE',
+    brand: 'VISA',
+    type: 'Visa Infinite',
+    bgFront: 'from-slate-800 to-black',
+    textColor: 'text-white',
+    badge1: { icon: 'sports_golf', title: 'Đặc quyền', val: 'Golf VIP', color: 'text-emerald-500', position: 'top-0 right-0', delay: '0s' },
+    badge2: { icon: 'health_and_safety', title: 'Bảo hiểm', val: '10 Tỷ VNĐ', color: 'text-blue-500', position: 'top-1/4 -right-4', delay: '1s' },
+    badge3: { icon: 'account_balance_wallet', title: 'Hạn mức', val: 'Không giới hạn', color: 'text-amber-500', position: 'bottom-4 left-0', delay: '0.5s' },
+    badge4: { icon: 'currency_exchange', title: 'Hoàn phí', val: 'Ngoại tệ', color: 'text-primary-500', position: 'top-1/3 -left-4', delay: '1.5s' }
+  }
+];
+
 export default function HomePage() {
   const [cards, setCards] = useState<Card[]>([]);
+  const [heroCardIndex, setHeroCardIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedBank, setSelectedBank] = useState('Tất cả');
   const [selectedInterest, setSelectedInterest] = useState('Tất cả');
@@ -71,7 +108,15 @@ export default function HomePage() {
       }
     };
     fetchCards();
+    
+    // Auto slider cho hero card
+    const timer = setInterval(() => {
+      setHeroCardIndex(prev => (prev + 1) % heroCards.length);
+    }, 4000);
+    return () => clearInterval(timer);
   }, []);
+
+  const currentHeroCard = heroCards[heroCardIndex];
 
   const normalizeBankName = (name: string | undefined | null) => {
     if (!name) return '';
@@ -166,14 +211,14 @@ export default function HomePage() {
                 <span className="text-primary-500 italic">phù hợp với bạn</span>
               </h1>
               <p className="text-slate-500 dark:text-slate-400 text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed">
-                Trả lời vài câu hỏi đơn giản để chúng tôi gợi ý thẻ tín dụng tốt nhất dành riêng cho bạn.
+                Thao tác đơn giản để chúng tôi gợi ý thẻ tín dụng tốt nhất dành riêng cho bạn.
               </p>
 
               {/* 3 Steps */}
               <div className="flex items-center gap-6 justify-center lg:justify-start text-sm">
                 {[
                   { num: 1, text: 'Chọn đối tượng của bạn' },
-                  { num: 2, text: 'Chọn nhu cầu & ưu tiên' },
+                  { num: 2, text: 'Điền thông tin chi tiêu trên tháng' },
                   { num: 3, text: 'Xem thẻ gợi ý & đăng ký dễ dàng' },
                 ].map((step) => (
                   <div key={step.num} className="flex items-center gap-2">
@@ -197,65 +242,54 @@ export default function HomePage() {
               {/* Social Proof */}
               <div className="flex items-center gap-3 justify-center lg:justify-start pt-2">
                 <div className="flex -space-x-2">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-300 to-primary-600 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-[10px] font-bold">
-                      {String.fromCharCode(64 + i)}
-                    </div>
+                  {[
+                    'https://i.pravatar.cc/100?img=32',
+                    'https://i.pravatar.cc/100?img=12',
+                    'https://i.pravatar.cc/100?img=47',
+                    'https://i.pravatar.cc/100?img=16'
+                  ].map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      alt="User avatar"
+                      className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 object-cover"
+                    />
                   ))}
                 </div>
-                <span className="text-sm text-slate-500 dark:text-slate-400"><strong className="text-slate-700 dark:text-white">10.000+</strong> khách hàng đã tìm được thẻ phù hợp</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400"><strong className="text-slate-700 dark:text-white">1.000+</strong> khách hàng đã tìm được thẻ phù hợp</span>
               </div>
             </div>
 
             {/* Right - Card Visual */}
-            <div className="flex-1 relative flex justify-center items-center min-h-[380px] max-w-[550px]">
-              <div className="relative w-64 h-40 md:w-80 md:h-48">
+            <div className="flex-1 relative flex justify-center items-center min-h-[380px] max-w-[550px] perspective-1000">
+              <div className="relative w-64 h-40 md:w-80 md:h-48 transition-all duration-700 ease-in-out transform hover:scale-105">
                 {/* Back card */}
-                <div className="absolute -top-4 -left-6 w-full h-full bg-slate-800 rounded-2xl shadow-xl opacity-40 -rotate-6"></div>
+                <div className="absolute -top-4 -left-6 w-full h-full bg-slate-800 rounded-2xl shadow-xl opacity-40 -rotate-6 transition-all duration-700"></div>
                 {/* Front card */}
-                <div className="relative w-full h-full bg-gradient-to-br from-[#c5e17a] to-[#7ec758] rounded-2xl shadow-2xl overflow-hidden z-10">
-                  <div className="p-6 h-full flex flex-col justify-between text-black">
+                <div className={`relative w-full h-full bg-gradient-to-br ${currentHeroCard.bgFront} rounded-2xl shadow-2xl overflow-hidden z-10 transition-colors duration-700 ease-in-out`}>
+                  <div className={`p-6 h-full flex flex-col justify-between ${currentHeroCard.textColor} transition-colors duration-700`}>
                     <div className="flex justify-between items-start">
-                      <span className="font-black text-2xl tracking-tighter italic">MΔX</span>
-                      <span className="text-xs font-bold opacity-60">VISA</span>
+                      <span className="font-black text-2xl tracking-tighter italic">{currentHeroCard.name}</span>
+                      <span className="text-xs font-bold opacity-60">{currentHeroCard.brand}</span>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <div className="w-10 h-7 bg-black/10 rounded-md shadow-inner"></div>
-                      <span className="font-bold text-[10px] uppercase tracking-widest opacity-50">Visa Platinum</span>
+                      <div className="w-10 h-7 bg-white/20 rounded-md shadow-inner backdrop-blur-sm"></div>
+                      <span className="font-bold text-[10px] uppercase tracking-widest opacity-80">{currentHeroCard.type}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Floating Badges */}
-              <div className="absolute top-0 right-0 bg-white dark:bg-slate-800 shadow-lg rounded-2xl px-4 py-3 flex items-center gap-2 z-20 animate-float">
-                <span className="material-symbols-outlined text-primary-500">percent</span>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">Hoàn tiền</p>
-                  <p className="text-xs text-primary-500 font-black">đến 5%</p>
+              {[currentHeroCard.badge1, currentHeroCard.badge2, currentHeroCard.badge3, currentHeroCard.badge4].map((badge, idx) => (
+                <div key={idx} className={`absolute ${badge.position} bg-white dark:bg-slate-800 shadow-lg rounded-2xl px-4 py-3 flex items-center gap-2 z-20 animate-float transition-all duration-500 hover:scale-110 cursor-default`} style={{ animationDelay: badge.delay }}>
+                  <span className={`material-symbols-outlined ${badge.color}`}>{badge.icon}</span>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">{badge.title}</p>
+                    <p className={`text-xs ${badge.color} font-black`}>{badge.val}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="absolute top-1/4 -right-4 bg-white dark:bg-slate-800 shadow-lg rounded-2xl px-4 py-3 flex items-center gap-2 z-20" style={{ animationDelay: '1s' }}>
-                <span className="material-symbols-outlined text-blue-500">money_off</span>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">Trả góp</p>
-                  <p className="text-xs text-blue-500 font-black">0% lãi suất</p>
-                </div>
-              </div>
-              <div className="absolute bottom-4 left-0 bg-white dark:bg-slate-800 shadow-lg rounded-2xl px-4 py-3 flex items-center gap-2 z-20">
-                <span className="material-symbols-outlined text-amber-500">account_balance_wallet</span>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">Hạn mức</p>
-                  <p className="text-xs text-amber-500 font-black">đến 1 tỷ</p>
-                </div>
-              </div>
-              <div className="absolute top-1/3 -left-4 bg-white dark:bg-slate-800 shadow-lg rounded-2xl px-4 py-3 flex items-center gap-2 z-20">
-                <span className="material-symbols-outlined text-emerald-500">verified</span>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">Miễn phí</p>
-                  <p className="text-xs text-emerald-500 font-black">thường niên</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
@@ -284,32 +318,14 @@ export default function HomePage() {
         </section>
 
         {/* ===== INTEREST TAGS ===== */}
-        <section className="py-16 pb-0">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-3">Bạn quan tâm điều gì nhất?</h2>
-              <p className="text-slate-500 dark:text-slate-400">Chọn 1 hoặc nhiều nhu cầu để nhận gợi ý chính xác hơn</p>
-            </div>
-            {/* <div className="flex flex-wrap gap-3 justify-center">
-              {interestTags.map((tag) => (
-                <button key={tag} onClick={() => {
-                  setSelectedInterest(tag);
-                  scrollToCards();
-                }}
-                  className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${selectedInterest === tag
-                    ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
-                    : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-slate-700'
-                    }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div> */}
-          </div>
-        </section>
+
 
         {/* ===== CARD LISTING WITH SIDEBAR ===== */}
         <section id="cards-section" className="py-16 bg-slate-50 dark:bg-slate-900/30 border-y border-slate-100 dark:border-slate-800/50">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-3">Bạn quan tâm điều gì nhất?</h2>
+            <p className="text-slate-500 dark:text-slate-400">Chọn 1 hoặc nhiều nhu cầu để nhận gợi ý chính xác hơn</p>
+          </div>
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col lg:flex-row gap-8">
 
@@ -513,8 +529,8 @@ export default function HomePage() {
                             <TooltipProvider delay={100}>
                               <Tooltip>
                                 <TooltipTrigger render={<div className="px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 text-[13px] font-bold flex items-center gap-1.5 bg-amber-50/50 dark:bg-amber-500/10 cursor-help shadow-sm shadow-amber-500/10 transition-all hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:border-amber-300 dark:hover:border-amber-500/50" />}>
-                                    <span className="text-amber-500 text-[14px] leading-none mb-[1px]">★</span>
-                                    <span>{(card.ratings?.overall || 4.8).toFixed(1)}</span>
+                                  <span className="text-amber-500 text-[14px] leading-none mb-[1px]">★</span>
+                                  <span>{(card.ratings?.overall || 4.8).toFixed(1)}</span>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="p-0 bg-white dark:bg-[#121c2d] border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl z-50 min-w-[280px] overflow-hidden">
                                   <div className="flex flex-col w-full">
